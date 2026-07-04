@@ -108,3 +108,37 @@ def test_wb_data_survives_a_later_ozon_failure(monkeypatch):
             ("acme",),
         ).fetchone()["n"]
     assert count == len(WB_ROWS)
+
+
+def test_cli_unknown_client_exits_with_readable_message(monkeypatch, capsys):
+    """The CLI is run by non-developers — a missing clients.json entry must
+    produce a plain instruction, not a KeyError traceback."""
+    monkeypatch.setattr("sys.argv", ["etl.pipeline", "--client", "ghost", "--date-from", "2023-10-01", "--date-to", "2023-10-07"])
+
+    def _raise(client_id):
+        raise KeyError(client_id)
+
+    monkeypatch.setattr(pipeline, "get_client", _raise)
+    with pytest.raises(SystemExit) as excinfo:
+        pipeline.main()
+    assert "clients.json" in str(excinfo.value)
+    assert "ghost" in str(excinfo.value)
+
+
+def test_cli_network_failure_exits_with_readable_message(monkeypatch):
+    import httpx
+
+    monkeypatch.setattr("sys.argv", ["etl.pipeline", "--client", "acme", "--date-from", "2023-10-01", "--date-to", "2023-10-07"])
+    monkeypatch.setattr(
+        pipeline, "get_client",
+        lambda client_id: ClientCredentials(client_id, "wb-key", None, None),
+    )
+
+    class _NetworkFailWB(_FakeWBClient):
+        def fetch_report_detail_by_period(self, date_from, date_to):
+            raise httpx.ConnectError("connection refused")
+
+    monkeypatch.setattr(pipeline, "WildberriesClient", _NetworkFailWB)
+    with pytest.raises(SystemExit) as excinfo:
+        pipeline.main()
+    assert "API-ключи" in str(excinfo.value)

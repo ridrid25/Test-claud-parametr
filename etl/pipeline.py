@@ -7,6 +7,8 @@ invoke directly for a one-off backfill:
 """
 import argparse
 
+import httpx
+
 from config import get_client
 from connectors.ozon import OzonClient
 from connectors.wb import WildberriesClient
@@ -50,7 +52,22 @@ def main() -> None:
     parser.add_argument("--date-to", required=True, help="YYYY-MM-DD")
     args = parser.parse_args()
 
-    result = sync_client(args.client, args.date_from, args.date_to)
+    # The two most common first-run failures (no clients.json entry, API
+    # unreachable / key rejected) get a readable message instead of a raw
+    # traceback — the CLI is run by non-developers following the README.
+    try:
+        result = sync_client(args.client, args.date_from, args.date_to)
+    except KeyError:
+        raise SystemExit(
+            f"Клиент {args.client!r} не найден в clients.json.\n"
+            "Скопируйте clients.example.json в clients.json и впишите ключи клиента "
+            "(см. раздел 'Онбординг клиента' в README.md)."
+        )
+    except httpx.HTTPError as exc:
+        raise SystemExit(
+            f"Не удалось получить данные из API маркетплейса: {exc}\n"
+            "Проверьте, что API-ключи в clients.json действительны и есть доступ в интернет."
+        )
     print(f"WB rows synced: {result['wb_rows']}")
     print(f"Ozon rows synced: {result['ozon_rows']}")
 
