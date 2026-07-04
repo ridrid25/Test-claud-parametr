@@ -9,6 +9,7 @@ each client only ever sees rows tagged with their own client_id.
 """
 import csv
 import io
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Query
@@ -19,14 +20,16 @@ from pydantic import BaseModel
 from analytics.metrics import by_product, deductions_breakdown, funnel, monthly_dynamics, plan_vs_fact
 from storage.db import init_db, set_plan_target
 
-app = FastAPI(title="Marketplace Financial Dashboard")
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(title="Marketplace Financial Dashboard", lifespan=_lifespan)
 
 STATIC_DIR = Path(__file__).parent / "static"
-
-
-@app.on_event("startup")
-def _startup() -> None:
-    init_db()
 
 
 def _filters(
@@ -97,9 +100,12 @@ def export_products_csv(client_id: str, marketplace: str | None = None, date_fro
             f"{row['return_rate']:.2%}", row["mp_expenses"], row["net_revenue"], row["payout"],
             "; ".join(row["red_flags"]),
         ])
+    # BOM so Excel (esp. ru-RU Windows locale) reads the Cyrillic columns as
+    # UTF-8 instead of guessing cp1251 and mangling them.
     buffer.seek(0)
+    content = "﻿" + buffer.read()
     return StreamingResponse(
-        buffer,
+        io.StringIO(content),
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=products.csv"},
     )
