@@ -85,21 +85,44 @@ function renderDeductions(breakdown) {
     .map(([key, label, color]) => ({ key, label, color, value: breakdown[key] || 0 }))
     .sort((a, b) => b.value - a.value);
 
-  el.innerHTML = rows.map(r => `
+  const chart = rows.map(r => `
     <div class="bar-row">
       <span class="bar-label">${r.label}</span>
       <div class="bar-track">
-        <div class="bar-fill" style="width:${(r.value / max * 100).toFixed(1)}%; background:${r.color}"></div>
+        <div class="bar-fill" title="${escapeHtml(r.label)}: ${fmtMoney(r.value)}" style="width:${(r.value / max * 100).toFixed(1)}%; background:${r.color}"></div>
       </div>
       <span class="bar-value">${fmtMoney(r.value)}</span>
     </div>
   `).join("");
+
+  const table = `
+    <button class="data-table-toggle" data-target="deductions-table">Показать таблицу</button>
+    <table id="deductions-table" hidden>
+      <thead><tr><th>Статья</th><th class="num">Сумма</th></tr></thead>
+      <tbody>
+        ${rows.map(r => `<tr><td>${escapeHtml(r.label)}</td><td class="num">${fmtMoney(r.value)}</td></tr>`).join("")}
+      </tbody>
+    </table>
+  `;
+
+  el.innerHTML = chart + table;
+  wireTableToggle(el);
+}
+
+function wireTableToggle(container) {
+  const toggle = container.querySelector(".data-table-toggle");
+  if (!toggle) return;
+  toggle.addEventListener("click", () => {
+    const target = document.getElementById(toggle.dataset.target);
+    target.hidden = !target.hidden;
+    toggle.textContent = target.hidden ? "Показать таблицу" : "Скрыть таблицу";
+  });
 }
 
 function renderDynamics(months) {
   const el = document.getElementById("chart-dynamics");
   if (!months.length) {
-    el.innerHTML = `<p class="muted">Нет данных за выбранный период.</p>`;
+    el.innerHTML = `<p class="hint">Нет данных за выбранный период.</p>`;
     return;
   }
   const max = Math.max(
@@ -117,13 +140,16 @@ function renderDynamics(months) {
     </div>
   `;
 
+  const bar = (value, color, label, month) =>
+    `<div class="col-bar" title="${month} — ${escapeHtml(label)}: ${fmtMoney(value)}" style="height:${Math.max(value / max * 100, 0)}%; background:${color}"></div>`;
+
   const chart = `
     <div class="col-chart">
       ${months.map(m => `
-        <div class="col-group" title="${m.month}">
-          <div class="col-bar" style="height:${Math.max(m.net_revenue / max * 100, 0)}%; background:${SERIES.netRevenue.color}"></div>
-          <div class="col-bar" style="height:${Math.max(m.mp_expenses / max * 100, 0)}%; background:${SERIES.mpExpenses.color}"></div>
-          <div class="col-bar" style="height:${Math.max(m.payout / max * 100, 0)}%; background:${SERIES.payout.color}"></div>
+        <div class="col-group">
+          ${bar(m.net_revenue, SERIES.netRevenue.color, SERIES.netRevenue.label, m.month)}
+          ${bar(m.mp_expenses, SERIES.mpExpenses.color, SERIES.mpExpenses.label, m.month)}
+          ${bar(m.payout, SERIES.payout.color, SERIES.payout.label, m.month)}
         </div>
       `).join("")}
     </div>
@@ -150,11 +176,7 @@ function renderDynamics(months) {
   `;
 
   el.innerHTML = legend + chart + table;
-  el.querySelector(".data-table-toggle").addEventListener("click", (e) => {
-    const target = document.getElementById(e.target.dataset.target);
-    target.hidden = !target.hidden;
-    e.target.textContent = target.hidden ? "Показать таблицу" : "Скрыть таблицу";
-  });
+  wireTableToggle(el);
 }
 
 function productRowHtml(p) {
@@ -193,7 +215,7 @@ function renderReturnsTable(products) {
   const risky = products.filter(p => p.return_rate >= RETURN_RATE_RED_ZONE);
   const el = document.getElementById("table-returns");
   if (!risky.length) {
-    el.innerHTML = `<p class="muted">Товаров с возвратностью ≥ 30% не найдено.</p>`;
+    el.innerHTML = `<p class="hint">Товаров с возвратностью ≥ 30% не найдено.</p>`;
     return;
   }
   el.innerHTML = `
@@ -219,11 +241,11 @@ async function renderPlanFact() {
   const el = document.getElementById("table-plan-fact");
   const period = document.getElementById("plan-period").value.trim();
   if (!period) {
-    el.innerHTML = `<p class="muted">Укажите месяц (YYYY-MM) слева, чтобы увидеть план-факт.</p>`;
+    el.innerHTML = `<p class="hint">Укажите месяц (YYYY-MM) слева, чтобы увидеть план-факт.</p>`;
     return;
   }
   if (!PERIOD_PATTERN.test(period)) {
-    el.innerHTML = `<p class="muted">Месяц должен быть в формате YYYY-MM, например 2023-12.</p>`;
+    el.innerHTML = `<p class="hint">Месяц должен быть в формате YYYY-MM, например 2023-12.</p>`;
     return;
   }
   const filters = currentFilters();
@@ -236,7 +258,7 @@ async function renderPlanFact() {
     });
   } catch (err) {
     console.error(err);
-    el.innerHTML = `<p class="muted">${GENERIC_ERROR_MESSAGE}</p>`;
+    el.innerHTML = `<p class="hint">${GENERIC_ERROR_MESSAGE}</p>`;
     return;
   }
   el.innerHTML = `
@@ -278,7 +300,7 @@ async function refresh() {
   } catch (err) {
     if (generation !== refreshGeneration) return; // superseded by a newer refresh
     console.error(err);
-    document.getElementById("stat-row").innerHTML = `<p class="muted">${GENERIC_ERROR_MESSAGE}</p>`;
+    document.getElementById("stat-row").innerHTML = `<p class="hint">${GENERIC_ERROR_MESSAGE}</p>`;
     return;
   }
 
@@ -297,9 +319,13 @@ async function refresh() {
 function setupTabs() {
   document.querySelectorAll(".tab").forEach(tab => {
     tab.addEventListener("click", () => {
-      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".tab").forEach(t => {
+        t.classList.remove("active");
+        t.setAttribute("aria-selected", "false");
+      });
       document.querySelectorAll(".tab-panel").forEach(p => (p.hidden = true));
       tab.classList.add("active");
+      tab.setAttribute("aria-selected", "true");
       document.querySelector(`.tab-panel[data-panel="${tab.dataset.tab}"]`).hidden = false;
     });
   });
@@ -361,5 +387,5 @@ setupPlanSave();
 // synchronous bug before that point (e.g. a missing DOM element).
 refresh().catch(err => {
   console.error(err);
-  document.getElementById("stat-row").innerHTML = `<p class="muted">${GENERIC_ERROR_MESSAGE}</p>`;
+  document.getElementById("stat-row").innerHTML = `<p class="hint">${GENERIC_ERROR_MESSAGE}</p>`;
 });

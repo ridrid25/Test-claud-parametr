@@ -76,16 +76,16 @@
       <h2>Выручка, удержания и выплаты</h2>
     </header>
 
-    <nav class="tabs">
-      <button class="tab active" data-tab="overview">Обзор</button>
-      <button class="tab" data-tab="products">Товары</button>
-      <button class="tab" data-tab="returns">Возвраты</button>
-      <button class="tab" data-tab="control">Контроль</button>
+    <nav class="tabs" role="tablist">
+      <button class="tab active" role="tab" aria-selected="true" aria-controls="panel-overview" id="tab-overview" data-tab="overview">Обзор</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-products" id="tab-products" data-tab="products">Товары</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-returns" id="tab-returns" data-tab="returns">Возвраты</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-control" id="tab-control" data-tab="control">Контроль</button>
     </nav>
 
     <section class="stat-row" id="stat-row"></section>
 
-    <section class="tab-panel" data-panel="overview">
+    <section class="tab-panel" data-panel="overview" role="tabpanel" id="panel-overview" aria-labelledby="tab-overview">
       <div class="card">
         <div class="card-header">
           <h3>Динамика по месяцам</h3>
@@ -102,7 +102,7 @@
       </div>
     </section>
 
-    <section class="tab-panel" data-panel="products" hidden>
+    <section class="tab-panel" data-panel="products" role="tabpanel" id="panel-products" aria-labelledby="tab-products" hidden>
       <div class="card">
         <div class="card-header">
           <h3>Товары</h3>
@@ -112,7 +112,7 @@
       </div>
     </section>
 
-    <section class="tab-panel" data-panel="returns" hidden>
+    <section class="tab-panel" data-panel="returns" role="tabpanel" id="panel-returns" aria-labelledby="tab-returns" hidden>
       <div class="card">
         <div class="card-header">
           <h3>Возвратность по товарам</h3>
@@ -122,7 +122,7 @@
       </div>
     </section>
 
-    <section class="tab-panel" data-panel="control" hidden>
+    <section class="tab-panel" data-panel="control" role="tabpanel" id="panel-control" aria-labelledby="tab-control" hidden>
       <div class="card">
         <div class="card-header">
           <h3>План-факт</h3>

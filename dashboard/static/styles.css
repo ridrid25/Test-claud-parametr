@@ -121,6 +121,10 @@ body {
 
 .sidebar-title h1 { font-size: 21px; margin: 6px 0 4px; letter-spacing: -0.01em; }
 .muted { color: var(--text-muted); font-size: 13px; }
+/* Same size as .muted but text-secondary contrast — for empty-state/error
+   copy that's informational, not decorative (text-muted is sub-AA by design
+   for de-emphasized labels, which is wrong for content the user must read). */
+.hint { color: var(--text-secondary); font-size: 13px; }
 
 .sidebar-section {
   display: flex;
@@ -324,7 +328,9 @@ td.num, th.num { text-align: right; }
 .bar-row { display: flex; align-items: center; gap: var(--space-3); margin: var(--space-2) 0; }
 .bar-row .bar-label { width: 130px; font-size: 12.5px; color: var(--text-secondary); flex-shrink: 0; }
 .bar-row .bar-track { flex: 1; background: var(--surface-2); border-radius: var(--radius-sm); height: 20px; position: relative; overflow: hidden; }
-.bar-row .bar-fill { height: 100%; border-radius: var(--radius-sm); transition: width 240ms ease; }
+/* Square at the baseline (left), rounded only at the data end (right) —
+   per the mark spec, not rounded on all four corners. */
+.bar-row .bar-fill { height: 100%; border-radius: 0 4px 4px 0; transition: width 240ms ease; }
 .bar-row .bar-value { width: 100px; text-align: right; font-size: 12.5px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
 
 .col-chart {
@@ -339,7 +345,7 @@ td.num, th.num { text-align: right; }
 .col-group {
   display: flex;
   align-items: flex-end;
-  gap: 3px;
+  gap: 2px;
   flex: 1;
   height: 100%;
 }
@@ -362,7 +368,9 @@ td.num, th.num { text-align: right; }
   flex: 1;
   text-align: center;
   font-size: 11px;
-  color: var(--text-muted);
+  /* text-secondary, not text-muted — these are the chart's axis labels, not
+     decoration, and text-muted is sub-AA contrast at this size. */
+  color: var(--text-secondary);
 }
 
 .data-table-toggle {
