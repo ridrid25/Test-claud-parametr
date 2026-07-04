@@ -42,6 +42,13 @@ def normalize_ozon_operation(client_id: str, operation: dict) -> list[dict]:
     service_buckets = _classify_services(operation.get("services"))
     is_penalty = op_type == "penalty" or "penalty" in operation.get("operation_type", "").lower()
     amount = float(operation.get("amount") or 0)
+    # Unverified assumption: commission is always treated as a positive
+    # expense, including on returns. If Ozon reports a negative
+    # sale_commission on a return (i.e. a commission refund), forcing it
+    # positive here would double-count it as an expense instead of netting
+    # it out. None of the sample data includes a return with a non-zero
+    # commission, so this hasn't been checked against a real example —
+    # revisit if a client's Ozon returns show an unexplained expense bump.
     commission = abs(float(operation.get("sale_commission") or 0))
     operation_id = operation.get("operation_id")
     period_date = (operation.get("operation_date") or "")[:10]

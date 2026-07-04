@@ -33,6 +33,12 @@ CREATE TABLE IF NOT EXISTS transactions (
     source_report TEXT NOT NULL,
     raw_ref TEXT NOT NULL,
     ingested_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- raw_ref (WB rrd_id / Ozon operation_id) is assumed unique per client
+    -- for the lifetime of that client's data. It's assigned by the
+    -- marketplace, not us — if WB or Ozon ever reused one for a different
+    -- operation, a later upsert would silently overwrite the earlier row
+    -- instead of erroring. Not observed in practice, but worth knowing if
+    -- synced totals ever look wrong after a re-run.
     UNIQUE(client_id, marketplace, raw_ref)
 );
 
