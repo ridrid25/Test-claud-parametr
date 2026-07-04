@@ -54,7 +54,12 @@ class OzonClient:
             if not operations:
                 return
             yield from operations
-            if page >= result.get("page_count", page):
+            # Only stop early if the API actually told us the total page
+            # count — defaulting to the current page here would make
+            # `page >= page` true on page 1 and silently drop every
+            # remaining page whenever page_count is absent from a response.
+            page_count = result.get("page_count")
+            if page_count is not None and page >= page_count:
                 return
             page += 1
 

@@ -83,6 +83,24 @@ def test_ozon_stops_when_no_operations():
     assert rows == []
 
 
+def test_ozon_keeps_paginating_when_page_count_missing():
+    """A response missing page_count must not be treated as the last page —
+    only an empty operations list may terminate pagination in that case."""
+    def handler(request: httpx.Request) -> httpx.Response:
+        page = json.loads(request.content)["page"]
+        if page == 1:
+            return httpx.Response(200, json={"result": {"operations": [{"operation_id": 1}]}})
+        if page == 2:
+            return httpx.Response(200, json={"result": {"operations": [{"operation_id": 2}]}})
+        if page == 3:
+            return httpx.Response(200, json={"result": {"operations": []}})
+        raise AssertionError(f"unexpected page={page}")
+
+    client = OzonClient("cid", "key", transport=httpx.MockTransport(handler))
+    rows = list(client.fetch_transactions("2023-10-01", "2023-10-31"))
+    assert [r["operation_id"] for r in rows] == [1, 2]
+
+
 def test_ozon_retries_after_429(monkeypatch):
     monkeypatch.setattr(ozon_module.time, "sleep", lambda seconds: None)
     attempts = {"count": 0}

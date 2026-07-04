@@ -15,7 +15,10 @@ def _num(row: dict, *keys: str) -> float:
 
 
 def normalize_wb_row(client_id: str, row: dict) -> dict:
-    doc_type = row.get("doc_type_name", "")
+    # .strip() guards against a stray trailing/leading space in WB's export
+    # silently misclassifying a return as a sale (they'd otherwise compare
+    # unequal to the exact literal "Возврат").
+    doc_type = (row.get("doc_type_name") or "").strip()
     retail_amount = _num(row, "retail_amount")
     date = row.get("sale_dt") or row.get("rr_dt") or row.get("order_dt") or ""
 
@@ -25,7 +28,9 @@ def normalize_wb_row(client_id: str, row: dict) -> dict:
         "period_date": date[:10],
         "sku": row.get("sa_name") or str(row.get("nm_id", "")),
         "product_name": row.get("subject_name") or "",
-        "quantity": int(row.get("quantity") or 0),
+        # int() rejects a decimal-string quantity like "2.0" outright — go
+        # through float() first so one such row doesn't crash the whole batch.
+        "quantity": int(float(row.get("quantity") or 0)),
         "realization": retail_amount if doc_type != "Возврат" else 0.0,
         "returns": retail_amount if doc_type == "Возврат" else 0.0,
         "commission": _num(row, "ppvz_sales_commission", "ppvz_vw"),

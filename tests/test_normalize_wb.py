@@ -58,3 +58,17 @@ def test_standalone_fee_row_does_not_inflate_realization():
     assert row["returns"] == 0
     assert row["storage"] == 45
     assert row["payout"] == -45
+
+
+def test_doc_type_with_stray_whitespace_still_classified_as_return():
+    padded_return_row = dict(FIXTURE[1])
+    padded_return_row["doc_type_name"] = " Возврат "
+    row = normalize_wb_rows("acme", [padded_return_row])[0]
+    assert row["realization"] == 0
+    assert row["returns"] == 2000
+
+
+def test_decimal_string_quantity_does_not_crash():
+    row = {**FIXTURE[0], "quantity": "2.0"}
+    normalized = normalize_wb_rows("acme", [row])[0]
+    assert normalized["quantity"] == 2
