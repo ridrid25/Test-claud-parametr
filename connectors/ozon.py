@@ -20,11 +20,12 @@ MAX_RETRIES = 5
 
 
 class OzonClient:
-    def __init__(self, client_id: str, api_key: str, timeout: float = 60.0):
+    def __init__(self, client_id: str, api_key: str, timeout: float = 60.0, transport: httpx.BaseTransport | None = None):
         self._client = httpx.Client(
             base_url=BASE_URL,
             headers={"Client-Id": client_id, "Api-Key": api_key},
             timeout=timeout,
+            transport=transport,
         )
 
     def close(self) -> None:

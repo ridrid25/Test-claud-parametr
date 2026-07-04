@@ -8,6 +8,16 @@ Field names come from the documented Wildberries report schema. WB has
 changed field names before, so if a client's data comes back with unexpected
 gaps, re-check the row shape against the current WB API docs before assuming
 a bug in normalize_wb.py.
+
+DEADLINE: as of July 2026, WB has announced this exact endpoint
+(GET /api/v5/supplier/reportDetailByPeriod) will be switched off on
+2026-07-15, replaced by two new "Finance" category endpoints:
+POST /api/finance/v1/sales-reports/list (list report IDs) and
+POST /api/finance/v1/sales-reports/detailed/{reportId} (row detail per
+report). Their exact request/response shape wasn't verifiable from this
+environment (dev.wildberries.ru blocks automated fetches) — confirm the
+new schema against a live token before the cutover and update this client
+and normalize_wb.py together.
 """
 import time
 from typing import Iterator
@@ -22,11 +32,12 @@ MAX_RETRIES = 5
 
 
 class WildberriesClient:
-    def __init__(self, api_key: str, timeout: float = 60.0):
+    def __init__(self, api_key: str, timeout: float = 60.0, transport: httpx.BaseTransport | None = None):
         self._client = httpx.Client(
             base_url=BASE_URL,
             headers={"Authorization": api_key},
             timeout=timeout,
+            transport=transport,
         )
 
     def close(self) -> None:
