@@ -10,51 +10,63 @@
 <div class="layout">
   <aside class="sidebar">
     <div class="sidebar-title">
-      <div class="eyebrow">Финтабло / МП</div>
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <span class="eyebrow">Финтабло / МП</span>
+      </div>
       <h1>Маркетплейсы</h1>
       <p class="muted">ВБ и Ozon</p>
     </div>
 
-    <label class="field">
-      <span>Клиент</span>
-      <input id="f-client" type="text" value="demo" />
-    </label>
+    <div class="sidebar-section">
+      <span class="sidebar-section-title">Фильтры</span>
 
-    <label class="field">
-      <span>Маркетплейс</span>
-      <select id="f-marketplace">
-        <option value="">Все</option>
-        <option value="wb">Wildberries</option>
-        <option value="ozon">Ozon</option>
-      </select>
-    </label>
+      <label class="field">
+        <span>Клиент</span>
+        <input id="f-client" type="text" value="demo" />
+      </label>
 
-    <label class="field">
-      <span>С даты</span>
-      <input id="f-date-from" type="date" />
-    </label>
+      <label class="field">
+        <span>Маркетплейс</span>
+        <select id="f-marketplace">
+          <option value="">Все</option>
+          <option value="wb">Wildberries</option>
+          <option value="ozon">Ozon</option>
+        </select>
+      </label>
 
-    <label class="field">
-      <span>По дату</span>
-      <input id="f-date-to" type="date" />
-    </label>
+      <label class="field">
+        <span>С даты</span>
+        <input id="f-date-from" type="date" />
+      </label>
 
-    <label class="field">
-      <span>Поиск товара</span>
-      <input id="f-search" type="text" placeholder="Название или SKU" />
-    </label>
+      <label class="field">
+        <span>По дату</span>
+        <input id="f-date-to" type="date" />
+      </label>
 
-    <div class="field-group">
-      <span>План-факт (месяц YYYY-MM)</span>
-      <input id="plan-period" type="text" placeholder="2023-12" />
-      <input id="plan-net-revenue" type="number" placeholder="План чистой выручки" />
-      <input id="plan-payout" type="number" placeholder="План к выплате" />
-      <button id="save-plan">Сохранить план</button>
+      <label class="field">
+        <span>Поиск товара</span>
+        <input id="f-search" type="text" placeholder="Название или SKU" />
+      </label>
     </div>
 
-    <div class="field-group">
-      <span>Экспорт</span>
-      <a id="export-csv" href="#" class="btn-link">Товары CSV</a>
+    <div class="sidebar-section">
+      <span class="sidebar-section-title">План-факт</span>
+      <div class="field-group">
+        <span>Месяц (YYYY-MM)</span>
+        <input id="plan-period" type="text" placeholder="2023-12" />
+        <input id="plan-net-revenue" type="number" placeholder="План чистой выручки" />
+        <input id="plan-payout" type="number" placeholder="План к выплате" />
+        <button id="save-plan" class="primary">Сохранить план</button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <span class="sidebar-section-title">Экспорт</span>
+      <div class="field-group">
+        <a id="export-csv" href="#" class="btn-link">Товары CSV</a>
+      </div>
     </div>
   </aside>
 
