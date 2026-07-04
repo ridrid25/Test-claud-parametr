@@ -72,3 +72,23 @@ def test_decimal_string_quantity_does_not_crash():
     row = {**FIXTURE[0], "quantity": "2.0"}
     normalized = normalize_wb_rows("acme", [row])[0]
     assert normalized["quantity"] == 2
+
+
+def test_commission_falls_back_to_ppvz_vw_when_primary_field_absent():
+    """None of the fixtures exercise the fallback key in _num(row,
+    "ppvz_sales_commission", "ppvz_vw") — every sample row happens to have
+    the primary key. WB has renamed report fields before (see the README's
+    2026-07-15 migration note), so this fallback needs its own coverage."""
+    row = {**FIXTURE[0]}
+    del row["ppvz_sales_commission"]
+    row["ppvz_vw"] = 555
+    normalized = normalize_wb_rows("acme", [row])[0]
+    assert normalized["commission"] == 555
+
+
+def test_logistics_falls_back_to_delivery_amount_when_primary_field_absent():
+    row = {**FIXTURE[0]}
+    del row["delivery_rub"]
+    row["delivery_amount"] = 222
+    normalized = normalize_wb_rows("acme", [row])[0]
+    assert normalized["logistics"] == 222

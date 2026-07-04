@@ -65,3 +65,49 @@ def test_plan_vs_fact_computes_delta(seeded_db):
     net_revenue_row = next(r for r in results if r["metric"] == "net_revenue")
     assert net_revenue_row["plan"] == 1000
     assert net_revenue_row["delta"] == pytest.approx(net_revenue_row["fact"] - 1000)
+
+
+def test_deductions_breakdown_filters_by_marketplace(seeded_db):
+    wb_only = deductions_breakdown(seeded_db, marketplace="wb")
+    assert wb_only["commission"] == 680 + 1200
+    ozon_only = deductions_breakdown(seeded_db, marketplace="ozon")
+    assert ozon_only["commission"] == 900
+
+
+def test_by_product_filters_by_marketplace(seeded_db):
+    wb_only = by_product(seeded_db, marketplace="wb")
+    assert {p["sku"] for p in wb_only} == {"SKU-RED-DRESS-M", "SKU-BLUE-SHIRT-L"}
+    ozon_only = by_product(seeded_db, marketplace="ozon")
+    assert {p["sku"] for p in ozon_only} == {"12345", "67890"}
+
+
+def test_monthly_dynamics_filters_by_marketplace(seeded_db):
+    wb_only = monthly_dynamics(seeded_db, marketplace="wb")
+    # WB fixture rows only fall in Oct and Nov; Ozon's Oct order shouldn't
+    # leak into a WB-filtered Oct total.
+    october = next(m for m in wb_only if m["month"] == "2023-10")
+    assert october["realization"] == 4000  # WB-only, not 4000+6000 with Ozon mixed in
+
+
+def test_plan_vs_fact_filters_by_marketplace(seeded_db):
+    results = plan_vs_fact(seeded_db, "2023-10", marketplace="ozon")
+    net_revenue_row = next(r for r in results if r["metric"] == "net_revenue")
+    assert net_revenue_row["fact"] == 6000  # Ozon-only Oct realization, no returns that month
+
+
+def test_empty_client_returns_zeroed_funnel_not_an_error(seeded_db):
+    result = funnel("no-such-client")
+    assert result == {"realization": 0, "returns": 0, "net_revenue": 0, "mp_expenses": 0, "payout": 0}
+
+
+def test_empty_client_returns_empty_lists_not_an_error(seeded_db):
+    assert by_product("no-such-client") == []
+    assert monthly_dynamics("no-such-client") == []
+
+
+def test_empty_client_plan_vs_fact_has_no_plan_and_zero_fact(seeded_db):
+    results = plan_vs_fact("no-such-client", "2023-10")
+    for row in results:
+        assert row["plan"] is None
+        assert row["fact"] == 0
+        assert row["delta"] is None

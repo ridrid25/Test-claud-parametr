@@ -70,3 +70,45 @@ def test_single_item_operation_keeps_plain_raw_ref():
     re-sync of already-stored data doesn't create duplicate rows."""
     row = normalize_ozon_rows("acme", [FIXTURE[0]])[0]
     assert row["raw_ref"] == "900001"
+
+
+def test_penalty_operation_maps_to_penalty_bucket():
+    """None of the sample fixtures exercise Ozon's penalty path — construct
+    one directly so the is_penalty branch in normalize_ozon.py has coverage."""
+    penalty_op = {
+        "operation_id": 900005,
+        "operation_type": "OperationMarketplaceWithHoldingForUndeliverableGoods",
+        "operation_date": "2023-11-05T00:00:00Z",
+        "type": "penalty",
+        "items": [{"sku": 555, "name": "Товар В"}],
+        "accruals_for_sale": 0,
+        "sale_commission": 0,
+        "services": [],
+        "amount": -350,
+    }
+    row = normalize_ozon_rows("acme", [penalty_op])[0]
+    assert row["penalty"] == 350
+    assert row["realization"] == 0
+    assert row["returns"] == 0
+    assert row["payout"] == -350
+
+
+def test_unrecognized_service_falls_into_other_deduction():
+    """A service name that doesn't match the logistics/storage/promotion
+    keyword lists must still be counted somewhere, not silently dropped."""
+    op = {
+        "operation_id": 900006,
+        "operation_type": "OperationAgentDeliveredToCustomer",
+        "operation_date": "2023-11-06T00:00:00Z",
+        "type": "orders",
+        "items": [{"sku": 777, "name": "Товар Г"}],
+        "accruals_for_sale": 1000,
+        "sale_commission": 0,
+        "services": [{"name": "MarketplaceServiceSomeNewFeeCode", "price": -50}],
+        "amount": 950,
+    }
+    row = normalize_ozon_rows("acme", [op])[0]
+    assert row["other_deduction"] == 50
+    assert row["logistics"] == 0
+    assert row["storage"] == 0
+    assert row["promotion"] == 0
