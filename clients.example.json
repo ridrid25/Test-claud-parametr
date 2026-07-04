@@ -1,0 +1,8 @@
+[
+  {
+    "client_id": "demo",
+    "wb_api_key": "WB_API_KEY_FROM_SELLER_CABINET",
+    "ozon_client_id": "OZON_CLIENT_ID",
+    "ozon_api_key": "OZON_API_KEY"
+  }
+]

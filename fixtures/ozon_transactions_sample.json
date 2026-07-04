@@ -1,0 +1,42 @@
+[
+  {
+    "operation_id": 900001,
+    "operation_type": "OperationAgentDeliveredToCustomer",
+    "operation_date": "2023-10-12T00:00:00Z",
+    "type": "orders",
+    "items": [{"sku": 12345, "name": "Кроссовки беговые"}],
+    "accruals_for_sale": 6000,
+    "sale_commission": 900,
+    "services": [
+      {"name": "MarketplaceServiceItemDeliveryToCustomer", "price": -250},
+      {"name": "MarketplaceServiceItemStorageEntrepot", "price": -30}
+    ],
+    "amount": 4820
+  },
+  {
+    "operation_id": 900002,
+    "operation_type": "OperationReturnGoodsFBSofRMS",
+    "operation_date": "2023-11-02T00:00:00Z",
+    "type": "returns",
+    "items": [{"sku": 12345, "name": "Кроссовки беговые"}],
+    "accruals_for_sale": -3000,
+    "sale_commission": 0,
+    "services": [
+      {"name": "MarketplaceServiceItemReturnFlowTrans", "price": -120}
+    ],
+    "amount": -3120
+  },
+  {
+    "operation_id": 900003,
+    "operation_type": "MarketplaceServicePremiumPromotion",
+    "operation_date": "2023-11-15T00:00:00Z",
+    "type": "services",
+    "items": [{"sku": 67890, "name": "Кепка летняя"}],
+    "accruals_for_sale": 0,
+    "sale_commission": 0,
+    "services": [
+      {"name": "MarketplaceServicePremiumPromotion", "price": -200}
+    ],
+    "amount": -200
+  }
+]

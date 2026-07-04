@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Финансовый срез — Маркетплейсы</title>
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-title">
+      <div class="eyebrow">Финтабло / МП</div>
+      <h1>Маркетплейсы</h1>
+      <p class="muted">ВБ и Ozon</p>
+    </div>
+
+    <label class="field">
+      <span>Клиент</span>
+      <input id="f-client" type="text" value="demo" />
+    </label>
+
+    <label class="field">
+      <span>Маркетплейс</span>
+      <select id="f-marketplace">
+        <option value="">Все</option>
+        <option value="wb">Wildberries</option>
+        <option value="ozon">Ozon</option>
+      </select>
+    </label>
+
+    <label class="field">
+      <span>С даты</span>
+      <input id="f-date-from" type="date" />
+    </label>
+
+    <label class="field">
+      <span>По дату</span>
+      <input id="f-date-to" type="date" />
+    </label>
+
+    <label class="field">
+      <span>Поиск товара</span>
+      <input id="f-search" type="text" placeholder="Название или SKU" />
+    </label>
+
+    <div class="field-group">
+      <span>План-факт (месяц YYYY-MM)</span>
+      <input id="plan-period" type="text" placeholder="2023-12" />
+      <input id="plan-net-revenue" type="number" placeholder="План чистой выручки" />
+      <input id="plan-payout" type="number" placeholder="План к выплате" />
+      <button id="save-plan">Сохранить план</button>
+    </div>
+
+    <div class="field-group">
+      <span>Экспорт</span>
+      <a id="export-csv" href="#" class="btn-link">Товары CSV</a>
+    </div>
+  </aside>
+
+  <main class="content">
+    <header class="content-header">
+      <div class="eyebrow">Финансовый срез</div>
+      <h2>Выручка, удержания и выплаты</h2>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="overview">Обзор</button>
+      <button class="tab" data-tab="products">Товары</button>
+      <button class="tab" data-tab="returns">Возвраты</button>
+      <button class="tab" data-tab="control">Контроль</button>
+    </nav>
+
+    <section class="stat-row" id="stat-row"></section>
+
+    <section class="tab-panel" data-panel="overview">
+      <div class="card">
+        <div class="card-header">
+          <h3>Динамика по месяцам</h3>
+          <span class="muted">чистая выручка, расходы и выплаты</span>
+        </div>
+        <div id="chart-dynamics"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Структура удержаний</h3>
+          <span class="muted">в разрезе статей</span>
+        </div>
+        <div id="chart-deductions"></div>
+      </div>
+    </section>
+
+    <section class="tab-panel" data-panel="products" hidden>
+      <div class="card">
+        <div class="card-header">
+          <h3>Товары</h3>
+          <span class="muted">по чистой выручке и красным зонам</span>
+        </div>
+        <div id="table-products"></div>
+      </div>
+    </section>
+
+    <section class="tab-panel" data-panel="returns" hidden>
+      <div class="card">
+        <div class="card-header">
+          <h3>Возвратность по товарам</h3>
+          <span class="muted">товары с возвратностью ≥ 30%</span>
+        </div>
+        <div id="table-returns"></div>
+      </div>
+    </section>
+
+    <section class="tab-panel" data-panel="control" hidden>
+      <div class="card">
+        <div class="card-header">
+          <h3>План-факт</h3>
+          <span class="muted">по текущему фильтру</span>
+        </div>
+        <div id="table-plan-fact"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
