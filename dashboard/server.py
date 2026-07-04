@@ -11,6 +11,7 @@ import csv
 import io
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Literal
 
 from fastapi import FastAPI, Query
 from fastapi.responses import StreamingResponse
@@ -32,32 +33,22 @@ app = FastAPI(title="Marketplace Financial Dashboard", lifespan=_lifespan)
 STATIC_DIR = Path(__file__).parent / "static"
 
 
-def _filters(
-    client_id: str = Query(...),
-    marketplace: str | None = Query(None, pattern="^(wb|ozon)$"),
-    date_from: str | None = Query(None),
-    date_to: str | None = Query(None),
-) -> dict:
-    return {
-        "client_id": client_id,
-        "marketplace": marketplace,
-        "date_from": date_from,
-        "date_to": date_to,
-    }
+MarketplaceQuery = Query(None, pattern="^(wb|ozon)$")
+PeriodQuery = Query(..., pattern=r"^\d{4}-(0[1-9]|1[0-2])$", description="YYYY-MM")
 
 
 @app.get("/api/summary")
-def api_summary(client_id: str, marketplace: str | None = None, date_from: str | None = None, date_to: str | None = None):
+def api_summary(client_id: str, marketplace: str | None = MarketplaceQuery, date_from: str | None = None, date_to: str | None = None):
     return funnel(client_id, marketplace, date_from, date_to)
 
 
 @app.get("/api/deductions")
-def api_deductions(client_id: str, marketplace: str | None = None, date_from: str | None = None, date_to: str | None = None):
+def api_deductions(client_id: str, marketplace: str | None = MarketplaceQuery, date_from: str | None = None, date_to: str | None = None):
     return deductions_breakdown(client_id, marketplace, date_from, date_to)
 
 
 @app.get("/api/products")
-def api_products(client_id: str, marketplace: str | None = None, date_from: str | None = None, date_to: str | None = None, search: str | None = None):
+def api_products(client_id: str, marketplace: str | None = MarketplaceQuery, date_from: str | None = None, date_to: str | None = None, search: str | None = None):
     rows = by_product(client_id, marketplace, date_from, date_to)
     if search:
         needle = search.lower()
@@ -66,19 +57,19 @@ def api_products(client_id: str, marketplace: str | None = None, date_from: str 
 
 
 @app.get("/api/dynamics")
-def api_dynamics(client_id: str, marketplace: str | None = None, date_from: str | None = None, date_to: str | None = None):
+def api_dynamics(client_id: str, marketplace: str | None = MarketplaceQuery, date_from: str | None = None, date_to: str | None = None):
     return monthly_dynamics(client_id, marketplace, date_from, date_to)
 
 
 @app.get("/api/plan-fact")
-def api_plan_fact(client_id: str, period: str, marketplace: str | None = None):
+def api_plan_fact(client_id: str, period: str = PeriodQuery, marketplace: str | None = MarketplaceQuery):
     return plan_vs_fact(client_id, period, marketplace)
 
 
 class PlanTargetIn(BaseModel):
     client_id: str
     period: str  # "YYYY-MM"
-    metric: str  # "net_revenue" | "payout"
+    metric: Literal["net_revenue", "payout"]
     plan_value: float
 
 
@@ -88,17 +79,30 @@ def api_set_plan(target: PlanTargetIn):
     return {"status": "ok"}
 
 
+_CSV_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _csv_safe(value: str) -> str:
+    """Neutralize CSV formula injection: Excel/Sheets evaluate a cell as a
+    formula if it starts with =, +, -, or @ — guard it so a marketplace-
+    supplied product name can't run a formula when the export is opened."""
+    text = str(value)
+    if text.startswith(_CSV_FORMULA_PREFIXES):
+        return "'" + text
+    return text
+
+
 @app.get("/api/export/products.csv")
-def export_products_csv(client_id: str, marketplace: str | None = None, date_from: str | None = None, date_to: str | None = None):
+def export_products_csv(client_id: str, marketplace: str | None = MarketplaceQuery, date_from: str | None = None, date_to: str | None = None):
     rows = by_product(client_id, marketplace, date_from, date_to)
     buffer = io.StringIO()
     writer = csv.writer(buffer)
     writer.writerow(["sku", "product_name", "realization", "returns", "return_rate", "mp_expenses", "net_revenue", "payout", "red_flags"])
     for row in rows:
         writer.writerow([
-            row["sku"], row["product_name"], row["realization"], row["returns"],
+            _csv_safe(row["sku"]), _csv_safe(row["product_name"]), row["realization"], row["returns"],
             f"{row['return_rate']:.2%}", row["mp_expenses"], row["net_revenue"], row["payout"],
-            "; ".join(row["red_flags"]),
+            _csv_safe("; ".join(row["red_flags"])),
         ])
     # BOM so Excel (esp. ru-RU Windows locale) reads the Cyrillic columns as
     # UTF-8 instead of guessing cp1251 and mangling them.

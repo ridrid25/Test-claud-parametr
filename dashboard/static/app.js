@@ -17,12 +17,23 @@ const DEDUCTION_LABELS = [
 // here only to filter the already-fetched product list, not to recompute it.
 const RETURN_RATE_RED_ZONE = 0.30;
 
+const PERIOD_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+const GENERIC_ERROR_MESSAGE = "Не удалось загрузить данные. Проверьте соединение с сервером и попробуйте ещё раз.";
+
 function fmtMoney(value) {
   return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(value) + " ₽";
 }
 
 function fmtPercent(value) {
   return (value * 100).toFixed(1) + "%";
+}
+
+// product_name/sku come from marketplace-supplied catalog data (seller listing
+// titles), not something we control — escape before templating into innerHTML.
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  })[ch]);
 }
 
 function currentFilters() {
@@ -150,7 +161,7 @@ function productRowHtml(p) {
   const flags = p.red_flags.map(f => `<span class="flag">${f}</span>`).join("");
   return `
     <tr>
-      <td>${p.product_name || "—"}<br /><span class="muted">${p.sku}</span></td>
+      <td>${escapeHtml(p.product_name) || "—"}<br /><span class="muted">${escapeHtml(p.sku)}</span></td>
       <td class="num">${fmtMoney(p.realization)}</td>
       <td class="num">${fmtMoney(p.returns)}</td>
       <td class="num">${fmtPercent(p.return_rate)}</td>
@@ -193,7 +204,7 @@ function renderReturnsTable(products) {
       <tbody>
         ${risky.map(p => `
           <tr>
-            <td>${p.product_name || "—"}<br /><span class="muted">${p.sku}</span></td>
+            <td>${escapeHtml(p.product_name) || "—"}<br /><span class="muted">${escapeHtml(p.sku)}</span></td>
             <td class="num">${fmtPercent(p.return_rate)}</td>
             <td class="num">${fmtMoney(p.realization)}</td>
             <td class="num">${fmtMoney(p.returns)}</td>
@@ -211,12 +222,23 @@ async function renderPlanFact() {
     el.innerHTML = `<p class="muted">Укажите месяц (YYYY-MM) слева, чтобы увидеть план-факт.</p>`;
     return;
   }
+  if (!PERIOD_PATTERN.test(period)) {
+    el.innerHTML = `<p class="muted">Месяц должен быть в формате YYYY-MM, например 2023-12.</p>`;
+    return;
+  }
   const filters = currentFilters();
-  const rows = await fetchJSON("/api/plan-fact", {
-    client_id: filters.client_id,
-    period,
-    ...(filters.marketplace ? { marketplace: filters.marketplace } : {}),
-  });
+  let rows;
+  try {
+    rows = await fetchJSON("/api/plan-fact", {
+      client_id: filters.client_id,
+      period,
+      ...(filters.marketplace ? { marketplace: filters.marketplace } : {}),
+    });
+  } catch (err) {
+    console.error(err);
+    el.innerHTML = `<p class="muted">${GENERIC_ERROR_MESSAGE}</p>`;
+    return;
+  }
   el.innerHTML = `
     <table>
       <thead><tr><th>Метрика</th><th class="num">План</th><th class="num">Факт</th><th class="num">Отклонение</th></tr></thead>
@@ -234,14 +256,35 @@ async function renderPlanFact() {
   `;
 }
 
+let refreshGeneration = 0;
+
 async function refresh() {
   const filters = currentFilters();
-  const [summary, deductions, dynamics, products] = await Promise.all([
-    fetchJSON("/api/summary", filters),
-    fetchJSON("/api/deductions", filters),
-    fetchJSON("/api/dynamics", filters),
-    fetchJSON("/api/products", filters),
-  ]);
+  // Set synchronously, before any await, so the export link always matches
+  // the filters that were active when this refresh started — even if the
+  // fetches below fail or a newer refresh supersedes this one.
+  document.getElementById("export-csv").href = `/api/export/products.csv?${toQuery(filters)}`;
+
+  const generation = ++refreshGeneration;
+
+  let summary, deductions, dynamics, products;
+  try {
+    [summary, deductions, dynamics, products] = await Promise.all([
+      fetchJSON("/api/summary", filters),
+      fetchJSON("/api/deductions", filters),
+      fetchJSON("/api/dynamics", filters),
+      fetchJSON("/api/products", filters),
+    ]);
+  } catch (err) {
+    if (generation !== refreshGeneration) return; // superseded by a newer refresh
+    console.error(err);
+    document.getElementById("stat-row").innerHTML = `<p class="muted">${GENERIC_ERROR_MESSAGE}</p>`;
+    return;
+  }
+
+  // A newer refresh() started (and may already have rendered) while this one
+  // was in flight — drop this now-stale response instead of overwriting.
+  if (generation !== refreshGeneration) return;
 
   renderStatRow(summary);
   renderDeductions(deductions);
@@ -249,8 +292,6 @@ async function refresh() {
   renderProductsTable(products);
   renderReturnsTable(products);
   await renderPlanFact();
-
-  document.getElementById("export-csv").href = `/api/export/products.csv?${toQuery(filters)}`;
 }
 
 function setupTabs() {
@@ -276,23 +317,33 @@ function setupPlanSave() {
   document.getElementById("save-plan").addEventListener("click", async () => {
     const client_id = currentFilters().client_id;
     const period = document.getElementById("plan-period").value.trim();
-    if (!period) return;
+    if (!period || !PERIOD_PATTERN.test(period)) {
+      alert("Укажите месяц в формате YYYY-MM, например 2023-12.");
+      return;
+    }
     const netRevenue = document.getElementById("plan-net-revenue").value;
     const payout = document.getElementById("plan-payout").value;
     const calls = [];
     if (netRevenue) calls.push(postPlan(client_id, period, "net_revenue", netRevenue));
     if (payout) calls.push(postPlan(client_id, period, "payout", payout));
-    await Promise.all(calls);
+    try {
+      await Promise.all(calls);
+    } catch (err) {
+      console.error(err);
+      alert("Не удалось сохранить план. Проверьте значения и попробуйте ещё раз.");
+      return;
+    }
     await renderPlanFact();
   });
 }
 
 async function postPlan(client_id, period, metric, plan_value) {
-  await fetch("/api/plan", {
+  const res = await fetch("/api/plan", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ client_id, period, metric, plan_value: Number(plan_value) }),
   });
+  if (!res.ok) throw new Error(`/api/plan failed: ${res.status}`);
 }
 
 function debounce(fn, delay) {
@@ -306,6 +357,9 @@ function debounce(fn, delay) {
 setupTabs();
 setupFilters();
 setupPlanSave();
+// refresh() catches its own fetch errors; this is a last-resort net for a
+// synchronous bug before that point (e.g. a missing DOM element).
 refresh().catch(err => {
-  document.getElementById("stat-row").innerHTML = `<p class="muted">Не удалось загрузить данные: ${err.message}</p>`;
+  console.error(err);
+  document.getElementById("stat-row").innerHTML = `<p class="muted">${GENERIC_ERROR_MESSAGE}</p>`;
 });
