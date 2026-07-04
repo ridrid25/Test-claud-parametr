@@ -7,6 +7,8 @@ calls.
 from storage.db import connect
 
 RETURN_RATE_RED_ZONE = 0.30  # 30%+ returns on a SKU is worth a human look
+# Also duplicated as RETURN_RATE_RED_ZONE in dashboard/static/app.js (the
+# returns tab filters client-side) — keep both in sync if this changes.
 EXPENSE_SHARE_RED_ZONE = 0.50  # MP fees eating 50%+ of revenue on a SKU
 
 

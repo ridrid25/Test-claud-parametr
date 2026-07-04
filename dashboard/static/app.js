@@ -13,6 +13,8 @@ const DEDUCTION_LABELS = [
   ["other_deduction", "Прочие удержания", "var(--series-8)"],
 ];
 
+// Keep in sync with RETURN_RATE_RED_ZONE in analytics/metrics.py — duplicated
+// here only to filter the already-fetched product list, not to recompute it.
 const RETURN_RATE_RED_ZONE = 0.30;
 
 function fmtMoney(value) {
