@@ -19,6 +19,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from analytics.insights import assign_abc, compute_insights
 from analytics.metrics import by_product, deductions_breakdown, funnel, monthly_dynamics, plan_vs_fact
 from etl.import_csv import normalize_row, parse_csv_upload
 from storage import db as storage
@@ -52,7 +53,9 @@ def api_deductions(client_id: str, marketplace: str | None = MarketplaceQuery, d
 
 @app.get("/api/products")
 def api_products(client_id: str, marketplace: str | None = MarketplaceQuery, date_from: str | None = None, date_to: str | None = None, search: str | None = None):
-    rows = by_product(client_id, marketplace, date_from, date_to)
+    # ABC classes are assigned over the full (unsearched) assortment, so a
+    # search result still shows each product's true class.
+    rows = assign_abc(by_product(client_id, marketplace, date_from, date_to))
     if search:
         needle = search.lower()
         rows = [r for r in rows if needle in (r["product_name"] or "").lower() or needle in (r["sku"] or "").lower()]
@@ -67,6 +70,11 @@ def api_dynamics(client_id: str, marketplace: str | None = MarketplaceQuery, dat
 @app.get("/api/plan-fact")
 def api_plan_fact(client_id: str, period: str = PeriodQuery, marketplace: str | None = MarketplaceQuery):
     return plan_vs_fact(client_id, period, marketplace)
+
+
+@app.get("/api/insights")
+def api_insights(client_id: str, marketplace: str | None = MarketplaceQuery, date_from: str | None = None, date_to: str | None = None):
+    return compute_insights(client_id, marketplace, date_from, date_to)
 
 
 class PlanTargetIn(BaseModel):

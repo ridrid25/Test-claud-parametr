@@ -77,7 +77,8 @@
     </header>
 
     <nav class="tabs" role="tablist">
-      <button class="tab active" role="tab" aria-selected="true" aria-controls="panel-overview" id="tab-overview" data-tab="overview">Обзор</button>
+      <button class="tab active" role="tab" aria-selected="true" aria-controls="panel-analysis" id="tab-analysis" data-tab="analysis">Анализ</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-overview" id="tab-overview" data-tab="overview">Обзор</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-products" id="tab-products" data-tab="products">Товары</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-returns" id="tab-returns" data-tab="returns">Возвраты</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-control" id="tab-control" data-tab="control">Контроль</button>
@@ -86,7 +87,38 @@
 
     <section class="stat-row" id="stat-row"></section>
 
-    <section class="tab-panel" data-panel="overview" role="tabpanel" id="panel-overview" aria-labelledby="tab-overview">
+    <section class="tab-panel" data-panel="analysis" role="tabpanel" id="panel-analysis" aria-labelledby="tab-analysis">
+      <div class="card">
+        <div class="card-header">
+          <h3>Ключевые выводы</h3>
+          <span class="muted">автоматически, по текущему фильтру</span>
+        </div>
+        <div class="insights" id="insights"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>ABC-анализ ассортимента</h3>
+          <span class="muted">по вкладу в выплату: A — 80%, B — ещё 15%, C — остальное, «−» — убыточные</span>
+        </div>
+        <div class="table-wrap" id="abc-summary"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Каналы: Wildberries vs Ozon</h3>
+          <span class="muted">юнит-экономика на рубль реализации; виден при фильтре «Все»</span>
+        </div>
+        <div class="table-wrap" id="channel-compare"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Где теряются деньги</h3>
+          <span class="muted">топ-15 убыточных товаров по сумме потерь</span>
+        </div>
+        <div class="table-wrap" id="loss-table"></div>
+      </div>
+    </section>
+
+    <section class="tab-panel" data-panel="overview" role="tabpanel" id="panel-overview" aria-labelledby="tab-overview" hidden>
       <div class="card">
         <div class="card-header">
           <h3>Динамика по месяцам</h3>

@@ -181,15 +181,17 @@ function renderDynamics(months) {
 
 function productRowHtml(p) {
   const flags = p.red_flags.map(f => `<span class="flag">${f}</span>`).join("");
+  const abcChip = p.abc ? `<span class="abc-chip abc-${p.abc}">${p.abc === "L" ? "−" : p.abc}</span>` : "";
   return `
     <tr>
       <td>${escapeHtml(p.product_name) || "—"}<br /><span class="muted">${escapeHtml(p.sku)}</span></td>
+      <td>${abcChip}</td>
       <td class="num">${fmtMoney(p.realization)}</td>
       <td class="num">${fmtMoney(p.returns)}</td>
       <td class="num">${fmtPercent(p.return_rate)}</td>
       <td class="num">${fmtMoney(p.mp_expenses)}</td>
-      <td class="num">${fmtMoney(p.net_revenue)}</td>
-      <td class="num">${fmtMoney(p.payout)}</td>
+      <td class="num ${p.margin < 0 ? "delta-down" : ""}">${p.margin != null ? fmtPercent(p.margin) : "—"}</td>
+      <td class="num ${p.payout < 0 ? "delta-down" : ""}">${fmtMoney(p.payout)}</td>
       <td>${flags}</td>
     </tr>
   `;
@@ -197,13 +199,19 @@ function productRowHtml(p) {
 
 function renderProductsTable(products) {
   const el = document.getElementById("table-products");
-  el.innerHTML = `
+  if (!products.length) {
+    el.innerHTML = `<p class="hint">Ничего не найдено по текущим фильтрам.</p>`;
+    return;
+  }
+  const search = document.getElementById("f-search").value.trim();
+  const count = `<p class="result-count">${search ? `Найдено по запросу «${escapeHtml(search)}»: ` : "Всего товаров: "}<strong>${products.length}</strong>. Сортировка — худшие по выплате первыми.</p>`;
+  el.innerHTML = count + `
     <table>
       <thead>
         <tr>
-          <th>Товар</th><th class="num">Реализация</th><th class="num">Возврат</th>
+          <th>Товар</th><th>ABC</th><th class="num">Реализация</th><th class="num">Возврат</th>
           <th class="num">% возврата</th><th class="num">Расходы МП</th>
-          <th class="num">Чистая выручка</th><th class="num">К выплате</th><th>Флаги</th>
+          <th class="num">Маржа</th><th class="num">К выплате</th><th>Флаги</th>
         </tr>
       </thead>
       <tbody>${products.map(productRowHtml).join("")}</tbody>
@@ -212,29 +220,178 @@ function renderProductsTable(products) {
 }
 
 function renderReturnsTable(products) {
-  const risky = products.filter(p => p.return_rate >= RETURN_RATE_RED_ZONE);
   const el = document.getElementById("table-returns");
-  if (!risky.length) {
-    el.innerHTML = `<p class="hint">Товаров с возвратностью ≥ 30% не найдено.</p>`;
+  const withReturns = products.filter(p => p.returns > 0).sort((a, b) => b.returns - a.returns);
+  if (!withReturns.length) {
+    el.innerHTML = `<p class="hint">Возвратов нет.</p>`;
     return;
   }
-  el.innerHTML = `
+  const totalReturns = withReturns.reduce((s, p) => s + p.returns, 0);
+  const totalReal = products.reduce((s, p) => s + p.realization, 0);
+  const top10 = withReturns.slice(0, 10).reduce((s, p) => s + p.returns, 0);
+  const summary = `<p class="result-count">Возвраты съели <strong>${fmtMoney(totalReturns)}</strong>${totalReal ? ` (${(totalReturns / totalReal * 100).toFixed(1)}% реализации)` : ""}. Топ-10 товаров дают ${totalReturns ? (top10 / totalReturns * 100).toFixed(0) : 0}% потерь — сортировка по рублям, сначала самое дорогое.</p>`;
+  el.innerHTML = summary + `
     <table>
       <thead>
-        <tr><th>Товар</th><th class="num">% возврата</th><th class="num">Реализация</th><th class="num">Возврат</th></tr>
+        <tr><th>Товар</th><th class="num">Потери, ₽</th><th class="num">% возврата</th><th class="num">Реализация</th><th>Сигнал</th></tr>
       </thead>
       <tbody>
-        ${risky.map(p => `
+        ${withReturns.map(p => `
           <tr>
             <td>${escapeHtml(p.product_name) || "—"}<br /><span class="muted">${escapeHtml(p.sku)}</span></td>
+            <td class="num delta-down">${fmtMoney(p.returns)}</td>
             <td class="num">${fmtPercent(p.return_rate)}</td>
             <td class="num">${fmtMoney(p.realization)}</td>
-            <td class="num">${fmtMoney(p.returns)}</td>
+            <td>${p.return_rate >= RETURN_RATE_RED_ZONE ? `<span class="flag">возвратность ≥ 30%</span>` : ""}</td>
           </tr>
         `).join("")}
       </tbody>
     </table>
   `;
+}
+
+/* ==== Вкладка «Анализ» ==== */
+
+function renderInsightsCards(a) {
+  const el = document.getElementById("insights");
+  const pct = v => (v * 100).toFixed(1) + "%";
+  const cards = [];
+
+  if (a.losers_count) {
+    cards.push({ severity: "critical",
+      title: `Убыточные товары: ${a.losers_count} шт., минус ${fmtMoney(Math.abs(a.loss_sum))}`,
+      body: `Эти позиции после удержаний МП приносят убыток.${a.losers[0] ? ` Худший: «${escapeHtml(a.losers[0].product_name)}» (${fmtMoney(a.losers[0].payout)}).` : ""}`,
+      action: `Если убрать или переоценить их, выплата вырастет на ${fmtMoney(Math.abs(a.loss_sum))}.` });
+  } else {
+    cards.push({ severity: "good", title: "Убыточных товаров нет", body: "Все позиции с продажами дают положительную выплату." });
+  }
+
+  if (a.dead_stock_count) {
+    cards.push({ severity: "warning",
+      title: `Расходы без продаж: ${a.dead_stock_count} товаров, ${fmtMoney(a.dead_stock_cost)}`,
+      body: "Ни одной продажи за период, но начислены хранение/логистика/прочие удержания.",
+      action: "Проверьте остатки: вывезти со склада, снизить цену или закрыть карточку." });
+  }
+
+  cards.push({ severity: a.returns_share > 0.1 ? "warning" : "neutral",
+    title: `Возвраты: ${fmtMoney(a.totals.returns)} (${pct(a.returns_share)} реализации)`,
+    body: `Топ-10 товаров дают ${pct(a.top10_returns_share)} всех возвратов в рублях.`,
+    action: a.top_returns[0] ? `Главный источник: «${escapeHtml(a.top_returns[0].product_name)}» — ${fmtMoney(a.top_returns[0].returns)}.` : "" });
+
+  cards.push({ severity: a.drr > 0.1 ? "warning" : "neutral",
+    title: `ДРР (продвижение): ${pct(a.drr)} от реализации`,
+    body: `Потрачено ${fmtMoney(a.promotion_total)}.` + (a.drr > 0.1 ? " Выше типичного порога 10% — проверьте отдачу кампаний." : " В пределах нормы (до 10%).") });
+
+  cards.push({ severity: a.top10_payout_share > 0.5 ? "warning" : "good",
+    title: `Концентрация: топ-10 товаров дают ${pct(a.top10_payout_share)} выплаты`,
+    body: a.top10_payout_share > 0.5
+      ? "Больше половины денег приносит узкая группа товаров — падение любого сильно ударит по выручке."
+      : "Выручка распределена по ассортименту — зависимость от отдельных хитов умеренная." });
+
+  if (a.mom) {
+    cards.push({ severity: a.mom.delta < -0.05 ? "warning" : a.mom.delta > 0.05 ? "good" : "neutral",
+      title: `Динамика выплаты: ${a.mom.delta >= 0 ? "+" : ""}${pct(a.mom.delta)} (${a.mom.prev_month} → ${a.mom.last_month})`,
+      body: `${fmtMoney(a.mom.prev_payout)} → ${fmtMoney(a.mom.last_payout)}.` });
+  }
+
+  cards.push({ severity: a.expense_share > 0.35 ? "warning" : "neutral",
+    title: `Маркетплейсы забирают ${pct(a.expense_share)} реализации`,
+    body: `Все удержания за период: ${fmtMoney(a.totals.mp_expenses)}. Средняя маржа к выплате: ${pct(a.avg_margin)}.` });
+
+  el.innerHTML = cards.map(c => `
+    <div class="insight ${c.severity}">
+      <div class="insight-title">${c.title}</div>
+      <div>${c.body}</div>
+      ${c.action ? `<div class="insight-action">→ ${c.action}</div>` : ""}
+    </div>`).join("");
+}
+
+function renderAbcSummary(a) {
+  const el = document.getElementById("abc-summary");
+  const classes = [
+    ["A", "Приносят 80% выплаты", "abc-A"],
+    ["B", "Ещё 15% выплаты", "abc-B"],
+    ["C", "Хвост: последние 5%", "abc-C"],
+    ["L", "Убыточные", "abc-L"],
+  ];
+  el.innerHTML = `
+    <table>
+      <thead><tr><th>Класс</th><th>Что означает</th><th class="num">Товаров</th><th class="num">Доля SKU</th><th class="num">Сумма выплаты</th></tr></thead>
+      <tbody>${classes.map(([cls, label, chip]) => {
+        const item = a.abc[cls] || { count: 0, payout: 0, share_sku: 0 };
+        return `<tr>
+          <td><span class="abc-chip ${chip}">${cls === "L" ? "−" : cls}</span></td>
+          <td>${label}</td>
+          <td class="num">${item.count}</td>
+          <td class="num">${(item.share_sku * 100).toFixed(1)}%</td>
+          <td class="num">${fmtMoney(item.payout)}</td>
+        </tr>`;
+      }).join("")}</tbody>
+    </table>
+    <p class="hint" style="margin-bottom:0">A — беречь и не допускать out-of-stock, B — растить, C — проверить целесообразность, «−» — убирать или переоценивать.</p>`;
+}
+
+function renderChannelCompare(a) {
+  const el = document.getElementById("channel-compare");
+  const names = { wb: "Wildberries", ozon: "Ozon" };
+  const keys = Object.keys(a.channels);
+  if (keys.length < 2) {
+    el.innerHTML = `<p class="hint">Сравнение доступно при фильтре «Все маркетплейсы» и данных обоих каналов.</p>`;
+    return;
+  }
+  const pctOf = (v, base) => base ? (v / base * 100).toFixed(1) + "%" : "—";
+  const rows = [
+    ["Реализация", c => fmtMoney(c.realization)],
+    ["Возвратность", c => pctOf(c.returns, c.realization)],
+    ["Комиссия", c => pctOf(c.commission, c.realization)],
+    ["Логистика", c => pctOf(c.logistics, c.realization)],
+    ["Хранение", c => pctOf(c.storage, c.realization)],
+    ["Продвижение (ДРР)", c => pctOf(c.promotion, c.realization)],
+    ["Штрафы и прочее", c => pctOf(c.penalty + c.other_deduction, c.realization)],
+    ["К выплате с рубля", c => c.realization ? (c.payout / c.realization).toFixed(2) + " ₽" : "—"],
+  ];
+  const better = keys.reduce((best, k) =>
+    (a.channels[k].payout / (a.channels[k].realization || 1)) > (a.channels[best].payout / (a.channels[best].realization || 1)) ? k : best, keys[0]);
+  el.innerHTML = `
+    <table>
+      <thead><tr><th>Показатель</th>${keys.map(k => `<th class="num">${names[k] || k}</th>`).join("")}</tr></thead>
+      <tbody>${rows.map(([label, fn]) => `
+        <tr><td>${label}</td>${keys.map(k => `<td class="num">${fn(a.channels[k])}</td>`).join("")}</tr>`).join("")}</tbody>
+    </table>
+    <p class="hint" style="margin-bottom:0">Эффективнее сейчас: <strong>${names[better] || better}</strong> — больше остаётся с каждого рубля реализации. Наращивать канал стоит по выплате, а не по обороту.</p>`;
+}
+
+function renderLossTable(a) {
+  const el = document.getElementById("loss-table");
+  if (!a.losers.length) {
+    el.innerHTML = `<p class="hint">Убыточных товаров нет — отлично.</p>`;
+    return;
+  }
+  el.innerHTML = `
+    <table>
+      <thead><tr><th>Товар</th><th class="num">Реализация</th><th class="num">Расходы МП</th><th class="num">% возврата</th><th class="num">Убыток</th><th>Что делать</th></tr></thead>
+      <tbody>${a.losers.map(p => {
+        const advice = !p.realization ? "нет продаж — вывезти остатки или закрыть карточку"
+          : p.return_rate >= RETURN_RATE_RED_ZONE ? "высокие возвраты — проверить качество/размерную сетку/фото"
+          : p.mp_expenses > p.realization ? "расходы выше выручки — поднять цену или сменить схему поставки"
+          : "пересчитать юнит-экономику";
+        return `<tr>
+          <td>${escapeHtml(p.product_name) || "—"}<br /><span class="muted">${escapeHtml(p.sku)}</span></td>
+          <td class="num">${fmtMoney(p.realization)}</td>
+          <td class="num">${fmtMoney(p.mp_expenses)}</td>
+          <td class="num">${fmtPercent(p.return_rate)}</td>
+          <td class="num delta-down">${fmtMoney(p.payout)}</td>
+          <td class="hint">${advice}</td>
+        </tr>`;
+      }).join("")}</tbody>
+    </table>`;
+}
+
+function renderAnalysis(insights) {
+  renderInsightsCards(insights);
+  renderAbcSummary(insights);
+  renderChannelCompare(insights);
+  renderLossTable(insights);
 }
 
 async function renderPlanFact() {
@@ -289,13 +446,14 @@ async function refresh() {
 
   const generation = ++refreshGeneration;
 
-  let summary, deductions, dynamics, products;
+  let summary, deductions, dynamics, products, insights;
   try {
-    [summary, deductions, dynamics, products] = await Promise.all([
+    [summary, deductions, dynamics, products, insights] = await Promise.all([
       fetchJSON("/api/summary", filters),
       fetchJSON("/api/deductions", filters),
       fetchJSON("/api/dynamics", filters),
       fetchJSON("/api/products", filters),
+      fetchJSON("/api/insights", filters),
     ]);
   } catch (err) {
     if (generation !== refreshGeneration) return; // superseded by a newer refresh
@@ -313,6 +471,7 @@ async function refresh() {
   renderDynamics(dynamics);
   renderProductsTable(products);
   renderReturnsTable(products);
+  renderAnalysis(insights);
   await renderPlanFact();
 }
 
