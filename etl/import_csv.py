@@ -17,13 +17,15 @@ from datetime import datetime
 # stripped). Covers the WB/Ozon cabinet CSV exports we know plus our own
 # unified export format, so a round-trip of our "Товары CSV" also imports.
 COLUMN_ALIASES = {
+    "marketplace": ("marketplace", "маркетплейс", "площадка", "мп"),
     "period_date": (
         "period_date", "дата", "дата продажи", "дата операции", "sale_dt",
-        "operation_date", "дата начисления",
+        "operation_date", "дата начисления", "период", "дата отчёта",
+        "дата отчета",
     ),
     "sku": (
         "sku", "артикул", "артикул поставщика", "артикул продавца", "sa_name",
-        "код товара", "артикул wb", "ozon sku id",
+        "код товара", "артикул wb", "ozon sku id", "sku мп",
     ),
     "product_name": (
         "product_name", "товар", "название", "название товара", "наименование",
@@ -33,7 +35,7 @@ COLUMN_ALIASES = {
         "doc_type", "тип документа", "обоснование для оплаты", "тип операции",
         "doc_type_name", "операция",
     ),
-    "quantity": ("quantity", "количество", "кол-во", "шт",),
+    "quantity": ("quantity", "количество", "кол-во", "шт", "продано",),
     "realization": (
         "realization", "реализация", "продажа", "сумма продажи", "retail_amount",
         "вайлдберриз реализовал товар (пр)", "цена реализации",
@@ -47,13 +49,17 @@ COLUMN_ALIASES = {
     "logistics": (
         "logistics", "логистика", "доставка", "услуги по доставке",
         "delivery_rub", "стоимость логистики", "логистика мп",
+        "последняя миля",
     ),
-    "storage": ("storage", "хранение", "storage_fee", "стоимость хранения",),
+    "storage": (
+        "storage", "хранение", "storage_fee", "стоимость хранения",
+        "хранение/размещение",
+    ),
     "promotion": ("promotion", "продвижение", "реклама", "supplier_promo",),
     "penalty": ("penalty", "штраф", "штрафы", "общая сумма штрафов",),
     "other_deduction": (
         "other_deduction", "прочие удержания", "удержания", "deduction",
-        "прочие услуги",
+        "прочие услуги", "эквайринг",
     ),
     "payout": (
         "payout", "к выплате", "к перечислению", "итого к оплате",
@@ -61,6 +67,23 @@ COLUMN_ALIASES = {
         "сумма выплат", "amount",
     ),
 }
+
+# Fields where several source columns may legitimately feed one unified
+# bucket (e.g. "Логистика" + "Последняя миля" → logistics) — their values
+# are summed. Everything else keeps first-match-wins.
+SUMMABLE_FIELDS = {
+    "realization", "returns", "commission", "logistics", "storage",
+    "promotion", "penalty", "other_deduction", "payout", "quantity",
+}
+
+MARKETPLACE_VALUES = {
+    "ozon": "ozon", "озон": "ozon",
+    "wb": "wb", "вб": "wb", "wildberries": "wb", "вайлдберриз": "wb",
+}
+
+# Units and currency tails that cabinet exports append to header names
+# ("Реализация, ₽", "Продано, шт", "Ставка комиссии, %").
+_HEADER_UNIT_RE = re.compile(r"[,\s]+(₽|руб\.?|шт\.?|%)\s*$", re.IGNORECASE)
 
 RETURN_DOC_TYPES = ("возврат", "return", "возврат товара")
 
@@ -94,13 +117,19 @@ def sniff_delimiter(text: str) -> str:
 
 
 def map_headers(headers: list[str]) -> dict[int, str]:
-    """Return {column_index: unified_field} for recognized headers."""
+    """Return {column_index: unified_field} for recognized headers.
+
+    Summable fields may claim several columns (their values are added up);
+    text-like fields keep first-match-wins so e.g. 'Период' beats a later
+    'Дата отчёта' for period_date.
+    """
     mapping = {}
     claimed = set()
     for index, header in enumerate(headers):
         key = (header or "").strip().lower().strip('"')
+        key = _HEADER_UNIT_RE.sub("", key)
         for field, aliases in COLUMN_ALIASES.items():
-            if field not in claimed and key in aliases:
+            if key in aliases and (field in SUMMABLE_FIELDS or field not in claimed):
                 mapping[index] = field
                 claimed.add(field)
                 break
@@ -125,6 +154,10 @@ def parse_number(value: str) -> float:
 
 def parse_date(value: str) -> str:
     text = str(value or "").strip()[:19]
+    # A bare month period ("2023-11") means "this month" — pin to day 1 so
+    # monthly grouping and date-range filters keep working.
+    if re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", text):
+        return f"{text}-01"
     for fmt in _DATE_FORMATS:
         try:
             return datetime.strptime(text[: len(datetime.now().strftime(fmt))], fmt).strftime("%Y-%m-%d")
@@ -188,24 +221,50 @@ def normalize_row(
     if not data["sku"] and not data["product_name"]:
         errors.append("Не указан ни артикул, ни название товара — строку не к чему привязать.")
 
+    # A per-row marketplace column (files that mix WB and Ozon) overrides
+    # the marketplace chosen in the upload form.
+    raw_marketplace = field_values.get("marketplace", "")
+    raw_marketplace = str(raw_marketplace[0] if isinstance(raw_marketplace, list) else raw_marketplace).strip()
+    if raw_marketplace:
+        known = MARKETPLACE_VALUES.get(raw_marketplace.lower())
+        if known:
+            data["marketplace"] = known
+        else:
+            errors.append(
+                f"Неизвестный маркетплейс в строке: {raw_marketplace!r} (ожидается Wildberries или Ozon)."
+            )
+
     numeric_fields = (
         "quantity", "realization", "returns", "commission", "logistics",
         "storage", "promotion", "penalty", "other_deduction", "payout",
     )
     for field in numeric_fields:
         raw_value = field_values.get(field, "")
-        if raw_value in ("", None):
+        # Summable fields may arrive as a list when several source columns
+        # feed one bucket (e.g. Логистика + Последняя миля).
+        raw_values = raw_value if isinstance(raw_value, list) else [raw_value]
+        raw_values = [v for v in raw_values if v not in ("", None)]
+        if not raw_values:
             continue
-        try:
-            parsed = parse_number(raw_value)
-        except ValueError:
-            errors.append(f"Не удалось разобрать число в колонке '{field}': {raw_value!r}")
+        total = 0.0
+        failed = False
+        for item in raw_values:
+            try:
+                total += parse_number(item)
+            except ValueError:
+                errors.append(f"Не удалось разобрать число в колонке '{field}': {item!r}")
+                failed = True
+                break
+        if failed:
             continue
-        cleaned_source = str(raw_value).strip()
-        if cleaned_source and cleaned_source != (f"{parsed:g}"):
-            if _NUM_CLEAN_RE.search(cleaned_source) or "," in cleaned_source:
-                fixes.append(f"{field}: '{raw_value}' → {parsed:g}")
-        data[field] = int(parsed) if field == "quantity" else parsed
+        if len(raw_values) > 1:
+            fixes.append(f"{field}: {' + '.join(str(v).strip() for v in raw_values)} → {total:g}")
+        else:
+            cleaned_source = str(raw_values[0]).strip()
+            if cleaned_source and cleaned_source != (f"{total:g}"):
+                if _NUM_CLEAN_RE.search(cleaned_source) or "," in cleaned_source:
+                    fixes.append(f"{field}: '{raw_values[0]}' → {total:g}")
+        data[field] = int(total) if field == "quantity" else total
 
     if errors:
         return {"status": "error", "fixes": fixes, "error": " ".join(errors), "data": data}
@@ -257,11 +316,21 @@ def parse_csv_upload(client_id: str, marketplace: str, upload_id: int, raw: byte
             "Проверьте, что это финансовый отчёт, а не, например, список остатков."
         )
 
+    if "marketplace" in mapping.values():
+        file_fixes.append("маркетплейс каждой строки взят из колонки файла")
+
     rows = []
     for row_index, raw_row in enumerate(reader):
         if not any(cell.strip() for cell in raw_row):
             continue  # skip fully blank lines silently
-        field_values = {field: raw_row[idx] if idx < len(raw_row) else "" for idx, field in mapping.items()}
+        field_values: dict = {}
+        for idx, field in mapping.items():
+            value = raw_row[idx] if idx < len(raw_row) else ""
+            if field in field_values:
+                existing = field_values[field]
+                field_values[field] = (existing if isinstance(existing, list) else [existing]) + [value]
+            else:
+                field_values[field] = value
         result = normalize_row(client_id, marketplace, upload_id, row_index, field_values)
         result["row_index"] = row_index
         result["raw"] = json.dumps(

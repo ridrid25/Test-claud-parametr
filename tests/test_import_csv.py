@@ -114,3 +114,41 @@ def test_blank_lines_are_skipped_silently():
     )
     rows = parse_csv_upload("demo", "wb", 1, raw)["rows"]
     assert len(rows) == 2
+
+
+def test_normalized_product_report_format():
+    """The 'сводный по товарам' export format: units in headers ('..., ₽'),
+    a month period instead of a day date, a marketplace column mixing WB and
+    Ozon in one file, and several deduction columns feeding one bucket."""
+    raw = _make_csv(
+        "Маркетплейс;Период;SKU МП;Название товара;Продано, шт;Реализация, ₽;"
+        "Возвраты, ₽;Комиссия МП, ₽;Логистика, ₽;Последняя миля, ₽;Эквайринг, ₽;"
+        "Хранение/размещение, ₽;Продвижение, ₽;Прочие удержания, ₽;К выплате, ₽\n"
+        "Ozon;2023-11;OZ-1;Коврик;5;9151.60;0.00;1153.79;705.23;268.10;119.67;24.65;300.23;483.29;6096.64\n"
+        "Wildberries;2023-10;WB-1;Платье;2;4000.00;0.00;680.00;150.00;0.00;40.00;20.00;0.00;0.00;3110.00\n"
+    )
+    result = parse_csv_upload("demo", "wb", 1, raw)
+    assert any("маркетплейс" in fix for fix in result["file_fixes"])
+
+    ozon_row, wb_row = result["rows"][0]["data"], result["rows"][1]["data"]
+    assert ozon_row["marketplace"] == "ozon"  # from the file, not the form
+    assert wb_row["marketplace"] == "wb"
+    assert ozon_row["period_date"] == "2023-11-01"  # month period pinned to day 1
+    assert ozon_row["quantity"] == 5
+    assert ozon_row["realization"] == 9151.60
+    # Логистика + Последняя миля summed into logistics
+    assert ozon_row["logistics"] == pytest.approx(705.23 + 268.10)
+    # Эквайринг + Прочие удержания summed into other_deduction
+    assert ozon_row["other_deduction"] == pytest.approx(119.67 + 483.29)
+    assert ozon_row["storage"] == 24.65
+    assert ozon_row["payout"] == 6096.64
+
+
+def test_unknown_marketplace_value_is_an_error():
+    raw = _make_csv(
+        "Маркетплейс,Дата,Артикул,Реализация\n"
+        "Яндекс Маркет,2023-10-05,SKU-1,100\n"
+    )
+    row = parse_csv_upload("demo", "wb", 1, raw)["rows"][0]
+    assert row["status"] == "error"
+    assert "маркетплейс" in row["error"].lower()
