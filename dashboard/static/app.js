@@ -380,9 +380,254 @@ function debounce(fn, delay) {
   };
 }
 
+// --- Загрузка CSV-файлов ---------------------------------------------------
+
+const ROW_EDIT_FIELDS = [
+  ["period_date", "Дата"], ["sku", "Артикул"], ["product_name", "Товар"],
+  ["quantity", "Кол-во"], ["realization", "Реализация"], ["returns", "Возврат"],
+  ["commission", "Комиссия"], ["logistics", "Логистика"], ["storage", "Хранение"],
+  ["promotion", "Продвижение"], ["penalty", "Штраф"], ["other_deduction", "Прочее"],
+  ["payout", "К выплате"],
+];
+
+let openRowsUploadId = null;
+
+function uploadStatusEl() { return document.getElementById("upload-status"); }
+
+function showUploadStatus(text, isError = false) {
+  const el = uploadStatusEl();
+  el.hidden = false;
+  el.textContent = text;
+  el.classList.toggle("row-error-text", isError);
+}
+
+async function refreshUploads() {
+  const client_id = currentFilters().client_id;
+  const el = document.getElementById("uploads-list");
+  let uploads;
+  try {
+    uploads = await fetchJSON("/api/uploads", { client_id });
+  } catch (err) {
+    console.error(err);
+    el.innerHTML = `<p class="hint">${GENERIC_ERROR_MESSAGE}</p>`;
+    return;
+  }
+  if (!uploads.length) {
+    el.innerHTML = `<p class="hint">Файлы ещё не загружались. Загрузите первый отчёт выше.</p>`;
+    return;
+  }
+  el.innerHTML = `
+    <div class="table-wrap"><table>
+      <thead>
+        <tr>
+          <th>Файл</th><th>Маркетплейс</th><th>Загружен</th>
+          <th class="num">Строк ОК</th><th class="num">Исправлено</th><th class="num">Ошибок</th>
+          <th>Статус</th><th>Действия</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${uploads.map(u => `
+          <tr>
+            <td>${escapeHtml(u.filename)}${JSON.parse(u.file_fixes).length ? `<br /><span class="row-fixes-text">автоисправления файла: ${escapeHtml(JSON.parse(u.file_fixes).join(", "))}</span>` : ""}</td>
+            <td>${u.marketplace === "wb" ? "Wildberries" : "Ozon"}</td>
+            <td>${escapeHtml((u.uploaded_at || "").slice(0, 16).replace("T", " "))}</td>
+            <td class="num">${u.rows_ok}</td>
+            <td class="num">${u.rows_fixed ? `<span class="chip chip-fixed">${u.rows_fixed}</span>` : 0}</td>
+            <td class="num">${u.rows_error ? `<span class="chip chip-error">${u.rows_error}</span>` : 0}</td>
+            <td>${u.status === "imported" ? `<span class="chip chip-imported">импортирован</span>` : `<span class="chip chip-ok">готов к импорту</span>`}</td>
+            <td>
+              <button class="btn-small" data-action="rows" data-id="${u.id}" type="button">Строки</button>
+              ${u.status !== "imported" ? `<button class="btn-small" data-action="import" data-id="${u.id}" type="button">Импортировать</button>` : ""}
+              ${u.rows_error ? `<button class="btn-small" data-action="errors-csv" data-id="${u.id}" type="button">Ошибки CSV</button>` : ""}
+              <button class="btn-small danger" data-action="delete" data-id="${u.id}" type="button">Удалить</button>
+            </td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table></div>`;
+
+  el.querySelectorAll("button[data-action]").forEach(btn => {
+    btn.addEventListener("click", () => handleUploadAction(btn.dataset.action, Number(btn.dataset.id)));
+  });
+}
+
+async function handleUploadAction(action, uploadId) {
+  if (action === "rows") {
+    openRowsUploadId = uploadId;
+    await renderUploadRows(uploadId);
+    return;
+  }
+  if (action === "errors-csv") {
+    window.location.href = `/api/uploads/${uploadId}/errors.csv`;
+    return;
+  }
+  if (action === "import") {
+    try {
+      const res = await fetch(`/api/uploads/${uploadId}/import`, { method: "POST" });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.detail || res.status);
+      showUploadStatus(
+        `Импортировано строк: ${body.imported}.` +
+        (body.errors_left ? ` Осталось ошибок: ${body.errors_left} — их можно исправить в «Строках» и импортировать повторно.` : " Все строки загружены в дашборд.")
+      );
+    } catch (err) {
+      console.error(err);
+      showUploadStatus(`Не удалось импортировать: ${err.message}`, true);
+    }
+    await refreshUploads();
+    refresh();
+    return;
+  }
+  if (action === "delete") {
+    if (!confirm("Удалить файл? Если он был импортирован, его данные будут убраны из дашборда.")) return;
+    try {
+      const res = await fetch(`/api/uploads/${uploadId}`, { method: "DELETE" });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.detail || res.status);
+      showUploadStatus(body.rolled_back_transactions
+        ? `Файл удалён, из дашборда убрано строк: ${body.rolled_back_transactions}.`
+        : "Файл удалён.");
+    } catch (err) {
+      console.error(err);
+      showUploadStatus(`Не удалось удалить: ${err.message}`, true);
+    }
+    if (openRowsUploadId === uploadId) {
+      openRowsUploadId = null;
+      document.getElementById("rows-card").hidden = true;
+    }
+    await refreshUploads();
+    refresh();
+  }
+}
+
+async function renderUploadRows(uploadId) {
+  const card = document.getElementById("rows-card");
+  const container = document.getElementById("upload-rows");
+  card.hidden = false;
+  document.getElementById("rows-title").textContent = `Строки файла №${uploadId}`;
+  let rows;
+  try {
+    rows = await fetchJSON(`/api/uploads/${uploadId}/rows`, {});
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = `<p class="hint">${GENERIC_ERROR_MESSAGE}</p>`;
+    return;
+  }
+
+  const chip = (r) => r.status === "ok"
+    ? `<span class="chip chip-ok">ок</span>`
+    : r.status === "fixed"
+      ? `<span class="chip chip-fixed">исправлено</span>`
+      : `<span class="chip chip-error">ошибка</span>`;
+
+  container.innerHTML = `
+    <table>
+      <thead>
+        <tr><th>№</th><th>Статус</th>${ROW_EDIT_FIELDS.map(([, label]) => `<th>${label}</th>`).join("")}<th></th></tr>
+      </thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr class="row-editor" data-row-id="${r.id}">
+            <td>${r.row_index + 2}</td>
+            <td>${chip(r)}${r.error ? `<div class="row-error-text">${escapeHtml(r.error)}</div>` : ""}${r.fixes.length ? `<div class="row-fixes-text">${escapeHtml(r.fixes.join("; "))}</div>` : ""}</td>
+            ${ROW_EDIT_FIELDS.map(([field]) => `
+              <td><input data-field="${field}" value="${escapeHtml(r.data[field] ?? "")}" ${r.status === "error" ? "" : "readonly"} /></td>
+            `).join("")}
+            <td>${r.status === "error"
+              ? `<button class="btn-small" data-save-row="${r.id}" type="button">Сохранить</button>`
+              : `<button class="btn-small" data-unlock-row="${r.id}" type="button">Править</button>`}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>`;
+
+  container.querySelectorAll("button[data-unlock-row]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tr = btn.closest("tr");
+      tr.querySelectorAll("input").forEach(i => i.removeAttribute("readonly"));
+      btn.textContent = "Сохранить";
+      btn.removeAttribute("data-unlock-row");
+      btn.setAttribute("data-save-row", tr.dataset.rowId);
+      btn.addEventListener("click", () => saveRow(uploadId, Number(tr.dataset.rowId), tr), { once: true });
+    }, { once: true });
+  });
+  container.querySelectorAll("button[data-save-row]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tr = btn.closest("tr");
+      saveRow(uploadId, Number(tr.dataset.rowId), tr);
+    });
+  });
+}
+
+async function saveRow(uploadId, rowId, tr) {
+  const payload = {};
+  tr.querySelectorAll("input[data-field]").forEach(input => {
+    payload[input.dataset.field] = input.value;
+  });
+  try {
+    const res = await fetch(`/api/uploads/${uploadId}/rows/${rowId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.detail || res.status);
+    showUploadStatus(body.status === "error"
+      ? `Строка всё ещё с ошибкой: ${body.error}`
+      : "Строка исправлена и проверена.", body.status === "error");
+  } catch (err) {
+    console.error(err);
+    showUploadStatus(`Не удалось сохранить строку: ${err.message}`, true);
+  }
+  await renderUploadRows(uploadId);
+  await refreshUploads();
+  refresh();
+}
+
+function setupUploads() {
+  document.getElementById("upload-submit").addEventListener("click", async () => {
+    const fileInput = document.getElementById("upload-file");
+    const file = fileInput.files[0];
+    if (!file) {
+      showUploadStatus("Сначала выберите файл CSV.", true);
+      return;
+    }
+    const formData = new FormData();
+    formData.append("client_id", currentFilters().client_id);
+    formData.append("marketplace", document.getElementById("upload-marketplace").value);
+    formData.append("file", file);
+    const button = document.getElementById("upload-submit");
+    button.disabled = true;
+    showUploadStatus("Загружаю и проверяю файл…");
+    try {
+      const res = await fetch("/api/uploads", { method: "POST", body: formData });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.detail || res.status);
+      const parts = [`Файл разобран: строк ОК — ${body.rows_ok}, исправлено автоматически — ${body.rows_fixed}, с ошибками — ${body.rows_error}.`];
+      parts.push(body.rows_error
+        ? "Ошибки можно поправить в «Строках», затем нажать «Импортировать»."
+        : "Нажмите «Импортировать», чтобы данные попали в дашборд.");
+      showUploadStatus(parts.join(" "));
+      fileInput.value = "";
+    } catch (err) {
+      console.error(err);
+      showUploadStatus(`Не удалось загрузить: ${err.message}`, true);
+    }
+    button.disabled = false;
+    await refreshUploads();
+  });
+
+  // Подгружаем список при первом открытии вкладки.
+  document.getElementById("tab-uploads").addEventListener("click", refreshUploads, { once: true });
+  document.getElementById("f-client").addEventListener("change", () => {
+    if (!document.getElementById("panel-uploads").hidden) refreshUploads();
+  });
+}
+
 setupTabs();
 setupFilters();
 setupPlanSave();
+setupUploads();
 // refresh() catches its own fetch errors; this is a last-resort net for a
 // synchronous bug before that point (e.g. a missing DOM element).
 refresh().catch(err => {

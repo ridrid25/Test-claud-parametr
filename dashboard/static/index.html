@@ -81,6 +81,7 @@
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-products" id="tab-products" data-tab="products">Товары</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-returns" id="tab-returns" data-tab="returns">Возвраты</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-control" id="tab-control" data-tab="control">Контроль</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-uploads" id="tab-uploads" data-tab="uploads">Загрузка</button>
     </nav>
 
     <section class="stat-row" id="stat-row"></section>
@@ -129,6 +130,46 @@
           <span class="muted">по выбранному месяцу и маркетплейсу; диапазон дат слева не учитывается</span>
         </div>
         <div id="table-plan-fact"></div>
+      </div>
+    </section>
+
+    <section class="tab-panel" data-panel="uploads" role="tabpanel" id="panel-uploads" aria-labelledby="tab-uploads" hidden>
+      <div class="card">
+        <div class="card-header">
+          <h3>Загрузить отчёт из файла</h3>
+          <span class="muted">CSV-выгрузки из кабинетов ВБ и Ozon; ошибки чисел, дат и кодировок исправляются автоматически</span>
+        </div>
+        <div class="upload-form">
+          <label class="field">
+            <span>Маркетплейс файла</span>
+            <select id="upload-marketplace">
+              <option value="wb">Wildberries</option>
+              <option value="ozon">Ozon</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Файл CSV</span>
+            <input id="upload-file" type="file" accept=".csv,text/csv" />
+          </label>
+          <button id="upload-submit" class="btn-primary" type="button">Загрузить</button>
+        </div>
+        <p class="hint" id="upload-status" hidden></p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Загруженные файлы</h3>
+          <span class="muted">импорт, исправление строк, откат</span>
+        </div>
+        <div id="uploads-list"></div>
+      </div>
+
+      <div class="card" id="rows-card" hidden>
+        <div class="card-header">
+          <h3 id="rows-title">Строки файла</h3>
+          <span class="muted">строки с ошибками можно исправить прямо здесь</span>
+        </div>
+        <div class="table-wrap" id="upload-rows"></div>
       </div>
     </section>
   </main>

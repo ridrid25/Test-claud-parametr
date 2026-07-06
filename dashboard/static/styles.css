@@ -386,6 +386,75 @@ td.num, th.num { text-align: right; }
 
 .data-table-toggle:hover { text-decoration: underline; }
 
+.table-wrap { overflow-x: auto; }
+
+.upload-form {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.upload-form .field { min-width: 180px; }
+
+.btn-primary {
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--series-1);
+  background: var(--series-1);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: filter 120ms ease, transform 80ms ease;
+}
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.6; cursor: default; }
+
+.btn-small {
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  margin-right: 4px;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.btn-small:hover { border-color: var(--border-strong); background: var(--surface-2); }
+.btn-small.danger { color: var(--status-critical); }
+
+.chip {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.chip-ok { background: color-mix(in srgb, var(--status-good, #0ca30c) 15%, transparent); color: var(--success); }
+.chip-fixed { background: color-mix(in srgb, var(--series-3) 18%, transparent); color: var(--text-primary); }
+.chip-error { background: color-mix(in srgb, var(--status-critical) 15%, transparent); color: var(--status-critical); }
+.chip-imported { background: color-mix(in srgb, var(--series-1) 15%, transparent); color: var(--text-primary); }
+
+.row-editor td input {
+  font: inherit;
+  font-size: 12px;
+  width: 100%;
+  min-width: 72px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--page);
+  color: var(--text-primary);
+}
+.row-error-text { color: var(--status-critical); font-size: 12px; }
+.row-fixes-text { color: var(--text-secondary); font-size: 12px; }
+
 @media (max-width: 860px) {
   .layout { grid-template-columns: 1fr; }
   .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }

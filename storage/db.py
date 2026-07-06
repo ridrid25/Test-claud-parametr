@@ -55,6 +55,34 @@ CREATE TABLE IF NOT EXISTS plan_targets (
     plan_value REAL NOT NULL,
     PRIMARY KEY (client_id, period, metric)
 );
+
+CREATE TABLE IF NOT EXISTS uploads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_id TEXT NOT NULL,
+    marketplace TEXT NOT NULL CHECK(marketplace IN ('wb', 'ozon')),
+    filename TEXT NOT NULL,
+    -- staged: rows parsed, waiting for review/import
+    -- imported: ok/fixed rows are in transactions
+    status TEXT NOT NULL DEFAULT 'staged' CHECK(status IN ('staged', 'imported')),
+    file_fixes TEXT NOT NULL DEFAULT '[]',
+    columns_mapped TEXT NOT NULL DEFAULT '{}',
+    uploaded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS upload_rows (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    upload_id INTEGER NOT NULL REFERENCES uploads(id) ON DELETE CASCADE,
+    row_index INTEGER NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('ok', 'fixed', 'error')),
+    fixes TEXT NOT NULL DEFAULT '[]',
+    error TEXT,
+    data TEXT NOT NULL,
+    raw TEXT NOT NULL,
+    UNIQUE(upload_id, row_index)
+);
+
+CREATE INDEX IF NOT EXISTS idx_upload_rows_upload
+    ON upload_rows(upload_id, status);
 """
 
 
@@ -122,3 +150,91 @@ def set_plan_target(client_id: str, period: str, metric: str, plan_value: float)
             """,
             (client_id, period, metric, plan_value),
         )
+
+
+# --- CSV upload staging ---------------------------------------------------
+
+def create_upload(client_id: str, marketplace: str, filename: str, file_fixes: str, columns_mapped: str, rows: list[dict]) -> int:
+    """Persist a parsed upload with its staged rows in one transaction."""
+    with connect() as conn:
+        cursor = conn.execute(
+            "INSERT INTO uploads (client_id, marketplace, filename, file_fixes, columns_mapped) VALUES (?, ?, ?, ?, ?)",
+            (client_id, marketplace, filename, file_fixes, columns_mapped),
+        )
+        upload_id = cursor.lastrowid
+        conn.executemany(
+            """INSERT INTO upload_rows (upload_id, row_index, status, fixes, error, data, raw)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            [
+                (upload_id, r["row_index"], r["status"], r["fixes"], r["error"], r["data"], r["raw"])
+                for r in rows
+            ],
+        )
+        return upload_id
+
+
+def list_uploads(client_id: str) -> list[dict]:
+    with connect() as conn:
+        uploads = [dict(r) for r in conn.execute(
+            "SELECT * FROM uploads WHERE client_id = ? ORDER BY id DESC", (client_id,)
+        ).fetchall()]
+        for upload in uploads:
+            counts = {
+                r["status"]: r["n"]
+                for r in conn.execute(
+                    "SELECT status, COUNT(*) AS n FROM upload_rows WHERE upload_id = ? GROUP BY status",
+                    (upload["id"],),
+                ).fetchall()
+            }
+            upload["rows_ok"] = counts.get("ok", 0)
+            upload["rows_fixed"] = counts.get("fixed", 0)
+            upload["rows_error"] = counts.get("error", 0)
+        return uploads
+
+
+def get_upload(upload_id: int) -> dict | None:
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM uploads WHERE id = ?", (upload_id,)).fetchone()
+        return dict(row) if row else None
+
+
+def get_upload_rows(upload_id: int, status: str | None = None) -> list[dict]:
+    query = "SELECT * FROM upload_rows WHERE upload_id = ?"
+    params: list = [upload_id]
+    if status:
+        query += " AND status = ?"
+        params.append(status)
+    query += " ORDER BY row_index"
+    with connect() as conn:
+        return [dict(r) for r in conn.execute(query, params).fetchall()]
+
+
+def update_upload_row(row_id: int, status: str, fixes: str, error: str | None, data: str) -> None:
+    with connect() as conn:
+        conn.execute(
+            "UPDATE upload_rows SET status = ?, fixes = ?, error = ?, data = ? WHERE id = ?",
+            (status, fixes, error, data, row_id),
+        )
+
+
+def get_upload_row(row_id: int) -> dict | None:
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM upload_rows WHERE id = ?", (row_id,)).fetchone()
+        return dict(row) if row else None
+
+
+def mark_upload_imported(upload_id: int) -> None:
+    with connect() as conn:
+        conn.execute("UPDATE uploads SET status = 'imported' WHERE id = ?", (upload_id,))
+
+
+def delete_upload(upload_id: int) -> int:
+    """Remove the upload, its staged rows, and any transactions it imported.
+    Returns how many imported transactions were rolled back."""
+    with connect() as conn:
+        removed = conn.execute(
+            "DELETE FROM transactions WHERE source_report = ?",
+            (f"csv_upload:{upload_id}",),
+        ).rowcount
+        conn.execute("DELETE FROM uploads WHERE id = ?", (upload_id,))
+        return removed
