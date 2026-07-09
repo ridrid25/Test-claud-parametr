@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS transactions (
     period_date TEXT NOT NULL,
     sku TEXT,
     product_name TEXT,
+    category TEXT,
+    brand TEXT,
     quantity INTEGER NOT NULL DEFAULT 0,
     realization REAL NOT NULL DEFAULT 0,
     returns REAL NOT NULL DEFAULT 0,
@@ -47,6 +49,15 @@ CREATE INDEX IF NOT EXISTS idx_transactions_client_period
 
 CREATE INDEX IF NOT EXISTS idx_transactions_client_sku
     ON transactions(client_id, sku);
+
+CREATE TABLE IF NOT EXISTS product_costs (
+    client_id TEXT NOT NULL,
+    sku TEXT NOT NULL,
+    unit_cost REAL NOT NULL,
+    source_file TEXT,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (client_id, sku)
+);
 
 CREATE TABLE IF NOT EXISTS plan_targets (
     client_id TEXT NOT NULL,
@@ -101,22 +112,30 @@ def connect():
 def init_db() -> None:
     with connect() as conn:
         conn.executescript(SCHEMA)
+        # Migrate databases created before category/brand existed — SQLite
+        # can't add "IF NOT EXISTS" to ALTER, so check the live columns first.
+        existing = {row["name"] for row in conn.execute("PRAGMA table_info(transactions)")}
+        for column in ("category", "brand"):
+            if column not in existing:
+                conn.execute(f"ALTER TABLE transactions ADD COLUMN {column} TEXT")
 
 
 UPSERT_SQL = """
 INSERT INTO transactions (
-    client_id, marketplace, period_date, sku, product_name, quantity,
-    realization, returns, commission, logistics, storage, promotion,
+    client_id, marketplace, period_date, sku, product_name, category, brand,
+    quantity, realization, returns, commission, logistics, storage, promotion,
     penalty, other_deduction, payout, source_report, raw_ref
 ) VALUES (
-    :client_id, :marketplace, :period_date, :sku, :product_name, :quantity,
-    :realization, :returns, :commission, :logistics, :storage, :promotion,
+    :client_id, :marketplace, :period_date, :sku, :product_name, :category, :brand,
+    :quantity, :realization, :returns, :commission, :logistics, :storage, :promotion,
     :penalty, :other_deduction, :payout, :source_report, :raw_ref
 )
 ON CONFLICT(client_id, marketplace, raw_ref) DO UPDATE SET
     period_date=excluded.period_date,
     sku=excluded.sku,
     product_name=excluded.product_name,
+    category=excluded.category,
+    brand=excluded.brand,
     quantity=excluded.quantity,
     realization=excluded.realization,
     returns=excluded.returns,
@@ -132,12 +151,60 @@ ON CONFLICT(client_id, marketplace, raw_ref) DO UPDATE SET
 
 
 def upsert_transactions(rows: list[dict]) -> int:
-    """Idempotent bulk insert/update — safe to re-run the same pull twice."""
+    """Idempotent bulk insert/update — safe to re-run the same pull twice.
+
+    category/brand are optional columns added later; default them so callers
+    predating them (and any WB/Ozon row without the field) still upsert."""
     if not rows:
         return 0
+    prepared = [{"category": "", "brand": "", **row} for row in rows]
     with connect() as conn:
-        conn.executemany(UPSERT_SQL, rows)
+        conn.executemany(UPSERT_SQL, prepared)
         return len(rows)
+
+
+def set_product_costs(client_id: str, costs: dict[str, float], source_file: str | None = None) -> int:
+    """Bulk upsert per-SKU unit costs (себестоимость) for a client. Returns count."""
+    if not costs:
+        return 0
+    with connect() as conn:
+        conn.executemany(
+            """
+            INSERT INTO product_costs (client_id, sku, unit_cost, source_file)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(client_id, sku) DO UPDATE SET
+                unit_cost=excluded.unit_cost,
+                source_file=excluded.source_file,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            [(client_id, sku, cost, source_file) for sku, cost in costs.items()],
+        )
+        return len(costs)
+
+
+def get_product_costs(client_id: str) -> dict[str, float]:
+    with connect() as conn:
+        return {
+            r["sku"]: r["unit_cost"]
+            for r in conn.execute(
+                "SELECT sku, unit_cost FROM product_costs WHERE client_id = ?", (client_id,)
+            ).fetchall()
+        }
+
+
+def product_costs_meta(client_id: str) -> dict:
+    """Count and most-recent source file for the client's loaded costs."""
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS n, MAX(source_file) AS source_file FROM product_costs WHERE client_id = ?",
+            (client_id,),
+        ).fetchone()
+    return {"count": row["n"], "source_file": row["source_file"]}
+
+
+def clear_product_costs(client_id: str) -> int:
+    with connect() as conn:
+        return conn.execute("DELETE FROM product_costs WHERE client_id = ?", (client_id,)).rowcount
 
 
 def set_plan_target(client_id: str, period: str, metric: str, plan_value: float) -> None:

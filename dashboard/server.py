@@ -21,7 +21,7 @@ from pydantic import BaseModel
 
 from analytics.insights import assign_abc, compute_insights
 from analytics.metrics import by_product, deductions_breakdown, funnel, monthly_dynamics, plan_vs_fact
-from etl.import_csv import normalize_row, parse_csv_upload
+from etl.import_csv import normalize_row, parse_cost_upload, parse_csv_upload
 from storage import db as storage
 from storage.db import init_db, set_plan_target, upsert_transactions
 
@@ -54,8 +54,10 @@ def api_deductions(client_id: str, marketplace: str | None = MarketplaceQuery, d
 @app.get("/api/products")
 def api_products(client_id: str, marketplace: str | None = MarketplaceQuery, date_from: str | None = None, date_to: str | None = None, search: str | None = None):
     # ABC classes are assigned over the full (unsearched) assortment, so a
-    # search result still shows each product's true class.
-    rows = assign_abc(by_product(client_id, marketplace, date_from, date_to))
+    # search result still shows each product's true class. When себестоимость
+    # is loaded, the result/margin/ABC become net-profit-based.
+    costs = storage.get_product_costs(client_id)
+    rows = assign_abc(by_product(client_id, marketplace, date_from, date_to, costs))
     if search:
         needle = search.lower()
         rows = [r for r in rows if needle in (r["product_name"] or "").lower() or needle in (r["sku"] or "").lower()]
@@ -74,7 +76,7 @@ def api_plan_fact(client_id: str, period: str = PeriodQuery, marketplace: str | 
 
 @app.get("/api/insights")
 def api_insights(client_id: str, marketplace: str | None = MarketplaceQuery, date_from: str | None = None, date_to: str | None = None):
-    return compute_insights(client_id, marketplace, date_from, date_to)
+    return compute_insights(client_id, marketplace, date_from, date_to, storage.get_product_costs(client_id))
 
 
 class PlanTargetIn(BaseModel):
@@ -88,6 +90,46 @@ class PlanTargetIn(BaseModel):
 def api_set_plan(target: PlanTargetIn):
     set_plan_target(target.client_id, target.period, target.metric, target.plan_value)
     return {"status": "ok"}
+
+
+# --- Себестоимость (unit cost) ----------------------------------------------
+
+
+@app.get("/api/costs")
+def api_costs_status(client_id: str):
+    meta = storage.product_costs_meta(client_id)
+    return {"loaded": meta["count"] > 0, "count": meta["count"], "source_file": meta["source_file"]}
+
+
+@app.post("/api/costs")
+async def api_upload_costs(client_id: str = Form(...), file: UploadFile = File(...)):
+    raw = await file.read()
+    if len(raw) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, "Файл больше 20 МБ — проверьте, что это файл себестоимости.")
+    if not raw:
+        raise HTTPException(422, "Файл пустой.")
+    try:
+        parsed = parse_cost_upload(raw)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    # Replace any previously loaded costs so re-uploading a corrected file is
+    # a clean overwrite, not a merge with stale SKUs.
+    storage.clear_product_costs(client_id)
+    stored = storage.set_product_costs(client_id, parsed["costs"], file.filename or "costs.csv")
+    return {
+        "loaded": True,
+        "count": stored,
+        "skipped": parsed["skipped"],
+        "cost_column": parsed["cost_column"],
+        "file_fixes": parsed["file_fixes"],
+        "source_file": file.filename or "costs.csv",
+    }
+
+
+@app.delete("/api/costs")
+def api_delete_costs(client_id: str):
+    removed = storage.clear_product_costs(client_id)
+    return {"removed": removed}
 
 
 _CSV_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")

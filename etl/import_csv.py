@@ -31,6 +31,10 @@ COLUMN_ALIASES = {
         "product_name", "товар", "название", "название товара", "наименование",
         "предмет", "subject_name", "наименование товара",
     ),
+    "category": (
+        "category", "категория", "категория/предмет", "группа товаров",
+    ),
+    "brand": ("brand", "бренд", "торговая марка"),
     "doc_type": (
         "doc_type", "тип документа", "обоснование для оплаты", "тип операции",
         "doc_type_name", "операция",
@@ -186,6 +190,8 @@ def normalize_row(
         "period_date": "",
         "sku": "",
         "product_name": "",
+        "category": "",
+        "brand": "",
         "quantity": 0,
         "realization": 0.0,
         "returns": 0.0,
@@ -218,6 +224,8 @@ def normalize_row(
 
     data["sku"] = str(field_values.get("sku", "")).strip()
     data["product_name"] = str(field_values.get("product_name", "")).strip()
+    data["category"] = str(field_values.get("category", "")).strip()
+    data["brand"] = str(field_values.get("brand", "")).strip()
     if not data["sku"] and not data["product_name"]:
         errors.append("Не указан ни артикул, ни название товара — строку не к чему привязать.")
 
@@ -346,4 +354,93 @@ def parse_csv_upload(client_id: str, marketplace: str, upload_id: int, raw: byte
         "file_fixes": file_fixes,
         "columns": {headers[idx].strip(): field for idx, field in mapping.items()},
         "rows": rows,
+    }
+
+
+# Header names for a seller's own себестоимость (unit cost) file, most
+# specific first so "Полная себестоимость за шт" wins over a bare
+# "Себестоимость" when both are present.
+COST_COLUMN_ALIASES = (
+    "полная себестоимость за шт", "полная себестоимость",
+    "себестоимость закупки за шт", "себестоимость за шт", "себестоимость",
+    "unit_cost", "cost", "закупочная цена",
+)
+COST_SKU_ALIASES = ("sku", "артикул", "артикул поставщика", "артикул продавца", "код товара")
+
+
+def parse_cost_upload(raw: bytes) -> dict:
+    """Parse a seller's cost (себестоимость) file into {sku: unit_cost}.
+
+    Returns {"costs": {...}, "skipped": int, "cost_column": str,
+    "file_fixes": [...]} or raises ValueError with a user-facing message.
+    """
+    text, encoding_fix = sniff_text(raw)
+    delimiter = sniff_delimiter(text)
+    file_fixes = []
+    if encoding_fix:
+        file_fixes.append(encoding_fix)
+    if delimiter != ",":
+        file_fixes.append(f"разделитель '{delimiter}'")
+
+    reader = csv.reader(io.StringIO(text), delimiter=delimiter)
+    try:
+        headers = next(reader)
+    except StopIteration:
+        raise ValueError("Файл пустой — в нём нет ни одной строки.")
+
+    # Match against both the raw header and its unit-stripped form: "Себестоимость, ₽"
+    # only matches after stripping, while "Полная себестоимость за шт" must NOT be
+    # stripped (its " шт" is part of the name), so accept either.
+    header_keys = []
+    for header in headers:
+        raw_key = (header or "").strip().lower().strip('"')
+        header_keys.append({raw_key, _HEADER_UNIT_RE.sub("", raw_key)})
+
+    def matches(aliases):
+        # aliases are ordered most-specific-first, so honour that priority.
+        for alias in aliases:
+            for i, keys in enumerate(header_keys):
+                if alias in keys:
+                    return i
+        return -1
+
+    sku_idx = matches(COST_SKU_ALIASES)
+    if sku_idx == -1:
+        raise ValueError(
+            "Не найдена колонка артикула (SKU). Ожидается заголовок «SKU» или «Артикул». "
+            f"Найденные заголовки: {', '.join(h.strip() for h in headers if h.strip())[:300]}"
+        )
+    cost_idx = matches(COST_COLUMN_ALIASES)
+    if cost_idx == -1:
+        raise ValueError(
+            "Не найдена колонка себестоимости. Ожидается «Полная себестоимость за шт», "
+            "«Себестоимость закупки за шт» или «Себестоимость»."
+        )
+
+    costs: dict[str, float] = {}
+    skipped = 0
+    for raw_row in reader:
+        if not any(cell.strip() for cell in raw_row):
+            continue
+        sku = (raw_row[sku_idx].strip() if sku_idx < len(raw_row) else "")
+        if not sku:
+            skipped += 1
+            continue
+        try:
+            cost = parse_number(raw_row[cost_idx] if cost_idx < len(raw_row) else "")
+        except ValueError:
+            skipped += 1
+            continue
+        if cost > 0:
+            costs[sku] = cost
+        else:
+            skipped += 1
+
+    if not costs:
+        raise ValueError("Ни одной строки с валидной себестоимостью не найдено.")
+    return {
+        "costs": costs,
+        "skipped": skipped,
+        "cost_column": headers[cost_idx].strip(),
+        "file_fixes": file_fixes,
     }

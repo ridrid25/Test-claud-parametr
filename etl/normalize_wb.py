@@ -28,6 +28,10 @@ def normalize_wb_row(client_id: str, row: dict) -> dict:
         "period_date": date[:10],
         "sku": row.get("sa_name") or str(row.get("nm_id", "")),
         "product_name": row.get("subject_name") or "",
+        # WB's "subject" is the предмет (category-like); brand_name may be absent
+        # in older report versions, hence the tolerant .get with a blank default.
+        "category": row.get("subject_name") or "",
+        "brand": row.get("brand_name") or row.get("brand") or "",
         # int() rejects a decimal-string quantity like "2.0" outright — go
         # through float() first so one such row doesn't crash the whole batch.
         "quantity": int(float(row.get("quantity") or 0)),

@@ -97,6 +97,20 @@
       </div>
       <div class="card">
         <div class="card-header">
+          <h3>Куда уходит рубль реализации</h3>
+          <span class="muted">от выручки до того, что осталось вам</span>
+        </div>
+        <div id="ruble-flow"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Рентабельность ассортимента</h3>
+          <span class="muted">сколько товаров в каждой полосе маржи</span>
+        </div>
+        <div id="margin-histogram"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
           <h3>ABC-анализ ассортимента</h3>
           <span class="muted">по вкладу в выплату: A — 80%, B — ещё 15%, C — остальное, «−» — убыточные</span>
         </div>
@@ -139,7 +153,31 @@
       <div class="card">
         <div class="card-header">
           <h3>Товары</h3>
-          <span class="muted">по выплате (сначала худшие) и красным зонам</span>
+          <span class="muted">сегменты — одним кликом; группировка — списком</span>
+        </div>
+        <div class="segments" id="product-segments"></div>
+        <div class="group-controls">
+          <label class="field field-inline">
+            <span>Группировка</span>
+            <select id="product-grouping">
+              <option value="">Без группировки (список)</option>
+              <option value="section" selected>По разделу</option>
+              <option value="category">По подкатегории</option>
+              <option value="brand">По бренду</option>
+              <option value="marketplace">По маркетплейсу</option>
+              <option value="abc">По классу ABC</option>
+            </select>
+          </label>
+          <label class="field field-inline">
+            <span>Вложенно</span>
+            <select id="product-grouping2">
+              <option value="">— нет —</option>
+              <option value="category" selected>Подкатегории</option>
+              <option value="brand">Бренды</option>
+              <option value="marketplace">Маркетплейсы</option>
+              <option value="abc">Классы ABC</option>
+            </select>
+          </label>
         </div>
         <div id="table-products"></div>
       </div>
@@ -149,7 +187,19 @@
       <div class="card">
         <div class="card-header">
           <h3>Возвратность по товарам</h3>
-          <span class="muted">товары с возвратностью ≥ 30%</span>
+          <span class="muted">где и на сколько теряете на возвратах — в рублях и процентах</span>
+        </div>
+        <div class="group-controls">
+          <label class="field field-inline">
+            <span>Группировка</span>
+            <select id="returns-grouping">
+              <option value="section" selected>По разделу</option>
+              <option value="category">По подкатегории</option>
+              <option value="brand">По бренду</option>
+              <option value="marketplace">По маркетплейсу</option>
+              <option value="">Без группировки (список)</option>
+            </select>
+          </label>
         </div>
         <div id="table-returns"></div>
       </div>
@@ -186,6 +236,22 @@
           <button id="upload-submit" class="btn-primary" type="button">Загрузить</button>
         </div>
         <p class="hint" id="upload-status" hidden></p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Себестоимость товаров</h3>
+          <span class="muted">CSV со столбцами SKU и себестоимостью за штуку — включит расчёт чистой прибыли</span>
+        </div>
+        <div class="upload-form">
+          <label class="field">
+            <span>Файл себестоимости CSV</span>
+            <input id="cost-file" type="file" accept=".csv,text/csv" />
+          </label>
+          <button id="cost-submit" class="btn-primary" type="button">Загрузить себестоимость</button>
+          <button id="cost-remove" class="btn-small danger" type="button" hidden>Убрать себестоимость</button>
+        </div>
+        <p class="hint" id="cost-status">Понимает «Полная себестоимость за шт», «Себестоимость закупки за шт» или просто «Себестоимость». Пока файл не загружен, анализ идёт без неё — по метрике «к выплате».</p>
       </div>
 
       <div class="card">

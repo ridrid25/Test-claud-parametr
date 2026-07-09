@@ -144,6 +144,16 @@ def test_normalized_product_report_format():
     assert ozon_row["payout"] == 6096.64
 
 
+def test_category_and_brand_are_captured():
+    raw = _make_csv(
+        "Дата;Артикул;Товар;Категория;Бренд;Реализация;К выплате\n"
+        "2023-10-05;A-1;Худи;Одежда/Худи;Nike;10000;8500\n"
+    )
+    data = parse_csv_upload("demo", "wb", 1, raw)["rows"][0]["data"]
+    assert data["category"] == "Одежда/Худи"
+    assert data["brand"] == "Nike"
+
+
 def test_unknown_marketplace_value_is_an_error():
     raw = _make_csv(
         "Маркетплейс,Дата,Артикул,Реализация\n"

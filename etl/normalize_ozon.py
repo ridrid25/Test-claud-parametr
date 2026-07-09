@@ -65,6 +65,10 @@ def normalize_ozon_operation(client_id: str, operation: dict) -> list[dict]:
             "period_date": period_date,
             "sku": str(item.get("sku", "")),
             "product_name": item.get("name") or "",
+            # The finance transaction API carries no category/brand per item —
+            # keep the keys present (blank) so the unified upsert stays uniform.
+            "category": "",
+            "brand": "",
             "quantity": 1,
             "realization": (accruals_for_sale / item_count) if op_type == "orders" else 0.0,
             "returns": (abs(accruals_for_sale) / item_count) if op_type == "returns" else 0.0,

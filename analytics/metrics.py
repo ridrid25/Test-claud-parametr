@@ -70,14 +70,29 @@ def deductions_breakdown(client_id: str, marketplace: str | None = None, date_fr
     return dict(row)
 
 
-def by_product(client_id: str, marketplace: str | None = None, date_from: str | None = None, date_to: str | None = None) -> list[dict]:
+def by_product(client_id: str, marketplace: str | None = None, date_from: str | None = None,
+               date_to: str | None = None, costs: dict[str, float] | None = None) -> list[dict]:
+    """Per-SKU aggregates. When `costs` (sku -> unit cost) is given, each row
+    also carries себестоимость fields (unit_cost, cogs, profit) and the
+    "result"/"margin" metric switches from payout to net profit — this is
+    what drives the cost-aware analysis, ABC and product cards."""
     where, params = _where(client_id, marketplace, date_from, date_to)
     query = f"""
         SELECT
             sku,
             MAX(product_name) AS product_name,
+            MAX(COALESCE(category, '')) AS category,
+            MAX(COALESCE(brand, '')) AS brand,
+            MAX(marketplace) AS marketplace,
+            COALESCE(SUM(quantity), 0) AS quantity,
             COALESCE(SUM(realization), 0) AS realization,
             COALESCE(SUM(returns), 0) AS returns,
+            COALESCE(SUM(commission), 0) AS commission,
+            COALESCE(SUM(logistics), 0) AS logistics,
+            COALESCE(SUM(storage), 0) AS storage,
+            COALESCE(SUM(promotion), 0) AS promotion,
+            COALESCE(SUM(penalty), 0) AS penalty,
+            COALESCE(SUM(other_deduction), 0) AS other_deduction,
             COALESCE(SUM(commission + logistics + storage + promotion + penalty + other_deduction), 0) AS mp_expenses,
             COALESCE(SUM(payout), 0) AS payout
         FROM transactions
@@ -88,11 +103,29 @@ def by_product(client_id: str, marketplace: str | None = None, date_from: str | 
     with connect() as conn:
         rows = [dict(r) for r in conn.execute(query, params).fetchall()]
 
+    costs = costs or {}
+    costs_loaded = bool(costs)
     for row in rows:
         gross = row["realization"] + row["returns"]
         row["return_rate"] = (row["returns"] / gross) if gross else 0.0
         row["net_revenue"] = row["realization"] - row["returns"]
+        row["payout_margin"] = (row["payout"] / row["realization"]) if row["realization"] else (-1.0 if row["payout"] < 0 else 0.0)
+
+        # Себестоимость: COGS = закупочная цена за шт × продано шт; прибыль = к выплате − COGS.
+        unit_cost = costs.get(row["sku"])
+        row["unit_cost"] = unit_cost
+        row["cogs"] = unit_cost * (row["quantity"] or 0) if unit_cost is not None else 0.0
+        row["profit"] = row["payout"] - row["cogs"]
+        row["profit_margin"] = (row["profit"] / row["realization"]) if row["realization"] else (-1.0 if row["profit"] < 0 else 0.0)
+
+        # The "result"/"margin" the UI ranks and colours by: net profit when
+        # costs are loaded, otherwise к выплате.
+        row["result"] = row["profit"] if costs_loaded else row["payout"]
+        row["margin"] = row["profit_margin"] if costs_loaded else row["payout_margin"]
+
         red_flags = []
+        if row["result"] < 0:
+            red_flags.append("убыток с уч. себестоимости" if costs_loaded else "убыток")
         if row["return_rate"] >= RETURN_RATE_RED_ZONE:
             red_flags.append("высокая возвратность")
         if row["net_revenue"] < 0:
@@ -100,6 +133,7 @@ def by_product(client_id: str, marketplace: str | None = None, date_from: str | 
         elif row["realization"] and (row["mp_expenses"] / row["realization"]) >= EXPENSE_SHARE_RED_ZONE:
             red_flags.append("высокая доля расходов МП")
         row["red_flags"] = red_flags
+    rows.sort(key=lambda r: r["result"])
     return rows
 
 
