@@ -24,6 +24,14 @@ function fmtMoney(value) {
   return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(value) + " ₽";
 }
 
+// Compact ruble for the KPI hero tiles ("107,1 млн ₽"); exact value stays in the tooltip.
+function fmtMoneyCompact(value) {
+  const a = Math.abs(value), sign = value < 0 ? "−" : "";
+  if (a >= 1e6) return sign + (a / 1e6).toFixed(1).replace(".", ",") + " млн ₽";
+  if (a >= 1e4) return sign + Math.round(a / 1e3) + " тыс ₽";
+  return fmtMoney(value);
+}
+
 function fmtPercent(value) {
   return (value * 100).toFixed(1) + "%";
 }
@@ -71,9 +79,9 @@ function renderStatRow(summary) {
   ];
   const el = document.getElementById("stat-row");
   el.innerHTML = tiles.map(t => `
-    <div class="stat-tile">
+    <div class="stat-tile" title="${t.label}: ${fmtMoney(t.value)}">
       <div class="label">${t.label}</div>
-      <div class="value ${t.signed ? (t.value >= 0 ? "positive" : "negative") : ""}">${fmtMoney(t.value)}</div>
+      <div class="value ${t.signed ? (t.value >= 0 ? "positive" : "negative") : ""}">${fmtMoneyCompact(t.value)}</div>
     </div>
   `).join("");
 }

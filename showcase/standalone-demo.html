@@ -107,6 +107,9 @@
   --banner-border: #2a78d6;
 }
 
+/* Strong custom easing — built-in CSS curves are too weak to read as intentional (Kowalski). */
+:root { --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); }
+
 * { box-sizing: border-box; }
 body {
   margin: 0;
@@ -114,7 +117,19 @@ body {
   background: var(--page);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
+
+@keyframes cardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes growX { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* Cards rise in with a short cascade when a tab becomes visible (occasional → delight is fine).
+   Bound to display change on tab switch, not to content refresh, so it never replays on filtering. */
+.tab-panel > .card { animation: cardIn 400ms var(--ease-out) both; }
+.tab-panel > .card:nth-child(2) { animation-delay: 55ms; }
+.tab-panel > .card:nth-child(3) { animation-delay: 110ms; }
+.tab-panel > .card:nth-child(4) { animation-delay: 165ms; }
+.tab-panel > .card:nth-child(n+5) { animation-delay: 210ms; }
 .demo-banner {
   background: var(--banner-bg);
   border-bottom: 2px solid var(--banner-border);
@@ -155,22 +170,26 @@ body {
   background: var(--page); color: var(--text-primary);
   text-align: center; text-decoration: none; font-size: 13px; font-weight: 500;
   cursor: pointer; font-family: inherit;
-  transition: background-color 120ms ease, border-color 120ms ease;
+  transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out), transform 140ms var(--ease-out);
 }
 .btn:hover { border-color: var(--border-strong); background: var(--surface-2); }
+.btn:active { transform: scale(0.97); }
 .btn-primary {
   padding: 9px 16px; border-radius: 8px; border: 1px solid var(--series-1);
   background: var(--series-1); color: #ffffff;
   font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer;
-  transition: filter 120ms ease;
+  transition: filter 140ms var(--ease-out), transform 140ms var(--ease-out);
 }
 .btn-primary:hover { filter: brightness(1.08); }
+.btn-primary:active { transform: scale(0.97); }
 .btn-small {
   padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border);
   background: var(--surface-1); color: var(--text-primary);
   font-size: 12px; font-weight: 500; font-family: inherit; cursor: pointer; margin-right: 4px;
+  transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out), transform 140ms var(--ease-out);
 }
 .btn-small:hover { border-color: var(--border-strong); background: var(--surface-2); }
+.btn-small:active { transform: scale(0.96); }
 .btn-small.danger { color: var(--status-critical); }
 .content { padding: 32px 32px 32px 40px; max-width: 1180px; }
 .content-header h2 { margin: 6px 0 0; font-size: 25px; letter-spacing: -0.01em; }
@@ -178,18 +197,21 @@ body {
 .tab {
   border: none; background: none; font: inherit; font-size: 13px; font-weight: 500;
   padding: 8px 16px; border-radius: 8px; color: var(--text-secondary); cursor: pointer;
-  transition: background-color 140ms ease, color 140ms ease;
+  transition: background-color 160ms var(--ease-out), color 160ms var(--ease-out), transform 140ms var(--ease-out);
 }
 .tab:hover { color: var(--text-primary); }
+.tab:active { transform: scale(0.97); }
 .tab.active { color: var(--text-primary); background: var(--surface-1); font-weight: 600; box-shadow: var(--shadow-sm); }
 .tab:focus-visible, .btn:focus-visible, .btn-primary:focus-visible, .btn-small:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
-.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 28px; }
 .stat-tile {
-  background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
-  padding: 16px; box-shadow: var(--shadow-sm);
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
+  padding: 18px 18px 20px; box-shadow: var(--shadow-sm);
+  transition: transform 220ms var(--ease-out), box-shadow 220ms var(--ease-out), border-color 220ms var(--ease-out);
 }
-.stat-tile .label { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
-.stat-tile .value { font-size: 23px; font-weight: 650; letter-spacing: -0.01em; }
+.stat-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--border-strong); }
+.stat-tile .label { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 10px; }
+.stat-tile .value { font-size: 28px; font-weight: 640; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.05; white-space: nowrap; }
 .stat-tile .value.positive { color: var(--success); }
 .stat-tile .value.negative { color: var(--status-critical); }
 .card {
@@ -222,12 +244,14 @@ td.num, th.num { text-align: right; }
 .bar-row { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
 .bar-row .bar-label { width: 140px; font-size: 12.5px; color: var(--text-secondary); flex-shrink: 0; }
 .bar-row .bar-track { flex: 1; background: var(--surface-2); border-radius: 8px; height: 20px; overflow: hidden; }
-.bar-row .bar-fill { height: 100%; border-radius: 0 4px 4px 0; }
+/* Bars grow from the baseline on render — reinforces magnitude, GPU-only (scaleX). */
+.bar-row .bar-fill { height: 100%; border-radius: 0 4px 4px 0; transform-origin: left center; animation: growX 480ms var(--ease-out) both; }
 .bar-row .bar-value { width: 110px; text-align: right; font-size: 12.5px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
 .wide-values .bar-value { width: 160px; }
 .col-chart { display: flex; align-items: flex-end; gap: 20px; height: 200px; border-bottom: 1px solid var(--baseline); padding: 0 4px; }
 .col-group { display: flex; align-items: flex-end; gap: 2px; flex: 1; height: 100%; }
-.col-bar { flex: 1; max-width: 24px; border-radius: 4px 4px 0 0; min-height: 1px; }
+.col-bar { flex: 1; max-width: 24px; border-radius: 4px 4px 0 0; min-height: 1px; transform-origin: bottom center; animation: growY 480ms var(--ease-out) both; }
+@keyframes growY { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 .col-labels { display: flex; gap: 20px; padding: 8px 4px 0; }
 .col-labels span { flex: 1; text-align: center; font-size: 11px; color: var(--text-secondary); }
 .data-table-toggle {
@@ -274,9 +298,10 @@ td.num, th.num { text-align: right; }
   border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px;
   background: var(--surface-1); color: var(--text-secondary);
   font-size: 12.5px; font-weight: 500; font-family: inherit; cursor: pointer;
-  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+  transition: background-color 140ms var(--ease-out), color 140ms var(--ease-out), border-color 140ms var(--ease-out), transform 140ms var(--ease-out);
 }
 .segment:hover { border-color: var(--border-strong); color: var(--text-primary); }
+.segment:active { transform: scale(0.96); }
 .segment.active { background: var(--series-1); border-color: var(--series-1); color: #fff; }
 .segment .seg-count { opacity: 0.75; margin-left: 4px; }
 .group-controls { margin-bottom: 10px; display: flex; gap: 12px; flex-wrap: wrap; }
@@ -307,7 +332,17 @@ th.sorted-desc::after { content: " ↓"; }
   .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
   .content { padding: 24px 16px; }
 }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* Reduced motion: strip movement/scale but keep opacity fades that aid comprehension. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .stat-tile:hover, .btn:active, .btn-primary:active, .btn-small:active, .segment:active, .tab:active { transform: none !important; }
+}
+/* Gate the hover-lift behind real pointers so touch taps don't trigger it. */
+@media (hover: none) { .stat-tile:hover { transform: none; box-shadow: var(--shadow-sm); } }
 </style>
 
 <div class="demo-banner">
@@ -860,6 +895,13 @@ const RETURN_RATE_RED_ZONE = 0.30;
 const EXPENSE_SHARE_RED_ZONE = 0.50;
 
 const fmtMoney = v => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(v) + " ₽";
+// Compact ruble for KPI hero tiles: "107,1 млн ₽" — exact value stays in the tooltip.
+const fmtMoneyCompact = v => {
+  const a = Math.abs(v), sign = v < 0 ? "−" : "";
+  if (a >= 1e6) return sign + (a / 1e6).toFixed(1).replace(".", ",") + " млн ₽";
+  if (a >= 1e4) return sign + Math.round(a / 1e3) + " тыс ₽";
+  return fmtMoney(v);
+};
 const fmtPercent = v => (v * 100).toFixed(1) + "%";
 const escapeHtml = v => String(v ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
 const expenses = r => r.commission + r.logistics + r.storage + r.promotion + r.penalty + r.other_deduction;
@@ -876,9 +918,9 @@ function renderStatRow(rows) {
     { label: "К выплате", value: s.payout, signed: true },
   ];
   document.getElementById("stat-row").innerHTML = tiles.map(t => `
-    <div class="stat-tile">
+    <div class="stat-tile" title="${t.label}: ${fmtMoney(t.value)}">
       <div class="label">${t.label}</div>
-      <div class="value ${t.signed ? (t.value >= 0 ? "positive" : "negative") : ""}">${fmtMoney(t.value)}</div>
+      <div class="value ${t.signed ? (t.value >= 0 ? "positive" : "negative") : ""}">${fmtMoneyCompact(t.value)}</div>
     </div>`).join("");
 }
 

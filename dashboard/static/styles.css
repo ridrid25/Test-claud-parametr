@@ -37,6 +37,9 @@
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
+  /* Strong custom easing — built-in CSS curves are too weak to read as intentional. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -75,7 +78,20 @@ body {
   background: var(--page);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
+
+@keyframes cardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes growX { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes growY { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+/* Cards cascade in when a tab becomes visible (tab switch = occasional, so delight is fine).
+   Bound to the display change on tab switch, never replays on content refresh. */
+.tab-panel > .card { animation: cardIn 400ms var(--ease-out) both; }
+.tab-panel > .card:nth-child(2) { animation-delay: 55ms; }
+.tab-panel > .card:nth-child(3) { animation-delay: 110ms; }
+.tab-panel > .card:nth-child(4) { animation-delay: 165ms; }
+.tab-panel > .card:nth-child(n+5) { animation-delay: 210ms; }
 
 .layout {
   display: grid;
@@ -227,10 +243,11 @@ body {
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
   cursor: pointer;
-  transition: background-color 140ms ease, color 140ms ease;
+  transition: background-color 160ms var(--ease-out), color 160ms var(--ease-out), transform 140ms var(--ease-out);
 }
 
 .tab:hover { color: var(--text-primary); }
+.tab:active { transform: scale(0.97); }
 
 .tab.active {
   color: var(--text-primary);
@@ -241,26 +258,28 @@ body {
 
 .stat-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--space-3);
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-6);
 }
 
 .stat-tile {
   background: var(--surface-1);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  padding: 18px 18px 20px;
   box-shadow: var(--shadow-sm);
-  transition: box-shadow 160ms ease, transform 160ms ease;
+  transition: box-shadow 220ms var(--ease-out), transform 220ms var(--ease-out), border-color 220ms var(--ease-out);
 }
 
-.stat-tile:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.stat-tile:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); border-color: var(--border-strong); }
 
-.stat-tile .label { font-size: 13px; color: var(--text-secondary); margin-bottom: var(--space-2); }
-.stat-tile .value { font-size: 23px; font-weight: 650; letter-spacing: -0.01em; }
+.stat-tile .label { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 10px; }
+.stat-tile .value { font-size: 28px; font-weight: 640; letter-spacing: -0.02em; line-height: 1.05; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .stat-tile .value.positive { color: var(--success); }
 .stat-tile .value.negative { color: var(--status-critical); }
+
+@media (hover: none) { .stat-tile:hover { transform: none; box-shadow: var(--shadow-sm); } }
 
 .card {
   background: var(--surface-1);
@@ -329,8 +348,9 @@ td.num, th.num { text-align: right; }
 .bar-row .bar-label { width: 130px; font-size: 12.5px; color: var(--text-secondary); flex-shrink: 0; }
 .bar-row .bar-track { flex: 1; background: var(--surface-2); border-radius: var(--radius-sm); height: 20px; position: relative; overflow: hidden; }
 /* Square at the baseline (left), rounded only at the data end (right) —
-   per the mark spec, not rounded on all four corners. */
-.bar-row .bar-fill { height: 100%; border-radius: 0 4px 4px 0; transition: width 240ms ease; }
+   per the mark spec, not rounded on all four corners. Grows from the
+   baseline on render (GPU-only scaleX) to reinforce magnitude. */
+.bar-row .bar-fill { height: 100%; border-radius: 0 4px 4px 0; transform-origin: left center; animation: growX 480ms var(--ease-out) both; }
 .bar-row .bar-value { width: 100px; text-align: right; font-size: 12.5px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
 
 .col-chart {
@@ -355,7 +375,8 @@ td.num, th.num { text-align: right; }
   max-width: 24px;
   border-radius: 4px 4px 0 0;
   min-height: 1px;
-  transition: height 240ms ease;
+  transform-origin: bottom center;
+  animation: growY 480ms var(--ease-out) both;
 }
 
 .col-labels {
@@ -406,10 +427,10 @@ td.num, th.num { text-align: right; }
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
-  transition: filter 120ms ease, transform 80ms ease;
+  transition: filter 140ms var(--ease-out), transform 140ms var(--ease-out);
 }
 .btn-primary:hover { filter: brightness(1.08); }
-.btn-primary:active { transform: scale(0.98); }
+.btn-primary:active { transform: scale(0.97); }
 .btn-primary:disabled { opacity: 0.6; cursor: default; }
 
 .btn-small {
@@ -423,9 +444,10 @@ td.num, th.num { text-align: right; }
   font-family: inherit;
   cursor: pointer;
   margin-right: 4px;
-  transition: background-color 120ms ease, border-color 120ms ease;
+  transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out), transform 140ms var(--ease-out);
 }
 .btn-small:hover { border-color: var(--border-strong); background: var(--surface-2); }
+.btn-small:active { transform: scale(0.96); }
 .btn-small.danger { color: var(--status-critical); }
 
 .chip {
@@ -479,4 +501,14 @@ td.num, th.num { text-align: right; }
   .layout { grid-template-columns: 1fr; }
   .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
   .content { padding: var(--space-5); }
+}
+
+/* Reduced motion: strip movement/scale but keep opacity fades that aid comprehension. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .stat-tile:hover, .btn-primary:active, .btn-small:active, .tab:active { transform: none !important; }
 }
