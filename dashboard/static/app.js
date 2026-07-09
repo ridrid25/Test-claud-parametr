@@ -75,11 +75,11 @@ function renderStatRow(summary) {
     { label: "Возвраты", value: summary.returns },
     { label: "Чистая выручка", value: summary.net_revenue, signed: true },
     { label: "Расходы МП", value: summary.mp_expenses },
-    { label: "К выплате", value: summary.payout, signed: true },
+    { label: "К выплате", value: summary.payout, signed: true, hero: true },
   ];
   const el = document.getElementById("stat-row");
   el.innerHTML = tiles.map(t => `
-    <div class="stat-tile" title="${t.label}: ${fmtMoney(t.value)}">
+    <div class="stat-tile ${t.hero ? "stat-tile-hero" : ""}" title="${t.label}: ${fmtMoney(t.value)}">
       <div class="label">${t.label}</div>
       <div class="value ${t.signed ? (t.value >= 0 ? "positive" : "negative") : ""}">${fmtMoneyCompact(t.value)}</div>
     </div>
@@ -308,7 +308,7 @@ function renderInsightsCards(a) {
 
   el.innerHTML = cards.map(c => `
     <div class="insight ${c.severity}">
-      <div class="insight-title">${c.title}</div>
+      <div class="insight-title"><span class="insight-dot"></span>${c.title}</div>
       <div>${c.body}</div>
       ${c.action ? `<div class="insight-action">→ ${c.action}</div>` : ""}
     </div>`).join("");

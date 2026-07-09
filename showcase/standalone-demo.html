@@ -214,6 +214,13 @@ body {
 .stat-tile .value { font-size: 28px; font-weight: 640; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.05; white-space: nowrap; }
 .stat-tile .value.positive { color: var(--success); }
 .stat-tile .value.negative { color: var(--status-critical); }
+/* The single bold accent on the whole view — the bottom-line KPI. */
+.stat-tile-hero {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--series-1) 7%, var(--surface-1)), var(--surface-1));
+  border-color: color-mix(in srgb, var(--series-1) 30%, var(--border));
+}
+.stat-tile-hero .label { color: var(--series-1); }
 .card {
   background: var(--surface-1); border: 1px solid var(--border); border-radius: 16px;
   padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-sm);
@@ -277,12 +284,17 @@ td.num, th.num { text-align: right; }
   background: var(--surface-1); border-left-width: 4px;
   font-size: 13.5px; line-height: 1.5;
 }
-.insight .insight-title { font-weight: 600; margin-bottom: 4px; }
+.insight .insight-title { font-weight: 600; margin-bottom: 4px; display: flex; align-items: baseline; gap: 8px; }
+.insight .insight-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; transform: translateY(-1px); }
 .insight .insight-action { margin-top: 6px; color: var(--text-secondary); font-size: 12.5px; }
 .insight.critical { border-left-color: var(--status-critical); }
+.insight.critical .insight-dot { background: var(--status-critical); }
 .insight.warning { border-left-color: var(--series-3); }
+.insight.warning .insight-dot { background: var(--series-3); }
 .insight.good { border-left-color: var(--status-good); }
+.insight.good .insight-dot { background: var(--status-good); }
 .insight.neutral { border-left-color: var(--series-1); }
+.insight.neutral .insight-dot { background: var(--series-1); }
 .abc-chip { display: inline-block; min-width: 22px; text-align: center; padding: 2px 7px; border-radius: 6px; font-size: 11px; font-weight: 700; }
 .abc-A { background: color-mix(in srgb, var(--status-good) 18%, transparent); color: var(--success); }
 .abc-B { background: color-mix(in srgb, var(--series-1) 16%, transparent); color: var(--text-primary); }
@@ -290,9 +302,11 @@ td.num, th.num { text-align: right; }
 .abc-L { background: color-mix(in srgb, var(--status-critical) 16%, transparent); color: var(--status-critical); }
 .stack-bar { display: flex; height: 34px; border-radius: 8px; overflow: hidden; gap: 2px; background: var(--surface-2); }
 .stack-seg { min-width: 2px; }
-.stack-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 6px 16px; margin-top: 12px; font-size: 12.5px; }
-.stack-legend .legend-item { display: flex; align-items: center; gap: 7px; color: var(--text-secondary); }
-.stack-legend .legend-item strong { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.stack-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 20px; margin-top: 14px; font-size: 12.5px; }
+.stack-legend .legend-item { display: grid; grid-template-columns: 12px 1fr auto auto; align-items: center; gap: 8px; color: var(--text-secondary); }
+.stack-legend .legend-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stack-legend .legend-pct { font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.stack-legend .legend-rub { color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .segments { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
 .segment {
   border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px;
@@ -907,18 +921,32 @@ const escapeHtml = v => String(v ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;
 const expenses = r => r.commission + r.logistics + r.storage + r.promotion + r.penalty + r.other_deduction;
 
 function renderStatRow(rows) {
-  const s = { realization: 0, returns: 0, mp_expenses: 0, payout: 0 };
-  for (const r of rows) { s.realization += r.realization; s.returns += r.returns; s.mp_expenses += expenses(r); s.payout += r.payout; }
+  const s = { realization: 0, returns: 0, mp_expenses: 0, payout: 0, cogs: 0 };
+  for (const r of rows) {
+    s.realization += r.realization; s.returns += r.returns; s.mp_expenses += expenses(r); s.payout += r.payout;
+    const unit = state.costs.get(r.sku);
+    if (unit != null) s.cogs += unit * (r.quantity || 0);
+  }
   const net = s.realization - s.returns;
-  const tiles = [
-    { label: "Реализация", value: s.realization },
-    { label: "Возвраты", value: s.returns },
-    { label: "Чистая выручка", value: net, signed: true },
-    { label: "Расходы МП", value: s.mp_expenses },
-    { label: "К выплате", value: s.payout, signed: true },
-  ];
+  // The KPI row is a funnel that must END on the real bottom line. With
+  // costs loaded that's чистая прибыль (the hero); without, it's к выплате.
+  const tiles = costsLoaded()
+    ? [
+        { label: "Реализация", value: s.realization },
+        { label: "Возвраты", value: s.returns },
+        { label: "Расходы МП", value: s.mp_expenses },
+        { label: "Себестоимость", value: s.cogs },
+        { label: "Чистая прибыль", value: s.payout - s.cogs, signed: true, hero: true },
+      ]
+    : [
+        { label: "Реализация", value: s.realization },
+        { label: "Возвраты", value: s.returns },
+        { label: "Чистая выручка", value: net, signed: true },
+        { label: "Расходы МП", value: s.mp_expenses },
+        { label: "К выплате", value: s.payout, signed: true, hero: true },
+      ];
   document.getElementById("stat-row").innerHTML = tiles.map(t => `
-    <div class="stat-tile" title="${t.label}: ${fmtMoney(t.value)}">
+    <div class="stat-tile ${t.hero ? "stat-tile-hero" : ""}" title="${t.label}: ${fmtMoney(t.value)}">
       <div class="label">${t.label}</div>
       <div class="value ${t.signed ? (t.value >= 0 ? "positive" : "negative") : ""}">${fmtMoneyCompact(t.value)}</div>
     </div>`).join("");
@@ -1162,7 +1190,7 @@ function renderInsights(a) {
 
   el.innerHTML = cards.map(c => `
     <div class="insight ${c.severity}">
-      <div class="insight-title">${c.title}</div>
+      <div class="insight-title"><span class="insight-dot"></span>${c.title}</div>
       <div>${c.body}</div>
       ${c.action ? `<div class="insight-action">→ ${c.action}</div>` : ""}
     </div>`).join("");
@@ -1285,7 +1313,12 @@ function renderRubleFlow(a) {
     </div>
     <div class="stack-legend">
       ${segments.map(([label, value, color]) => `
-        <span class="legend-item"><span class="legend-swatch" style="background:${color}"></span>${label}: <strong>${(value / total * 100).toFixed(1)}%</strong>&nbsp;(${fmtMoney(value)})</span>`).join("")}
+        <span class="legend-item">
+          <span class="legend-swatch" style="background:${color}"></span>
+          <span class="legend-name">${label}</span>
+          <span class="legend-pct">${(value / total * 100).toFixed(1)}%</span>
+          <span class="legend-rub">${fmtMoney(value)}</span>
+        </span>`).join("")}
     </div>`;
 }
 
