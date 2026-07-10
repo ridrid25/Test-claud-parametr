@@ -4,19 +4,22 @@
 приводит к единой схеме, считает финансовые метрики (воронка, удержания,
 товары с красными зонами, план-факт) и отдаёт их в веб-дашборд.
 
-> **⚠ 2026-07-15: WB отключает `GET /api/v5/supplier/reportDetailByPeriod`**
-> (эндпойнт, который использует `connectors/wb.py`). Замена — два новых
-> метода в категории токена "Finance": `POST /api/finance/v1/sales-reports/list`
-> (список отчётов) и `POST /api/finance/v1/sales-reports/detailed/{reportId}`
-> (детализация по ID отчёта). Точную схему параметров и полей ответа не
-> удалось подтвердить из этого окружения — `dev.wildberries.ru` блокирует
-> автоматический доступ. Перед переходом на новый метод свериться с реальным
-> ответом API. Подробности — в шапке `connectors/wb.py`.
+> **✅ 2026-07-15: миграция на новый WB Finance API выполнена.** Старый
+> `GET /api/v5/supplier/reportDetailByPeriod` в этот день отключается. Пайплайн
+> по умолчанию использует новый метод
+> `POST https://finance-api.wildberries.ru/api/finance/v1/sales-reports/detailed`
+> (`WildberriesFinanceClient` + `normalize_wb_finance_row`). Схема ответа —
+> camelCase (`rrdId`, `vendorCode`, `forPay`, …), взята из опубликованной
+> OpenAPI-спецификации WB. Старый эндпойнт остаётся доступен как запасной:
+> `python -m etl.pipeline ... --wb-api statistics`. На первом реальном синке
+> всё же сверьте сырой ответ с маппингом. Одно отличие нового отчёта:
+> «продвижение в рублях» (`supplier_promo`) в нём отсутствует — ДРР берите из
+> рекламного API или из CSV-загрузки.
 
 ## Архитектура
 
 ```
-connectors/   HTTP-клиенты WB Statistics API и Ozon Seller API
+connectors/   HTTP-клиенты WB Finance API (+ legacy Statistics) и Ozon Seller API
 etl/          нормализация сырых отчётов в единую схему + оркестратор пайплайна
 storage/      SQLite-схема (multi-tenant: каждая строка помечена client_id)
 analytics/    агрегация метрик (воронка, удержания, товары, динамика, план-факт)

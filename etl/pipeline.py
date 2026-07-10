@@ -11,16 +11,23 @@ import httpx
 
 from config import get_client
 from connectors.ozon import OzonClient
-from connectors.wb import WildberriesClient
+from connectors.wb import WildberriesClient, WildberriesFinanceClient
 from etl.normalize_ozon import normalize_ozon_rows
-from etl.normalize_wb import normalize_wb_rows
+from etl.normalize_wb import normalize_wb_finance_rows, normalize_wb_rows
 from storage.db import init_db, upsert_transactions
 
 
-def sync_wb(client_id: str, wb_api_key: str, date_from: str, date_to: str) -> int:
-    with WildberriesClient(wb_api_key) as client:
-        raw_rows = list(client.fetch_report_detail_by_period(date_from, date_to))
-    return upsert_transactions(normalize_wb_rows(client_id, raw_rows))
+def sync_wb(client_id: str, wb_api_key: str, date_from: str, date_to: str, wb_api: str = "finance") -> int:
+    """Pull WB financial detail. Defaults to the new Finance API
+    (finance-api.wildberries.ru); pass wb_api='statistics' for the legacy
+    endpoint, which WB switches off on 2026-07-15."""
+    if wb_api == "statistics":
+        with WildberriesClient(wb_api_key) as client:
+            raw_rows = list(client.fetch_report_detail_by_period(date_from, date_to))
+        return upsert_transactions(normalize_wb_rows(client_id, raw_rows))
+    with WildberriesFinanceClient(wb_api_key) as client:
+        raw_rows = list(client.fetch_sales_reports_detailed(date_from, date_to))
+    return upsert_transactions(normalize_wb_finance_rows(client_id, raw_rows))
 
 
 def sync_ozon(
@@ -31,13 +38,13 @@ def sync_ozon(
     return upsert_transactions(normalize_ozon_rows(client_id, raw_rows))
 
 
-def sync_client(client_id: str, date_from: str, date_to: str) -> dict:
+def sync_client(client_id: str, date_from: str, date_to: str, wb_api: str = "finance") -> dict:
     """Pull both marketplaces for one client; skip a marketplace with no credentials."""
     creds = get_client(client_id)
     init_db()
     result = {"wb_rows": 0, "ozon_rows": 0}
     if creds.wb_api_key:
-        result["wb_rows"] = sync_wb(client_id, creds.wb_api_key, date_from, date_to)
+        result["wb_rows"] = sync_wb(client_id, creds.wb_api_key, date_from, date_to, wb_api)
     if creds.ozon_client_id and creds.ozon_api_key:
         result["ozon_rows"] = sync_ozon(
             client_id, creds.ozon_client_id, creds.ozon_api_key, date_from, date_to
@@ -50,13 +57,17 @@ def main() -> None:
     parser.add_argument("--client", required=True, help="client_id from clients.json")
     parser.add_argument("--date-from", required=True, help="YYYY-MM-DD")
     parser.add_argument("--date-to", required=True, help="YYYY-MM-DD")
+    parser.add_argument(
+        "--wb-api", choices=("finance", "statistics"), default="finance",
+        help="WB endpoint: 'finance' (new, default) or 'statistics' (legacy, off 2026-07-15)",
+    )
     args = parser.parse_args()
 
     # The two most common first-run failures (no clients.json entry, API
     # unreachable / key rejected) get a readable message instead of a raw
     # traceback — the CLI is run by non-developers following the README.
     try:
-        result = sync_client(args.client, args.date_from, args.date_to)
+        result = sync_client(args.client, args.date_from, args.date_to, args.wb_api)
     except KeyError:
         raise SystemExit(
             f"Клиент {args.client!r} не найден в clients.json.\n"
