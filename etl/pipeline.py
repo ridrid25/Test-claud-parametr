@@ -9,6 +9,7 @@ import argparse
 
 import httpx
 
+from analytics.metrics import monthly_dynamics
 from config import get_client
 from connectors.ozon import OzonClient
 from connectors.wb import WildberriesClient, WildberriesFinanceClient
@@ -52,6 +53,29 @@ def sync_client(client_id: str, date_from: str, date_to: str, wb_api: str = "fin
     return result
 
 
+def reconciliation_lines(client_id: str, date_from: str, date_to: str) -> list[str]:
+    """Помесячные итоги по каждому каналу для сверки с кабинетом ВБ/Ozon.
+
+    Печатается сразу после синка: «Реализация» и «К выплате» должны сойтись
+    с отчётом реализации в кабинете за тот же месяц. Если не сходятся —
+    маппинг полей в etl/normalize_*.py надо сверить с сырым ответом API.
+    """
+    names = {"wb": "Wildberries", "ozon": "Ozon"}
+    lines = []
+    for marketplace, name in names.items():
+        months = monthly_dynamics(client_id, marketplace, date_from, date_to)
+        if not months:
+            continue
+        lines.append(f"— {name}: сверьте с кабинетом —")
+        lines.append(f"{'месяц':<9} {'реализация':>14} {'возвраты':>12} {'расходы МП':>12} {'к выплате':>14}")
+        for m in months:
+            lines.append(
+                f"{m['month']:<9} {m['realization']:>14,.2f} {m['returns']:>12,.2f} "
+                f"{m['mp_expenses']:>12,.2f} {m['payout']:>14,.2f}".replace(",", " ")
+            )
+    return lines
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--client", required=True, help="client_id from clients.json")
@@ -81,6 +105,8 @@ def main() -> None:
         )
     print(f"WB rows synced: {result['wb_rows']}")
     print(f"Ozon rows synced: {result['ozon_rows']}")
+    for line in reconciliation_lines(args.client, args.date_from, args.date_to):
+        print(line)
 
 
 if __name__ == "__main__":
