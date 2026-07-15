@@ -8,7 +8,11 @@
 </head>
 <body>
 <div class="layout">
-  <aside class="sidebar">
+  <button class="filters-toggle" id="filters-toggle" type="button" aria-expanded="false" aria-controls="sidebar">
+    <span class="filters-toggle-label">Фильтры и период</span>
+    <span class="filters-toggle-caret">▾</span>
+  </button>
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-title">
       <div class="brand">
         <span class="brand-mark"></span>
@@ -219,11 +223,11 @@
       <div class="card">
         <div class="card-header">
           <h3>Загрузить отчёт из файла</h3>
-          <span class="muted">CSV-выгрузки из кабинетов ВБ и Ozon; ошибки чисел, дат и кодировок исправляются автоматически</span>
+          <span class="muted">CSV-выгрузки из кабинетов ВБ и Ozon; ошибки чисел, дат и кодировок исправляются автоматически. Можно загрузить несколько файлов — они дополняют друг друга.</span>
         </div>
         <div class="upload-form">
           <label class="field">
-            <span>Маркетплейс файла</span>
+            <span>Из какого кабинета этот файл?</span>
             <select id="upload-marketplace">
               <option value="wb">Wildberries</option>
               <option value="ozon">Ozon</option>
@@ -235,13 +239,14 @@
           </label>
           <button id="upload-submit" class="btn-primary" type="button">Загрузить</button>
         </div>
+        <p class="hint">Выбор здесь привязывает данные к маркетплейсу (это нужно для сравнения ВБ и Ozon). Файл ВБ грузите с «Wildberries», файл Ozon — переключив на «Ozon». Если в самом файле есть колонка «Маркетплейс», она имеет приоритет для каждой строки.</p>
         <p class="hint" id="upload-status" hidden></p>
       </div>
 
       <div class="card">
         <div class="card-header">
           <h3>Себестоимость товаров</h3>
-          <span class="muted">CSV со столбцами SKU и себестоимостью за штуку — включит расчёт чистой прибыли</span>
+          <span class="muted">CSV со столбцами SKU и себестоимостью за штуку — включит расчёт чистой прибыли. Можно грузить несколько файлов (например, отдельно ВБ и Ozon) — они дополняют друг друга.</span>
         </div>
         <div class="upload-form">
           <label class="field">
@@ -251,7 +256,7 @@
           <button id="cost-submit" class="btn-primary" type="button">Загрузить себестоимость</button>
           <button id="cost-remove" class="btn-small danger" type="button" hidden>Убрать себестоимость</button>
         </div>
-        <p class="hint" id="cost-status">Понимает «Полная себестоимость за шт», «Себестоимость закупки за шт» или просто «Себестоимость». Пока файл не загружен, анализ идёт без неё — по метрике «к выплате».</p>
+        <p class="hint" id="cost-status">Понимает «Полная себестоимость за шт», «Себестоимость закупки за шт» или просто «Себестоимость». Несколько файлов складываются; если один SKU встретится дважды, берётся последнее значение. Пока файл не загружен, анализ идёт без неё — по метрике «к выплате».</p>
       </div>
 
       <div class="card">

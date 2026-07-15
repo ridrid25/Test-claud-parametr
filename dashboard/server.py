@@ -112,13 +112,16 @@ async def api_upload_costs(client_id: str = Form(...), file: UploadFile = File(.
         parsed = parse_cost_upload(raw)
     except ValueError as exc:
         raise HTTPException(422, str(exc))
-    # Replace any previously loaded costs so re-uploading a corrected file is
-    # a clean overwrite, not a merge with stale SKUs.
-    storage.clear_product_costs(client_id)
-    stored = storage.set_product_costs(client_id, parsed["costs"], file.filename or "costs.csv")
+    # Merge into any previously loaded costs (upsert per SKU), so several files
+    # — e.g. WB and Ozon separately — build up one cost table. A repeated SKU
+    # takes the newest value, which also covers uploading a corrected file. Use
+    # «Убрать себестоимость» to wipe and start over.
+    added = storage.set_product_costs(client_id, parsed["costs"], file.filename or "costs.csv")
+    total = storage.product_costs_meta(client_id)["count"]
     return {
         "loaded": True,
-        "count": stored,
+        "count": total,        # всего SKU с себестоимостью после слияния
+        "added": added,        # сколько принёс этот файл
         "skipped": parsed["skipped"],
         "cost_column": parsed["cost_column"],
         "file_fixes": parsed["file_fixes"],

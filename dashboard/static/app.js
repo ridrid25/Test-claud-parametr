@@ -390,7 +390,9 @@ function renderProductsTable(products) {
 
   const segNote = productSegment !== "all" ? ` в сегменте «${segment[1]}»` : "";
   const searchNote = search ? ` по запросу «${escapeHtml(search)}»` : "";
-  const grouping = document.getElementById("product-grouping").value;
+  // While searching, force the flat list — otherwise a match hides inside a
+  // collapsed group and the search looks like it did nothing.
+  const grouping = search ? "" : document.getElementById("product-grouping").value;
 
   if (grouping) {
     const grouping2 = document.getElementById("product-grouping2").value;
@@ -887,18 +889,20 @@ async function refresh() {
   await renderPlanFact();
 }
 
+function activateTab(name) {
+  document.querySelectorAll(".tab").forEach(t => {
+    const on = t.dataset.tab === name;
+    t.classList.toggle("active", on);
+    t.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  document.querySelectorAll(".tab-panel").forEach(p => {
+    p.hidden = p.dataset.panel !== name;
+  });
+}
+
 function setupTabs() {
   document.querySelectorAll(".tab").forEach(tab => {
-    tab.addEventListener("click", () => {
-      document.querySelectorAll(".tab").forEach(t => {
-        t.classList.remove("active");
-        t.setAttribute("aria-selected", "false");
-      });
-      document.querySelectorAll(".tab-panel").forEach(p => (p.hidden = true));
-      tab.classList.add("active");
-      tab.setAttribute("aria-selected", "true");
-      document.querySelector(`.tab-panel[data-panel="${tab.dataset.tab}"]`).hidden = false;
-    });
+    tab.addEventListener("click", () => activateTab(tab.dataset.tab));
   });
 }
 
@@ -906,7 +910,12 @@ function setupFilters() {
   ["f-client", "f-marketplace", "f-date-from", "f-date-to"].forEach(id => {
     document.getElementById(id).addEventListener("change", refresh);
   });
-  document.getElementById("f-search").addEventListener("input", debounce(refresh, 300));
+  // Typing a query jumps to «Товары» so the search visibly does something —
+  // the search filter only affects the products/returns lists, not «Анализ».
+  document.getElementById("f-search").addEventListener("input", debounce(() => {
+    if (document.getElementById("f-search").value.trim()) activateTab("products");
+    refresh();
+  }, 300));
   document.getElementById("plan-period").addEventListener("change", renderPlanFact);
 
   // Grouping selects re-render the cached product list — no server round-trip.
@@ -1249,7 +1258,7 @@ function setupCosts() {
       if (!res.ok) throw new Error(body.detail || res.status);
       const fixes = (body.file_fixes || []).length ? ` Автоисправления: ${body.file_fixes.join(", ")}.` : "";
       const skipped = body.skipped ? ` Пропущено строк без валидной себестоимости: ${body.skipped}.` : "";
-      statusEl.textContent = `Загружено ${body.count} SKU из колонки «${body.cost_column}».${fixes}${skipped} Дашборд пересчитан по чистой прибыли.`;
+      statusEl.textContent = `Из файла добавлено ${body.added} SKU (колонка «${body.cost_column}»). Всего товаров с себестоимостью: ${body.count}.${fixes}${skipped} Дашборд пересчитан по чистой прибыли.`;
       fileInput.value = "";
       await refresh();
     } catch (err) {
@@ -1271,8 +1280,21 @@ function setupCosts() {
   });
 }
 
+function setupFiltersToggle() {
+  // On phones the filter sidebar is collapsed behind this button (it's hidden
+  // on desktop via CSS). Tap to reveal filters/period, tap again to hide.
+  const toggle = document.getElementById("filters-toggle");
+  const sidebar = document.getElementById("sidebar");
+  toggle.addEventListener("click", () => {
+    const open = sidebar.classList.toggle("open");
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    toggle.classList.toggle("open", open);
+  });
+}
+
 setupTabs();
 setupFilters();
+setupFiltersToggle();
 setupPlanSave();
 setupUploads();
 setupCosts();

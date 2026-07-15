@@ -103,6 +103,10 @@ body {
 }
 .content, .sidebar { min-width: 0; }
 
+/* Filters toggle: desktop shows the sidebar always, so this button is hidden.
+   It only appears on phones (see the mobile block below). */
+.filters-toggle { display: none; }
+
 .sidebar {
   background: var(--surface-1);
   border-right: 1px solid var(--border);
@@ -566,10 +570,26 @@ th.sorted-desc::after { content: " ↓"; }
 
 @media (max-width: 860px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
-  /* Content first on phones — the dashboard (tabs, KPIs, analysis) is what
-     you see, not a long filter form. Filters drop below. */
-  .content { order: 1; padding: 20px 14px 32px; max-width: none; }
-  .sidebar { order: 2; position: static; height: auto; overflow: visible; border-right: none; border-top: 1px solid var(--border); }
+  /* Phones: a compact «Фильтры» button up top, then the dashboard content.
+     The filter panel is collapsed behind the button (no more repeated form at
+     the bottom of every tab) and expands under it on tap. */
+  .filters-toggle {
+    display: flex; order: 0; align-items: center; justify-content: space-between;
+    gap: 10px; margin: 12px 14px 0; padding: 12px 16px;
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: var(--radius-md); color: var(--text-primary);
+    font: inherit; font-weight: 600; font-size: 14px; cursor: pointer;
+  }
+  .filters-toggle .filters-toggle-caret { transition: transform 160ms var(--ease-out); color: var(--text-secondary); }
+  .filters-toggle.open .filters-toggle-caret { transform: rotate(180deg); }
+  .filters-toggle:active { transform: scale(0.99); }
+  .content { order: 2; padding: 16px 14px 32px; max-width: none; }
+  .sidebar {
+    order: 1; display: none; position: static; height: auto; overflow: visible;
+    border-right: none; margin: 8px 14px 0; border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  .sidebar.open { display: flex; }
   .tabs { width: 100%; overflow-x: auto; flex-wrap: nowrap; }
   .stat-row { grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat-tile { padding: 14px 14px 16px; }

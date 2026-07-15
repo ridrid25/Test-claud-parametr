@@ -130,12 +130,23 @@ def test_costs_endpoints_roundtrip(client):
     assert client.get("/api/costs", params={"client_id": "acme"}).json()["loaded"] is False
 
 
-def test_costs_reupload_replaces(client):
+def test_costs_multiple_files_merge(client):
+    """Several cost files build up one table (e.g. WB then Ozon); a repeated
+    SKU takes the newest value, so a correction file still works."""
     def upload(body):
         return client.post("/api/costs", params={"client_id": "acme"},
                            data={"client_id": "acme"},
-                           files={"file": ("c.csv", body, "text/csv")})
-    upload("SKU;Себестоимость\nA;600\nB;300\n")
-    upload("SKU;Себестоимость\nA;700\n")  # corrected file, only A
-    status = client.get("/api/costs", params={"client_id": "acme"}).json()
-    assert status["count"] == 1  # B dropped, not merged
+                           files={"file": ("c.csv", body, "text/csv")}).json()
+
+    first = upload("SKU;Себестоимость\nA;600\nB;300\n")
+    assert first["added"] == 2 and first["count"] == 2
+
+    # A second file adds a new SKU and corrects an existing one.
+    second = upload("SKU;Себестоимость\nA;700\nC;900\n")
+    assert second["added"] == 2      # A (updated) + C (new)
+    assert second["count"] == 3      # A, B, C — B kept, not wiped
+
+    costs = client.get("/api/products", params={"client_id": "acme"}).json()
+    by_sku = {p["sku"]: p for p in costs}
+    assert by_sku["A"]["unit_cost"] == 700  # newest value wins
+    assert by_sku["B"]["unit_cost"] == 300  # earlier file preserved
