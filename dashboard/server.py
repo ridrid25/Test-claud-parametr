@@ -10,10 +10,12 @@ each client only ever sees rows tagged with their own client_id.
 import csv
 import io
 import json
+import re
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
 
+import httpx
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -22,6 +24,7 @@ from pydantic import BaseModel
 from analytics.insights import assign_abc, compute_insights
 from analytics.metrics import by_product, deductions_breakdown, funnel, monthly_dynamics, plan_vs_fact
 from etl.import_csv import normalize_row, parse_cost_upload, parse_csv_upload
+from etl.pipeline import reconciliation_lines, sync_ozon, sync_wb
 from storage import db as storage
 from storage.db import init_db, set_plan_target, upsert_transactions
 
@@ -133,6 +136,92 @@ async def api_upload_costs(client_id: str = Form(...), file: UploadFile = File(.
 def api_delete_costs(client_id: str):
     removed = storage.clear_product_costs(client_id)
     return {"removed": removed}
+
+
+# --- Подключение по API (WB/Ozon) -------------------------------------------
+
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+@app.get("/api/credentials")
+def api_credentials_status(client_id: str):
+    """Whether keys are on file — never returns the keys themselves."""
+    creds = storage.get_client_credentials(client_id) or {}
+    return {
+        "wb_connected": bool(creds.get("wb_api_key")),
+        "ozon_connected": bool(creds.get("ozon_client_id") and creds.get("ozon_api_key")),
+    }
+
+
+class CredentialsIn(BaseModel):
+    client_id: str
+    wb_api_key: str | None = None
+    ozon_client_id: str | None = None
+    ozon_api_key: str | None = None
+
+
+@app.post("/api/credentials")
+def api_save_credentials(creds: CredentialsIn):
+    storage.set_client_credentials(
+        creds.client_id,
+        (creds.wb_api_key or "").strip() or None,
+        (creds.ozon_client_id or "").strip() or None,
+        (creds.ozon_api_key or "").strip() or None,
+    )
+    return api_credentials_status(creds.client_id)
+
+
+@app.delete("/api/credentials")
+def api_delete_credentials(client_id: str, marketplace: str | None = MarketplaceQuery):
+    storage.clear_client_credentials(client_id, marketplace)
+    return api_credentials_status(client_id)
+
+
+class SyncIn(BaseModel):
+    client_id: str
+    date_from: str  # YYYY-MM-DD
+    date_to: str
+
+
+def _friendly_api_error(exc: Exception) -> str:
+    if isinstance(exc, httpx.HTTPStatusError):
+        code = exc.response.status_code
+        if code in (401, 403):
+            return "ключ отклонён — проверьте, что он верный и у него есть доступ к финансовым отчётам"
+        if code == 429:
+            return "маркетплейс временно ограничил частоту запросов — попробуйте позже"
+        return f"маркетплейс вернул ошибку {code}"
+    if isinstance(exc, httpx.HTTPError):
+        return "не удалось связаться с API маркетплейса — проверьте сеть"
+    return str(exc)
+
+
+@app.post("/api/sync")
+def api_sync(body: SyncIn):
+    """Pull data over the marketplace APIs using the client's stored keys.
+    Each marketplace is independent — one can succeed while the other errors."""
+    if not (_DATE_RE.match(body.date_from) and _DATE_RE.match(body.date_to)):
+        raise HTTPException(422, "Даты должны быть в формате ГГГГ-ММ-ДД.")
+    creds = storage.get_client_credentials(body.client_id)
+    if not creds or not (creds.get("wb_api_key") or creds.get("ozon_api_key")):
+        raise HTTPException(422, "Сначала сохраните хотя бы один ключ доступа на вкладке «Подключение».")
+
+    init_db()
+    result = {"wb": None, "ozon": None, "errors": {}}
+    if creds.get("wb_api_key"):
+        try:
+            result["wb"] = sync_wb(body.client_id, creds["wb_api_key"], body.date_from, body.date_to)
+        except Exception as exc:  # network/auth errors are surfaced, not fatal
+            result["errors"]["wb"] = _friendly_api_error(exc)
+    if creds.get("ozon_client_id") and creds.get("ozon_api_key"):
+        try:
+            result["ozon"] = sync_ozon(
+                body.client_id, creds["ozon_client_id"], creds["ozon_api_key"], body.date_from, body.date_to
+            )
+        except Exception as exc:
+            result["errors"]["ozon"] = _friendly_api_error(exc)
+    result["reconciliation"] = reconciliation_lines(body.client_id, body.date_from, body.date_to)
+    return result
 
 
 _CSV_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")

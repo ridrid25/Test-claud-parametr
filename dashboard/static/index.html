@@ -86,6 +86,7 @@
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-products" id="tab-products" data-tab="products">Товары</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-returns" id="tab-returns" data-tab="returns">Возвраты</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-control" id="tab-control" data-tab="control">Контроль</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-connect" id="tab-connect" data-tab="connect">Подключение</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-uploads" id="tab-uploads" data-tab="uploads">Загрузка</button>
     </nav>
 
@@ -216,6 +217,73 @@
           <span class="muted">по выбранному месяцу и маркетплейсу; диапазон дат слева не учитывается</span>
         </div>
         <div id="table-plan-fact"></div>
+      </div>
+    </section>
+
+    <section class="tab-panel" data-panel="connect" role="tabpanel" id="panel-connect" aria-labelledby="tab-connect" hidden>
+      <div class="card">
+        <div class="card-header">
+          <h3>Ключи доступа</h3>
+          <span class="muted">данные подтянутся из кабинетов автоматически, без выгрузки файлов</span>
+        </div>
+
+        <div class="connect-grid">
+          <div class="connect-mp">
+            <div class="connect-mp-head">
+              <strong>Wildberries</strong>
+              <span class="conn-status" id="wb-conn-status">не подключено</span>
+            </div>
+            <label class="field">
+              <span>API-ключ (токен категории «Финансы»)</span>
+              <input id="wb-key" type="password" placeholder="Вставьте токен из кабинета ВБ" autocomplete="off" />
+            </label>
+            <p class="hint" style="margin:0">Кабинет ВБ → Настройки → Доступ к API → создать токен с категорией «Финансы».</p>
+          </div>
+
+          <div class="connect-mp">
+            <div class="connect-mp-head">
+              <strong>Ozon</strong>
+              <span class="conn-status" id="ozon-conn-status">не подключено</span>
+            </div>
+            <label class="field">
+              <span>Client-Id</span>
+              <input id="ozon-client-id" type="text" placeholder="Client-Id из кабинета Ozon" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>Api-Key</span>
+              <input id="ozon-key" type="password" placeholder="Api-Key из кабинета Ozon" autocomplete="off" />
+            </label>
+            <p class="hint" style="margin:0">Кабинет Ozon → Настройки → API-ключи.</p>
+          </div>
+        </div>
+
+        <div class="connect-actions">
+          <button id="save-credentials" class="btn-primary" type="button">Сохранить ключи</button>
+          <button id="disconnect-all" class="btn-small danger" type="button" hidden>Отключить всё</button>
+        </div>
+        <p class="hint">Ключи хранятся на сервере и используются только для загрузки данных этого клиента. Мы не показываем их обратно и не передаём третьим лицам.</p>
+        <p class="hint" id="credentials-status" hidden></p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Загрузить данные по API</h3>
+          <span class="muted">за выбранный период из подключённых кабинетов</span>
+        </div>
+        <div class="upload-form">
+          <label class="field">
+            <span>С даты</span>
+            <input id="sync-date-from" type="date" />
+          </label>
+          <label class="field">
+            <span>По дату</span>
+            <input id="sync-date-to" type="date" />
+          </label>
+          <button id="sync-submit" class="btn-primary" type="button">Загрузить данные</button>
+        </div>
+        <p class="hint">Совет: для первого раза возьмите один месяц. Большие периоды (год и больше) быстрее заливать через скрипт — см. README.</p>
+        <p class="hint" id="sync-status" hidden></p>
+        <div id="sync-reconciliation"></div>
       </div>
     </section>
 

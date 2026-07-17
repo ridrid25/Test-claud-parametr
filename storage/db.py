@@ -67,6 +67,17 @@ CREATE TABLE IF NOT EXISTS plan_targets (
     PRIMARY KEY (client_id, period, metric)
 );
 
+-- Per-client marketplace API keys entered from the «Подключение» tab. Stored
+-- in plaintext (single-tenant, per-client deployment) — see README's known
+-- limitations. Keys are never sent back to the browser, only their presence.
+CREATE TABLE IF NOT EXISTS client_credentials (
+    client_id TEXT PRIMARY KEY,
+    wb_api_key TEXT,
+    ozon_client_id TEXT,
+    ozon_api_key TEXT,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS uploads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     client_id TEXT NOT NULL,
@@ -205,6 +216,59 @@ def product_costs_meta(client_id: str) -> dict:
 def clear_product_costs(client_id: str) -> int:
     with connect() as conn:
         return conn.execute("DELETE FROM product_costs WHERE client_id = ?", (client_id,)).rowcount
+
+
+def set_client_credentials(client_id: str, wb_api_key: str | None = None,
+                           ozon_client_id: str | None = None, ozon_api_key: str | None = None) -> None:
+    """Save API keys for a client. A blank/None field leaves the stored value
+    untouched (so saving only the WB key doesn't wipe Ozon's), while a
+    non-empty value overwrites it."""
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT wb_api_key, ozon_client_id, ozon_api_key FROM client_credentials WHERE client_id = ?",
+            (client_id,),
+        ).fetchone()
+        current = dict(row) if row else {}
+        conn.execute(
+            """
+            INSERT INTO client_credentials (client_id, wb_api_key, ozon_client_id, ozon_api_key, updated_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(client_id) DO UPDATE SET
+                wb_api_key=excluded.wb_api_key,
+                ozon_client_id=excluded.ozon_client_id,
+                ozon_api_key=excluded.ozon_api_key,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            (
+                client_id,
+                (wb_api_key or current.get("wb_api_key")) or None,
+                (ozon_client_id or current.get("ozon_client_id")) or None,
+                (ozon_api_key or current.get("ozon_api_key")) or None,
+            ),
+        )
+
+
+def get_client_credentials(client_id: str) -> dict | None:
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT wb_api_key, ozon_client_id, ozon_api_key FROM client_credentials WHERE client_id = ?",
+            (client_id,),
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def clear_client_credentials(client_id: str, marketplace: str | None = None) -> None:
+    """Disconnect a marketplace (or all when marketplace is None)."""
+    with connect() as conn:
+        if marketplace == "wb":
+            conn.execute("UPDATE client_credentials SET wb_api_key = NULL WHERE client_id = ?", (client_id,))
+        elif marketplace == "ozon":
+            conn.execute(
+                "UPDATE client_credentials SET ozon_client_id = NULL, ozon_api_key = NULL WHERE client_id = ?",
+                (client_id,),
+            )
+        else:
+            conn.execute("DELETE FROM client_credentials WHERE client_id = ?", (client_id,))
 
 
 def set_plan_target(client_id: str, period: str, metric: str, plan_value: float) -> None:

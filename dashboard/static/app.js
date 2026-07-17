@@ -1280,6 +1280,129 @@ function setupCosts() {
   });
 }
 
+// --- Подключение по API ----------------------------------------------------
+
+function renderConnectionStatus(status) {
+  const set = (id, connected) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = connected ? "подключено" : "не подключено";
+    el.classList.toggle("conn-on", connected);
+  };
+  set("wb-conn-status", status.wb_connected);
+  set("ozon-conn-status", status.ozon_connected);
+  const anyConnected = status.wb_connected || status.ozon_connected;
+  const disc = document.getElementById("disconnect-all");
+  if (disc) disc.hidden = !anyConnected;
+}
+
+async function refreshConnectionStatus() {
+  try {
+    const status = await fetchJSON("/api/credentials", { client_id: currentFilters().client_id });
+    renderConnectionStatus(status);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function setupApiConnect() {
+  document.getElementById("save-credentials").addEventListener("click", async () => {
+    const statusEl = document.getElementById("credentials-status");
+    const payload = {
+      client_id: currentFilters().client_id,
+      wb_api_key: document.getElementById("wb-key").value.trim(),
+      ozon_client_id: document.getElementById("ozon-client-id").value.trim(),
+      ozon_api_key: document.getElementById("ozon-key").value.trim(),
+    };
+    if (!payload.wb_api_key && !payload.ozon_client_id && !payload.ozon_api_key) {
+      statusEl.hidden = false;
+      statusEl.classList.add("row-error-text");
+      statusEl.textContent = "Введите хотя бы один ключ.";
+      return;
+    }
+    try {
+      const res = await fetch("/api/credentials", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+      });
+      const status = await res.json();
+      if (!res.ok) throw new Error(status.detail || res.status);
+      renderConnectionStatus(status);
+      // Clear the inputs so keys aren't left on screen; presence shows in status.
+      ["wb-key", "ozon-client-id", "ozon-key"].forEach(id => (document.getElementById(id).value = ""));
+      statusEl.hidden = false;
+      statusEl.classList.remove("row-error-text");
+      statusEl.textContent = "Ключи сохранены. Теперь можно загрузить данные по API ниже.";
+    } catch (err) {
+      console.error(err);
+      statusEl.hidden = false;
+      statusEl.classList.add("row-error-text");
+      statusEl.textContent = `Не удалось сохранить ключи: ${err.message}`;
+    }
+  });
+
+  document.getElementById("disconnect-all").addEventListener("click", async () => {
+    if (!confirm("Отключить все сохранённые ключи? Загруженные ранее данные останутся.")) return;
+    try {
+      await fetch(`/api/credentials?${toQuery({ client_id: currentFilters().client_id })}`, { method: "DELETE" });
+    } catch (err) {
+      console.error(err);
+    }
+    await refreshConnectionStatus();
+  });
+
+  document.getElementById("sync-submit").addEventListener("click", async () => {
+    const statusEl = document.getElementById("sync-status");
+    const reconEl = document.getElementById("sync-reconciliation");
+    const dateFrom = document.getElementById("sync-date-from").value;
+    const dateTo = document.getElementById("sync-date-to").value;
+    reconEl.innerHTML = "";
+    if (!dateFrom || !dateTo) {
+      statusEl.hidden = false;
+      statusEl.classList.add("row-error-text");
+      statusEl.textContent = "Укажите период — с даты и по дату.";
+      return;
+    }
+    const button = document.getElementById("sync-submit");
+    button.disabled = true;
+    statusEl.hidden = false;
+    statusEl.classList.remove("row-error-text");
+    statusEl.textContent = "Запрашиваю данные из кабинетов… это может занять до минуты.";
+    try {
+      const res = await fetch("/api/sync", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client_id: currentFilters().client_id, date_from: dateFrom, date_to: dateTo }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.detail || res.status);
+
+      const parts = [];
+      if (body.wb != null) parts.push(`Wildberries: загружено ${body.wb} строк`);
+      if (body.errors && body.errors.wb) parts.push(`Wildberries: ${body.errors.wb}`);
+      if (body.ozon != null) parts.push(`Ozon: загружено ${body.ozon} строк`);
+      if (body.errors && body.errors.ozon) parts.push(`Ozon: ${body.errors.ozon}`);
+      statusEl.textContent = parts.join(". ") + ". Дашборд обновлён.";
+      statusEl.classList.toggle("row-error-text", !!(body.errors && Object.keys(body.errors).length));
+
+      if (body.reconciliation && body.reconciliation.length) {
+        reconEl.innerHTML = `<p class="hint" style="margin:14px 0 6px">Сверьте эти суммы с кабинетом за тот же период:</p>` +
+          `<pre class="recon-block">${escapeHtml(body.reconciliation.join("\n"))}</pre>`;
+      }
+      await refresh();
+    } catch (err) {
+      console.error(err);
+      statusEl.classList.add("row-error-text");
+      statusEl.textContent = `Не удалось загрузить: ${err.message}`;
+    }
+    button.disabled = false;
+  });
+
+  // Load connection status when the tab is first opened, and on client change.
+  document.getElementById("tab-connect").addEventListener("click", refreshConnectionStatus, { once: true });
+  document.getElementById("f-client").addEventListener("change", () => {
+    if (!document.getElementById("panel-connect").hidden) refreshConnectionStatus();
+  });
+}
+
 function setupFiltersToggle() {
   // On phones the filter sidebar is collapsed behind this button (it's hidden
   // on desktop via CSS). Tap to reveal filters/period, tap again to hide.
@@ -1296,6 +1419,7 @@ setupTabs();
 setupFilters();
 setupFiltersToggle();
 setupPlanSave();
+setupApiConnect();
 setupUploads();
 setupCosts();
 // refresh() catches its own fetch errors; this is a last-resort net for a

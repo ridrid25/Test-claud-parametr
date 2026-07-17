@@ -422,6 +422,15 @@ td.num, th.num { text-align: right; }
 .data-table-toggle:hover { text-decoration: underline; }
 
 .table-wrap { overflow-x: auto; }
+
+/* --- Подключение по API --- */
+.connect-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+.connect-mp { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.connect-mp-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.conn-status { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: color-mix(in srgb, var(--status-critical) 12%, transparent); color: var(--status-critical); }
+.conn-status.conn-on { background: color-mix(in srgb, var(--status-good) 15%, transparent); color: var(--success); }
+.connect-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
+.recon-block { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; line-height: 1.5; background: var(--surface-2); border-radius: var(--radius-sm); padding: 12px 14px; overflow-x: auto; white-space: pre; color: var(--text-primary); }
 /* Product/returns tables are injected straight into these divs (no .table-wrap
    wrapper), and on phones they're wider than the viewport — let them scroll
    inside their own card instead of being clipped by html { overflow-x: clip }. */
