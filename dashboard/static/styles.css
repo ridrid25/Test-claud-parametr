@@ -266,14 +266,18 @@ body {
   font: inherit;
   font-size: 13px;
   font-weight: 500;
-  padding: 8px 16px;
+  padding: 8px 14px;
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   transition: background-color 160ms var(--ease-out), color 160ms var(--ease-out), transform 140ms var(--ease-out);
 }
+.tab svg { width: 15px; height: 15px; flex-shrink: 0; }
 
-.tab:hover { color: var(--text-primary); }
+.tab:hover { color: var(--accent-strong); background: var(--accent-soft); }
 .tab:active { transform: scale(0.97); }
 
 .tab.active {
@@ -645,7 +649,7 @@ th.sorted-desc::after { content: " ↓"; }
   /* Tabs wrap onto as many rows as needed — no sideways scroll, all sections
      visible at once, and the dashboard sits right below them. */
   .tabs { width: 100%; flex-wrap: wrap; }
-  .tabs .tab { flex: 1 1 auto; text-align: center; }
+  .tabs .tab { flex: 1 1 auto; justify-content: center; }
   .stat-row { grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat-tile { padding: 14px 14px 16px; }
   .stat-tile-hero { grid-column: 1 / -1; }

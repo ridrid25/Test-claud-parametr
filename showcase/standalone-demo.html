@@ -221,10 +221,12 @@ body {
 .tabs { display: flex; gap: 2px; margin: 24px 0; padding: 4px; background: var(--surface-2); border-radius: 12px; width: fit-content; flex-wrap: wrap; }
 .tab {
   border: none; background: none; font: inherit; font-size: 13px; font-weight: 500;
-  padding: 8px 16px; border-radius: 8px; color: var(--text-secondary); cursor: pointer;
+  padding: 8px 14px; border-radius: 8px; color: var(--text-secondary); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px;
   transition: background-color 160ms var(--ease-out), color 160ms var(--ease-out), transform 140ms var(--ease-out);
 }
-.tab:hover { color: var(--text-primary); }
+.tab svg { width: 15px; height: 15px; flex-shrink: 0; }
+.tab:hover { color: var(--accent-strong); background: var(--accent-soft); }
 .tab:active { transform: scale(0.97); }
 .tab.active { color: #fff; background: var(--accent); font-weight: 600; box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--accent) 60%, transparent); }
 .tab.active:hover { color: #fff; }
@@ -386,7 +388,35 @@ th.sorted-desc::after { content: " ↓"; }
 .delta-up { color: var(--success); }
 .delta-down { color: var(--status-critical); }
 .result-count { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 10px; }
-@media (max-width: 860px) {
+/* Предпросмотр: панель переключения «Компьютер / Телефон» и рамка вьюпорта.
+   Адаптивность — через @container (ниже), поэтому телефон реагирует на ширину
+   рамки, а не окна: можно посмотреть мобильный вид, не сужая окно. */
+.preview-toolbar {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
+}
+.preview-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+.preview-btn {
+  font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+  padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text-secondary);
+  transition: background-color 140ms var(--ease-out), color 140ms var(--ease-out), border-color 140ms var(--ease-out);
+}
+.preview-btn:hover { color: var(--text-primary); border-color: var(--border-strong); }
+.preview-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+#app-viewport { container-type: inline-size; container-name: viewport; }
+#app-viewport.phone {
+  max-width: 400px; margin: 26px auto; height: 780px; overflow-y: auto;
+  border: 11px solid #141414; border-radius: 40px;
+  box-shadow: 0 30px 60px -24px rgba(11,11,11,0.5);
+}
+#app-viewport.phone .layout { min-height: 100%; }
+#app-viewport.phone .sidebar { position: static; }
+
+@container viewport (max-width: 860px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
   /* Content first on phones — the dashboard (tabs, KPIs, analysis) must be
      what you see, not a long filter form. Filters drop below. */
@@ -396,7 +426,7 @@ th.sorted-desc::after { content: " ↓"; }
   /* Tabs wrap onto as many rows as needed — no sideways scroll, all sections
      visible at once, and the dashboard sits right below them. */
   .tabs { width: 100%; flex-wrap: wrap; }
-  .tabs .tab { flex: 1 1 auto; text-align: center; }
+  .tabs .tab { flex: 1 1 auto; justify-content: center; }
   /* Two-up KPI tiles; the bottom-line hero spans the full width and leads. */
   .stat-row { grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat-tile { padding: 14px 14px 16px; }
@@ -418,6 +448,13 @@ th.sorted-desc::after { content: " ↓"; }
 @media (hover: none) { .stat-tile:hover { transform: none; box-shadow: var(--shadow-sm); } }
 </style>
 
+<div class="preview-toolbar">
+  <span class="preview-label">Предпросмотр</span>
+  <button class="preview-btn active" data-view="desktop" type="button">💻 Компьютер</button>
+  <button class="preview-btn" data-view="phone" type="button">📱 Телефон</button>
+</div>
+
+<div id="app-viewport">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
 </div>
@@ -470,12 +507,12 @@ th.sorted-desc::after { content: " ↓"; }
     </header>
 
     <nav class="tabs" role="tablist">
-      <button class="tab active" role="tab" aria-selected="true" aria-controls="panel-uploads" id="tab-uploads" data-tab="uploads">Загрузка</button>
-      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-analysis" id="tab-analysis" data-tab="analysis">Анализ</button>
-      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-overview" id="tab-overview" data-tab="overview">Обзор</button>
-      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-products" id="tab-products" data-tab="products">Товары</button>
-      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-returns" id="tab-returns" data-tab="returns">Возвраты</button>
-      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-connect" id="tab-connect" data-tab="connect">Подключение</button>
+      <button class="tab active" role="tab" aria-selected="true" aria-controls="panel-uploads" id="tab-uploads" data-tab="uploads"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Загрузка</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-analysis" id="tab-analysis" data-tab="analysis"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.6.6 1 1.3 1 2.5h6c0-1.2.4-1.9 1-2.5A6 6 0 0 0 12 3z"/></svg>Анализ</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-overview" id="tab-overview" data-tab="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M7 21V11"/><path d="M12 21V6"/><path d="M17 21v-8"/></svg>Обзор</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-products" id="tab-products" data-tab="products"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v8l-9 4-9-4V8l9-4z"/><path d="M3 8l9 4 9-4"/><path d="M12 12v8"/></svg>Товары</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-returns" id="tab-returns" data-tab="returns"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10H8"/></svg>Возвраты</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-connect" id="tab-connect" data-tab="connect"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg>Подключение</button>
     </nav>
 
     <section class="stat-row" id="stat-row"></section>
@@ -706,6 +743,7 @@ th.sorted-desc::after { content: " ↓"; }
       </div>
     </section>
   </main>
+</div>
 </div>
 
 <script>
@@ -2197,6 +2235,18 @@ function setupExport() {
 }
 
 /* ==== Вкладки и фильтры ==== */
+
+// Переключатель предпросмотра «Компьютер / Телефон»: сужает вьюпорт, а адаптив
+// (через @container) сам переходит в мобильный режим — как на реальном телефоне.
+const appViewport = document.getElementById("app-viewport");
+document.querySelectorAll(".preview-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".preview-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    appViewport.classList.toggle("phone", btn.dataset.view === "phone");
+    appViewport.scrollTop = 0;
+  });
+});
 
 document.querySelectorAll(".tab").forEach(tab => {
   tab.addEventListener("click", () => {
