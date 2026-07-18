@@ -407,6 +407,8 @@ td.num, th.num { text-align: right; }
 #table-returns .group-row td:first-child { box-shadow: inset 3px 0 0 var(--status-serious); }
 #table-returns .group-row:hover td { background: color-mix(in srgb, var(--status-serious) 15%, var(--surface-2)); }
 .group-caret { display: inline-block; width: 14px; color: var(--text-secondary); }
+.cat-ic { display: inline-flex; vertical-align: middle; margin-right: 7px; }
+.cat-ic svg { width: 17px; height: 17px; }
 tr.product-line { cursor: pointer; }
 .product-card td { background: color-mix(in srgb, var(--series-1) 4%, var(--surface-1)); }
 .pcard { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; padding: 6px 2px; }
@@ -1709,6 +1711,28 @@ const GROUP_DIMS = {
   abc: p => ABC_NAMES[p.abc] || p.abc,
 };
 
+// Цветная иконка раздела — чтобы группы различались с полувзгляда, не вчитываясь
+// в мелкий серый текст. Подбор по ключевым словам в названии раздела.
+const CATEGORY_ICONS = [
+  { re: /одежд|худи|футбол|плать|куртк|джинс|бель|свитер|штан|шорт|юбк|пальто/i, color: "#7b3fe4",
+    svg: '<path d="M8.5 3 4 6l2 3 1.2-.9V21h9.6V8.1L18 9l2-3-4.5-3a3.2 3.2 0 0 1-7 0z"/>' },
+  { re: /посуд|кружк|тарелк|чашк|стакан|кастрюл|сковор|бокал|кухн/i, color: "#0d9488",
+    svg: '<path d="M5 8h11v4a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5z"/><path d="M16 9h2a2 2 0 0 1 0 4h-2"/><path d="M7 2v3M10 2v3M13 2v3"/>' },
+  { re: /электрон|наушник|гаджет|техник|телефон|зарядк|кабел|аксессуар|смарт/i, color: "#e56a1f",
+    svg: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>' },
+  { re: /дом|плед|текстиль|подушк|одеял|штор|ковер|интерьер|быт/i, color: "#12a05f",
+    svg: '<path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/>' },
+  { re: /красот|космет|уход|парфюм|макияж|аромат/i, color: "#e0443f",
+    svg: '<path d="M9 2h6v3a3 3 0 0 1-6 0z"/><path d="M8 9h8v11a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2z"/>' },
+  { re: /дет|игрушк|малыш|школ/i, color: "#2a78d6",
+    svg: '<circle cx="12" cy="7" r="3"/><path d="M5 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/>' },
+];
+const FALLBACK_CAT_ICON = { color: "var(--text-muted)", svg: '<path d="M3 3h7l11 11-7 7L3 10z"/><circle cx="7" cy="7" r="1.4"/>' };
+function categoryIcon(name) {
+  const m = CATEGORY_ICONS.find(c => c.re.test(name || "")) || FALLBACK_CAT_ICON;
+  return `<span class="cat-ic" style="color:${m.color}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${m.svg}</svg></span>`;
+}
+
 function groupProducts(products, groupKey) {
   const keyFn = GROUP_DIMS[groupKey];
   const groups = new Map();
@@ -1851,7 +1875,7 @@ function renderProducts(products) {
       const isOpen = expandedGroups.has(key);
       return `
         <tr class="group-row ${level === 2 ? "level-2" : ""}" data-group="${escapeHtml(key)}">
-          <td style="padding-left:${level === 2 ? 28 : 12}px"><span class="group-caret">${isOpen ? "▾" : "▸"}</span>${escapeHtml(g.name)}</td>
+          <td style="padding-left:${level === 2 ? 28 : 12}px"><span class="group-caret">${isOpen ? "▾" : "▸"}</span>${level === 1 ? categoryIcon(g.name) : ""}${escapeHtml(g.name)}</td>
           <td class="num">${g.items.length}</td>
           <td class="num">${fmtMoney(g.realization)}</td>
           <td class="num">${fmtMoney(g.returns)}</td>
@@ -1979,7 +2003,7 @@ function renderReturnsInner(container, byRub) {
         const isOpen = returnsExpanded.has(key);
         let html = `
           <tr class="group-row" data-ret-group="${escapeHtml(key)}">
-            <td><span class="group-caret">${isOpen ? "▾" : "▸"}</span>${escapeHtml(g.name)}</td>
+            <td><span class="group-caret">${isOpen ? "▾" : "▸"}</span>${categoryIcon(g.name)}${escapeHtml(g.name)}</td>
             <td class="num">${g.items.length}</td>
             <td class="num delta-down">${fmtMoney(g.returns)}</td>
             <td class="num">${fmtPercent(returnRateOf(g))}</td>
