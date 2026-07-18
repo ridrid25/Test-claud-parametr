@@ -901,7 +901,9 @@ async function refresh() {
   await renderPlanFact();
 }
 
-const KPI_TABS = new Set(["analysis", "overview"]);
+// Сводка KPI — только на «Анализ». «Обзор» начинается со своих графиков,
+// поэтому вкладки видно, что разные, с первого экрана.
+const KPI_TABS = new Set(["analysis"]);
 
 function activateTab(name) {
   document.querySelectorAll(".tab").forEach(t => {

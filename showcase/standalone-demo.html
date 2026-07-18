@@ -2345,7 +2345,10 @@ document.getElementById("phone-down").addEventListener("click", () => phoneScrol
 // Сводка (KPI-строка) нужна только там, где смотрят итоги — «Анализ» и
 // «Обзор». На «Товарах», «Возвратах», «Загрузке», «Подключении» она лишняя
 // и лишь занимает место, поэтому прячем.
-const KPI_TABS = new Set(["analysis", "overview"]);
+// Сводка KPI — только на «Анализ». «Обзор» начинается со своих графиков
+// (динамика по месяцам, структура удержаний), поэтому вкладки различаются
+// с первого экрана, а не дублируют одинаковый верх.
+const KPI_TABS = new Set(["analysis"]);
 function updateStatRowVisibility(tabName) {
   document.getElementById("stat-row").hidden = !KPI_TABS.has(tabName);
 }
