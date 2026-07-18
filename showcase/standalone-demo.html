@@ -414,15 +414,30 @@ th.sorted-desc::after { content: " ↓"; }
 .preview-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 #app-viewport { container-type: inline-size; container-name: viewport; }
-/* Рамка телефона растёт по содержимому — один общий скролл страницы, без
-   второго скролла внутри рамки. */
+/* Рамка телефона — фиксированного размера (как настоящий телефон). Полосы
+   прокрутки нет: контент листается кнопками-стрелками ↑ ↓ в углу рамки. */
 #app-viewport.phone {
-  max-width: 400px; margin: 24px auto; overflow: hidden;
-  border: 11px solid #141414; border-radius: 40px;
+  max-width: 400px; height: 760px; margin: 24px auto; position: relative;
+  overflow: hidden; border: 11px solid #141414; border-radius: 40px;
   box-shadow: 0 30px 60px -24px rgba(11,11,11,0.5);
 }
+#app-viewport.phone #phone-scroll { height: 100%; overflow-y: auto; scroll-behavior: smooth; scrollbar-width: none; -ms-overflow-style: none; }
+#app-viewport.phone #phone-scroll::-webkit-scrollbar { display: none; }
 #app-viewport.phone .layout { min-height: 0; }
 #app-viewport.phone .sidebar { position: static; }
+.phone-nav { display: none; }
+#app-viewport.phone .phone-nav {
+  display: flex; flex-direction: column; gap: 8px;
+  position: absolute; right: 16px; bottom: 20px; z-index: 30;
+}
+.phone-nav button {
+  width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer;
+  background: var(--accent); color: #fff; font-size: 20px; line-height: 1;
+  box-shadow: 0 6px 16px -4px rgba(11,11,11,0.45);
+  transition: transform 120ms var(--ease-out), filter 120ms var(--ease-out);
+}
+.phone-nav button:hover { filter: brightness(1.08); }
+.phone-nav button:active { transform: scale(0.92); }
 
 @container viewport (max-width: 860px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
@@ -466,6 +481,7 @@ th.sorted-desc::after { content: " ↓"; }
 </div>
 
 <div id="app-viewport">
+<div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
 </div>
@@ -754,6 +770,11 @@ th.sorted-desc::after { content: " ↓"; }
       </div>
     </section>
   </main>
+</div>
+</div>
+<div class="phone-nav">
+  <button id="phone-up" type="button" aria-label="Прокрутить вверх">↑</button>
+  <button id="phone-down" type="button" aria-label="Прокрутить вниз">↓</button>
 </div>
 </div>
 
@@ -2256,14 +2277,18 @@ function setupExport() {
 // Переключатель предпросмотра «Компьютер / Телефон»: сужает вьюпорт, а адаптив
 // (через @container) сам переходит в мобильный режим — как на реальном телефоне.
 const appViewport = document.getElementById("app-viewport");
+const phoneScroll = document.getElementById("phone-scroll");
 document.querySelectorAll(".preview-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".preview-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     appViewport.classList.toggle("phone", btn.dataset.view === "phone");
-    appViewport.scrollTop = 0;
+    phoneScroll.scrollTop = 0;
   });
 });
+// Стрелки листают содержимое рамки телефона (без полосы прокрутки).
+document.getElementById("phone-up").addEventListener("click", () => phoneScroll.scrollBy({ top: -520, behavior: "smooth" }));
+document.getElementById("phone-down").addEventListener("click", () => phoneScroll.scrollBy({ top: 520, behavior: "smooth" }));
 
 // Сводка (KPI-строка) нужна только там, где смотрят итоги — «Анализ» и
 // «Обзор». На «Товарах», «Возвратах», «Загрузке», «Подключении» она лишняя
