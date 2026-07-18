@@ -2338,9 +2338,31 @@ document.querySelectorAll(".preview-btn").forEach(btn => {
     phoneScroll.scrollTop = 0;
   });
 });
-// Стрелки листают содержимое рамки телефона (без полосы прокрутки).
-document.getElementById("phone-up").addEventListener("click", () => phoneScroll.scrollBy({ top: -520, behavior: "smooth" }));
-document.getElementById("phone-down").addEventListener("click", () => phoneScroll.scrollBy({ top: 520, behavior: "smooth" }));
+// Стрелки листают по ЦЕЛЬНЫМ блокам (карточка, график, таблица, сводка),
+// а не на фиксированную высоту — чтобы блок показывался целиком, без разреза.
+function blockTops() {
+  const base = phoneScroll.getBoundingClientRect().top - phoneScroll.scrollTop;
+  return [...phoneScroll.querySelectorAll(".demo-banner, .stat-row, .card")]
+    .filter(el => el.offsetParent !== null && !el.hidden && el.offsetHeight > 0)
+    .map(el => Math.round(el.getBoundingClientRect().top - base))
+    .sort((a, b) => a - b);
+}
+function scrollToBlock(dir) {
+  const tops = blockTops();
+  const cur = phoneScroll.scrollTop;
+  const margin = 12, eps = 6;
+  let target;
+  if (dir > 0) {
+    target = tops.find(t => t > cur + margin + eps);
+    if (target == null) target = phoneScroll.scrollHeight;      // дальше некуда — в самый низ
+  } else {
+    const above = tops.filter(t => t < cur + margin - eps);
+    target = above.length ? above[above.length - 1] : 0;        // к предыдущему блоку / в начало
+  }
+  phoneScroll.scrollTo({ top: Math.max(0, target - margin), behavior: "smooth" });
+}
+document.getElementById("phone-up").addEventListener("click", () => scrollToBlock(-1));
+document.getElementById("phone-down").addEventListener("click", () => scrollToBlock(1));
 
 // Сводка (KPI-строка) нужна только там, где смотрят итоги — «Анализ» и
 // «Обзор». На «Товарах», «Возвратах», «Загрузке», «Подключении» она лишняя
