@@ -310,6 +310,10 @@ body {
 .stat-tile .value { font-size: 28px; font-weight: 640; letter-spacing: -0.02em; line-height: 1.05; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .stat-tile .value.positive { color: var(--success); }
 .stat-tile .value.negative { color: var(--status-critical); }
+.stat-tile .value.spend { color: var(--status-serious); }
+/* Цветная метка слева: синяя — приходит, оранжевая — уходит. */
+.stat-tile.tone-in { border-left: 3px solid var(--series-1); }
+.stat-tile.tone-out { border-left: 3px solid var(--status-serious); }
 /* The single bold accent on the view — the bottom-line KPI. */
 .stat-tile-hero {
   background: linear-gradient(155deg, color-mix(in srgb, var(--accent) 14%, var(--surface-1)), var(--surface-1));
@@ -646,10 +650,13 @@ th.sorted-desc::after { content: " ↓"; }
     border-radius: var(--radius-md);
   }
   .sidebar.open { display: flex; }
-  /* Tabs wrap onto as many rows as needed — no sideways scroll, all sections
-     visible at once, and the dashboard sits right below them. */
-  .tabs { width: 100%; flex-wrap: wrap; }
-  .tabs .tab { flex: 1 1 auto; justify-content: center; }
+  /* Заголовок в одну строку — экономим высоту экрана. */
+  .content-header h2 { font-size: 17px; letter-spacing: -0.02em; }
+  .content-header .eyebrow { font-size: 10px; }
+  /* Ровно 3 вкладки в ряд — аккуратные строки, без бокового скролла. */
+  .tabs { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .tabs .tab { justify-content: center; padding: 9px 6px; font-size: 12px; }
+  .tabs .tab svg { width: 14px; height: 14px; }
   .stat-row { grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat-tile { padding: 14px 14px 16px; }
   .stat-tile-hero { grid-column: 1 / -1; }

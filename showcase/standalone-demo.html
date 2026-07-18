@@ -31,6 +31,7 @@
   --series-8: #eb6834;
   --status-good: #0ca30c;
   --status-critical: #d03b3b;
+  --status-serious: #d1662a;
   --banner-bg: #eef4fc;
   --banner-border: #2a78d6;
 }
@@ -124,6 +125,7 @@
   --series-8: #eb6834;
   --status-good: #0ca30c;
   --status-critical: #d03b3b;
+  --status-serious: #d1662a;
   --banner-bg: #eef4fc;
   --banner-border: #2a78d6;
 }
@@ -242,6 +244,10 @@ body {
 .stat-tile .value { font-size: 28px; font-weight: 640; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.05; white-space: nowrap; }
 .stat-tile .value.positive { color: var(--success); }
 .stat-tile .value.negative { color: var(--status-critical); }
+.stat-tile .value.spend { color: var(--status-serious); }
+/* Цветная метка слева: синяя — то, что приходит; оранжевая — то, что уходит. */
+.stat-tile.tone-in { border-left: 3px solid var(--series-1); }
+.stat-tile.tone-out { border-left: 3px solid var(--status-serious); }
 /* The single bold accent on the whole view — the bottom-line KPI. */
 .stat-tile-hero {
   background:
@@ -408,25 +414,30 @@ th.sorted-desc::after { content: " ↓"; }
 .preview-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 #app-viewport { container-type: inline-size; container-name: viewport; }
+/* Рамка телефона растёт по содержимому — один общий скролл страницы, без
+   второго скролла внутри рамки. */
 #app-viewport.phone {
-  max-width: 400px; margin: 26px auto; height: 780px; overflow-y: auto;
+  max-width: 400px; margin: 24px auto; overflow: hidden;
   border: 11px solid #141414; border-radius: 40px;
   box-shadow: 0 30px 60px -24px rgba(11,11,11,0.5);
 }
-#app-viewport.phone .layout { min-height: 100%; }
+#app-viewport.phone .layout { min-height: 0; }
 #app-viewport.phone .sidebar { position: static; }
 
 @container viewport (max-width: 860px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
   /* Content first on phones — the dashboard (tabs, KPIs, analysis) must be
      what you see, not a long filter form. Filters drop below. */
-  .content { order: 1; padding: 20px 14px 32px; max-width: none; }
+  .content { order: 1; padding: 18px 14px 28px; max-width: none; }
   .sidebar { order: 2; position: static; height: auto; overflow: visible; border-right: none; border-top: 1px solid var(--border); gap: 18px; }
-  .content-header h2 { font-size: 22px; }
-  /* Tabs wrap onto as many rows as needed — no sideways scroll, all sections
-     visible at once, and the dashboard sits right below them. */
-  .tabs { width: 100%; flex-wrap: wrap; }
-  .tabs .tab { flex: 1 1 auto; justify-content: center; }
+  /* Заголовок помещается в одну строку — экономим высоту экрана. */
+  .content-header h2 { font-size: 17px; letter-spacing: -0.02em; }
+  .content-header .eyebrow { font-size: 10px; }
+  /* Ровно 3 вкладки в ряд → две аккуратные строки (Загрузка/Анализ/Обзор,
+     Товары/Возвраты/Подключение), без бокового скролла. */
+  .tabs { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .tabs .tab { justify-content: center; padding: 9px 6px; font-size: 12px; }
+  .tabs .tab svg { width: 14px; height: 14px; }
   /* Two-up KPI tiles; the bottom-line hero spans the full width and leads. */
   .stat-row { grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat-tile { padding: 14px 14px 16px; }
@@ -1101,26 +1112,32 @@ function renderStatRow(rows) {
   const net = s.realization - s.returns;
   // The KPI row is a funnel that must END on the real bottom line. With
   // costs loaded that's чистая прибыль (the hero); without, it's к выплате.
+  // tone: «in» — приходит (реализация), «out» — уходит (возвраты/расходы/
+  // себестоимость), signed — итог со знаком. Цвет даёт мгновенное «где хорошо
+  // / где плохо» без чтения цифр.
   const tiles = costsLoaded()
     ? [
-        { label: "Реализация", value: s.realization },
-        { label: "Возвраты", value: s.returns },
-        { label: "Расходы МП", value: s.mp_expenses },
-        { label: "Себестоимость", value: s.cogs },
+        { label: "Реализация", value: s.realization, tone: "in" },
+        { label: "Возвраты", value: s.returns, tone: "out" },
+        { label: "Расходы МП", value: s.mp_expenses, tone: "out" },
+        { label: "Себестоимость", value: s.cogs, tone: "out" },
         { label: "Чистая прибыль", value: s.payout - s.cogs, signed: true, hero: true },
       ]
     : [
-        { label: "Реализация", value: s.realization },
-        { label: "Возвраты", value: s.returns },
+        { label: "Реализация", value: s.realization, tone: "in" },
+        { label: "Возвраты", value: s.returns, tone: "out" },
         { label: "Чистая выручка", value: net, signed: true },
-        { label: "Расходы МП", value: s.mp_expenses },
+        { label: "Расходы МП", value: s.mp_expenses, tone: "out" },
         { label: "К выплате", value: s.payout, signed: true, hero: true },
       ];
-  document.getElementById("stat-row").innerHTML = tiles.map(t => `
-    <div class="stat-tile ${t.hero ? "stat-tile-hero" : ""}" title="${t.label}: ${fmtMoney(t.value)}">
+  document.getElementById("stat-row").innerHTML = tiles.map(t => {
+    const valueClass = t.signed ? (t.value >= 0 ? "positive" : "negative") : (t.tone === "out" ? "spend" : "");
+    return `
+    <div class="stat-tile ${t.hero ? "stat-tile-hero" : ""} ${t.tone ? "tone-" + t.tone : ""}" title="${t.label}: ${fmtMoney(t.value)}">
       <div class="label">${t.label}</div>
-      <div class="value ${t.signed ? (t.value >= 0 ? "positive" : "negative") : ""}">${fmtMoneyCompact(t.value)}</div>
-    </div>`).join("");
+      <div class="value ${valueClass}">${fmtMoneyCompact(t.value)}</div>
+    </div>`;
+  }).join("");
 }
 
 function wireTableToggle(container) {
@@ -2248,6 +2265,13 @@ document.querySelectorAll(".preview-btn").forEach(btn => {
   });
 });
 
+// Сводка (KPI-строка) нужна только там, где смотрят итоги — «Анализ» и
+// «Обзор». На «Товарах», «Возвратах», «Загрузке», «Подключении» она лишняя
+// и лишь занимает место, поэтому прячем.
+const KPI_TABS = new Set(["analysis", "overview"]);
+function updateStatRowVisibility(tabName) {
+  document.getElementById("stat-row").hidden = !KPI_TABS.has(tabName);
+}
 document.querySelectorAll(".tab").forEach(tab => {
   tab.addEventListener("click", () => {
     document.querySelectorAll(".tab").forEach(t => { t.classList.remove("active"); t.setAttribute("aria-selected", "false"); });
@@ -2255,8 +2279,10 @@ document.querySelectorAll(".tab").forEach(tab => {
     tab.classList.add("active");
     tab.setAttribute("aria-selected", "true");
     document.querySelector(`.tab-panel[data-panel="${tab.dataset.tab}"]`).hidden = false;
+    updateStatRowVisibility(tab.dataset.tab);
   });
 });
+updateStatRowVisibility(document.querySelector(".tab.active")?.dataset.tab || "uploads");
 ["f-marketplace", "f-date-from", "f-date-to", "product-grouping", "product-grouping2"].forEach(id =>
   document.getElementById(id).addEventListener("change", refresh));
 let searchTimer;

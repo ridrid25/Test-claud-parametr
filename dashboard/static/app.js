@@ -92,28 +92,32 @@ async function fetchJSON(path, params) {
 function renderStatRow(summary, insights) {
   // With себестоимость loaded, the bottom line is net profit (payout − COGS),
   // so the hero tile becomes «Чистая прибыль» and we surface COGS separately.
+  // tone: «in» приходит, «out» уходит, signed — итог со знаком. Цвет даёт
+  // мгновенное «где хорошо / где плохо» без чтения цифр.
   const tiles = costsLoaded && insights
     ? [
-        { label: "Реализация", value: summary.realization },
-        { label: "Возвраты", value: summary.returns },
-        { label: "Расходы МП", value: summary.mp_expenses },
-        { label: "Себестоимость", value: insights.cogs_total },
+        { label: "Реализация", value: summary.realization, tone: "in" },
+        { label: "Возвраты", value: summary.returns, tone: "out" },
+        { label: "Расходы МП", value: summary.mp_expenses, tone: "out" },
+        { label: "Себестоимость", value: insights.cogs_total, tone: "out" },
         { label: "Чистая прибыль", value: insights.profit_total, signed: true, hero: true },
       ]
     : [
-        { label: "Реализация", value: summary.realization },
-        { label: "Возвраты", value: summary.returns },
+        { label: "Реализация", value: summary.realization, tone: "in" },
+        { label: "Возвраты", value: summary.returns, tone: "out" },
         { label: "Чистая выручка", value: summary.net_revenue, signed: true },
-        { label: "Расходы МП", value: summary.mp_expenses },
+        { label: "Расходы МП", value: summary.mp_expenses, tone: "out" },
         { label: "К выплате", value: summary.payout, signed: true, hero: true },
       ];
   const el = document.getElementById("stat-row");
-  el.innerHTML = tiles.map(t => `
-    <div class="stat-tile ${t.hero ? "stat-tile-hero" : ""}" title="${t.label}: ${fmtMoney(t.value)}">
+  el.innerHTML = tiles.map(t => {
+    const valueClass = t.signed ? (t.value >= 0 ? "positive" : "negative") : (t.tone === "out" ? "spend" : "");
+    return `
+    <div class="stat-tile ${t.hero ? "stat-tile-hero" : ""} ${t.tone ? "tone-" + t.tone : ""}" title="${t.label}: ${fmtMoney(t.value)}">
       <div class="label">${t.label}</div>
-      <div class="value ${t.signed ? (t.value >= 0 ? "positive" : "negative") : ""}">${fmtMoneyCompact(t.value)}</div>
-    </div>
-  `).join("");
+      <div class="value ${valueClass}">${fmtMoneyCompact(t.value)}</div>
+    </div>`;
+  }).join("");
 }
 
 function renderDeductions(breakdown) {
@@ -897,6 +901,8 @@ async function refresh() {
   await renderPlanFact();
 }
 
+const KPI_TABS = new Set(["analysis", "overview"]);
+
 function activateTab(name) {
   document.querySelectorAll(".tab").forEach(t => {
     const on = t.dataset.tab === name;
@@ -906,6 +912,9 @@ function activateTab(name) {
   document.querySelectorAll(".tab-panel").forEach(p => {
     p.hidden = p.dataset.panel !== name;
   });
+  // Сводка (KPI-строка) нужна только на «Анализ» и «Обзор» — на остальных
+  // вкладках она лишь дублируется и занимает место.
+  document.getElementById("stat-row").hidden = !KPI_TABS.has(name);
 }
 
 function setupTabs() {
