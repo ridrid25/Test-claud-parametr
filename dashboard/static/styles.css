@@ -276,6 +276,15 @@ body {
   transition: background-color 160ms var(--ease-out), color 160ms var(--ease-out), transform 140ms var(--ease-out);
 }
 .tab svg { width: 15px; height: 15px; flex-shrink: 0; }
+/* Каждый раздел — своим цветом иконки, чтобы вкладки читались с полувзгляда. */
+.tab[data-tab="uploads"] svg { color: #2a78d6; }
+.tab[data-tab="analysis"] svg { color: #7b3fe4; }
+.tab[data-tab="overview"] svg { color: #12a05f; }
+.tab[data-tab="products"] svg { color: #e56a1f; }
+.tab[data-tab="returns"] svg { color: #e0443f; }
+.tab[data-tab="control"] svg { color: #d99a00; }
+.tab[data-tab="connect"] svg { color: #c01a9c; }
+.tab.active svg { color: #fff; }
 
 .tab:hover { color: var(--accent-strong); background: var(--accent-soft); }
 .tab:active { transform: scale(0.97); }
@@ -294,6 +303,7 @@ body {
   gap: var(--space-3);
   margin-bottom: var(--space-6);
 }
+.stat-row[hidden] { display: none; }
 
 .stat-tile {
   background: var(--surface-1);
