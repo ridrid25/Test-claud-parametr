@@ -898,12 +898,39 @@ function activateTab(name) {
   document.querySelectorAll(".tab-panel").forEach(p => {
     p.hidden = p.dataset.panel !== name;
   });
+  // Keep the mobile stepper in sync and close its dropdown after a pick.
+  const active = document.querySelector(`.tab[data-tab="${name}"]`);
+  const label = document.getElementById("tab-step-label");
+  if (label && active) label.textContent = active.textContent;
+  const tabsNav = document.querySelector(".tabs");
+  const stepCurrent = document.getElementById("tab-step-current");
+  if (tabsNav) tabsNav.classList.remove("open");
+  if (stepCurrent) stepCurrent.setAttribute("aria-expanded", "false");
 }
 
 function setupTabs() {
   document.querySelectorAll(".tab").forEach(tab => {
     tab.addEventListener("click", () => activateTab(tab.dataset.tab));
   });
+
+  // Mobile stepper: ▲/▼ flip to the previous/next section (wrapping around);
+  // tapping the current name drops down the full list.
+  const order = [...document.querySelectorAll(".tab")];
+  const step = delta => {
+    const idx = order.findIndex(t => t.classList.contains("active"));
+    activateTab(order[(idx + delta + order.length) % order.length].dataset.tab);
+  };
+  document.getElementById("tab-prev").addEventListener("click", () => step(-1));
+  document.getElementById("tab-next").addEventListener("click", () => step(1));
+  const tabsNav = document.querySelector(".tabs");
+  const stepCurrent = document.getElementById("tab-step-current");
+  stepCurrent.addEventListener("click", () => {
+    const open = tabsNav.classList.toggle("open");
+    stepCurrent.setAttribute("aria-expanded", open ? "true" : "false");
+  });
+  // Initialise the stepper label to the currently active tab.
+  const active = document.querySelector(".tab.active");
+  if (active) document.getElementById("tab-step-label").textContent = active.textContent;
 }
 
 function setupFilters() {

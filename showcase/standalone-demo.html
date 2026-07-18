@@ -207,6 +207,8 @@ body {
 .tab:active { transform: scale(0.97); }
 .tab.active { color: var(--text-primary); background: var(--surface-1); font-weight: 600; box-shadow: var(--shadow-sm); }
 .tab:focus-visible, .btn:focus-visible, .btn-primary:focus-visible, .btn-small:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
+/* Mobile section stepper — hidden on desktop, replaces the tab row on phones. */
+.tab-stepper { display: none; }
 .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 28px; }
 .stat-tile {
   background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
@@ -363,7 +365,27 @@ th.sorted-desc::after { content: " ↓"; }
   .content { order: 1; padding: 20px 14px 32px; max-width: none; }
   .sidebar { order: 2; position: static; height: auto; overflow: visible; border-right: none; border-top: 1px solid var(--border); gap: 18px; }
   .content-header h2 { font-size: 22px; }
-  .tabs { width: 100%; overflow-x: auto; flex-wrap: nowrap; }
+  /* No more sideways-scrolling tab bar. A one-line stepper (current section +
+     ▲/▼ to flip) replaces it; tapping the name drops down the full list. */
+  .tab-stepper { display: flex; align-items: center; gap: 8px; margin: 18px 0 6px; }
+  .tab-step-current {
+    flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    font: inherit; font-size: 15px; font-weight: 600; color: var(--text-primary);
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 16px; cursor: pointer; box-shadow: var(--shadow-sm);
+  }
+  .tab-step-caret { color: var(--text-secondary); transition: transform 160ms var(--ease-out); }
+  .tab-step-current[aria-expanded="true"] .tab-step-caret { transform: rotate(180deg); }
+  .tab-step-arrow {
+    flex-shrink: 0; width: 44px; height: 44px; font-size: 15px; line-height: 1;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+    color: var(--text-secondary); cursor: pointer; box-shadow: var(--shadow-sm);
+  }
+  .tab-step-arrow:active, .tab-step-current:active { transform: scale(0.97); }
+  /* The pill row becomes a dropdown list: hidden until the name is tapped. */
+  .tabs { display: none; width: 100%; margin: 0 0 18px; padding: 6px; flex-direction: column; gap: 2px; }
+  .tabs.open { display: flex; }
+  .tabs .tab { width: 100%; text-align: left; padding: 12px 14px; font-size: 14px; }
   /* Two-up KPI tiles; the bottom-line hero spans the full width and leads. */
   .stat-row { grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat-tile { padding: 14px 14px 16px; }
@@ -435,6 +457,14 @@ th.sorted-desc::after { content: " ↓"; }
       <div class="eyebrow">Финансовый срез</div>
       <h2>Выручка, удержания и выплаты</h2>
     </header>
+
+    <div class="tab-stepper">
+      <button class="tab-step-arrow" id="tab-prev" type="button" aria-label="Предыдущий раздел">▲</button>
+      <button class="tab-step-current" id="tab-step-current" type="button" aria-haspopup="true" aria-expanded="false">
+        <span id="tab-step-label"></span><span class="tab-step-caret">▾</span>
+      </button>
+      <button class="tab-step-arrow" id="tab-next" type="button" aria-label="Следующий раздел">▼</button>
+    </div>
 
     <nav class="tabs" role="tablist">
       <button class="tab active" role="tab" aria-selected="true" aria-controls="panel-uploads" id="tab-uploads" data-tab="uploads">Загрузка</button>
@@ -2159,6 +2189,15 @@ function setupExport() {
 
 /* ==== Вкладки и фильтры ==== */
 
+const TAB_ORDER = [...document.querySelectorAll(".tab")];
+const tabsNav = document.querySelector(".tabs");
+const stepCurrent = document.getElementById("tab-step-current");
+
+function syncStepper() {
+  const active = document.querySelector(".tab.active") || TAB_ORDER[0];
+  document.getElementById("tab-step-label").textContent = active.textContent;
+}
+
 document.querySelectorAll(".tab").forEach(tab => {
   tab.addEventListener("click", () => {
     document.querySelectorAll(".tab").forEach(t => { t.classList.remove("active"); t.setAttribute("aria-selected", "false"); });
@@ -2166,8 +2205,25 @@ document.querySelectorAll(".tab").forEach(tab => {
     tab.classList.add("active");
     tab.setAttribute("aria-selected", "true");
     document.querySelector(`.tab-panel[data-panel="${tab.dataset.tab}"]`).hidden = false;
+    // Keep the mobile stepper in sync and close the dropdown after a pick.
+    syncStepper();
+    tabsNav.classList.remove("open");
+    stepCurrent.setAttribute("aria-expanded", "false");
   });
 });
+
+// Mobile: ▲/▼ flip to the previous/next section (wrapping around).
+function stepTab(delta) {
+  const idx = TAB_ORDER.findIndex(t => t.classList.contains("active"));
+  TAB_ORDER[(idx + delta + TAB_ORDER.length) % TAB_ORDER.length].click();
+}
+document.getElementById("tab-prev").addEventListener("click", () => stepTab(-1));
+document.getElementById("tab-next").addEventListener("click", () => stepTab(1));
+stepCurrent.addEventListener("click", () => {
+  const open = tabsNav.classList.toggle("open");
+  stepCurrent.setAttribute("aria-expanded", open ? "true" : "false");
+});
+syncStepper();
 ["f-marketplace", "f-date-from", "f-date-to", "product-grouping", "product-grouping2"].forEach(id =>
   document.getElementById(id).addEventListener("change", refresh));
 let searchTimer;

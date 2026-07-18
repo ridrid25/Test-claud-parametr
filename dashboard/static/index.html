@@ -80,6 +80,14 @@
       <h2>Выручка, удержания и выплаты</h2>
     </header>
 
+    <div class="tab-stepper">
+      <button class="tab-step-arrow" id="tab-prev" type="button" aria-label="Предыдущий раздел">▲</button>
+      <button class="tab-step-current" id="tab-step-current" type="button" aria-haspopup="true" aria-expanded="false">
+        <span id="tab-step-label"></span><span class="tab-step-caret">▾</span>
+      </button>
+      <button class="tab-step-arrow" id="tab-next" type="button" aria-label="Следующий раздел">▼</button>
+    </div>
+
     <nav class="tabs" role="tablist">
       <button class="tab active" role="tab" aria-selected="true" aria-controls="panel-analysis" id="tab-analysis" data-tab="analysis">Анализ</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-overview" id="tab-overview" data-tab="overview">Обзор</button>
