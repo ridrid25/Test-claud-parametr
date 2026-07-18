@@ -56,6 +56,14 @@ function escapeHtml(value) {
   })[ch]);
 }
 
+// Цветной бейдж маркетплейса: фирменный цвет + короткий значок WB/OZ.
+const MP_LABELS = { wb: "Wildberries", ozon: "Ozon" };
+function mpBadge(mp, compact = false) {
+  const cls = mp === "wb" ? "mp-wb" : "mp-ozon";
+  const short = mp === "wb" ? "WB" : "OZ";
+  return `<span class="mp-badge ${cls}${compact ? " mp-compact" : ""}"><span class="mp-dot">${short}</span><span class="mp-label">${MP_LABELS[mp] || escapeHtml(mp)}</span></span>`;
+}
+
 function currentFilters() {
   const params = {
     client_id: document.getElementById("f-client").value.trim() || "demo",
@@ -307,7 +315,7 @@ function productCardRow(p, colspan) {
         <div>
           <h4>Паспорт товара</h4>
           <dl class="kv">
-            <dt>Маркетплейс</dt><dd>${MP_NAMES[p.marketplace] || p.marketplace}</dd>
+            <dt>Маркетплейс</dt><dd>${mpBadge(p.marketplace)}</dd>
             <dt>Категория</dt><dd>${escapeHtml(p.category) || "—"}</dd>
             <dt>Бренд</dt><dd>${escapeHtml(p.brand) || "—"}</dd>
             <dt>Класс ABC</dt><dd><span class="abc-chip ${ABC_CHIP[p.abc] || ""}">${p.abc === "L" ? "−" : (p.abc || "")}</span></dd>
@@ -687,7 +695,7 @@ function renderChannelCompare(a) {
     (a.channels[k].payout / (a.channels[k].realization || 1)) > (a.channels[best].payout / (a.channels[best].realization || 1)) ? k : best, keys[0]);
   el.innerHTML = `
     <table>
-      <thead><tr><th>Показатель</th>${keys.map(k => `<th class="num">${names[k] || k}</th>`).join("")}</tr></thead>
+      <thead><tr><th>Показатель</th>${keys.map(k => `<th class="mp-col">${mpBadge(k)}</th>`).join("")}</tr></thead>
       <tbody>${rows.map(([label, fn]) => `
         <tr><td>${label}</td>${keys.map(k => `<td class="num">${fn(a.channels[k])}</td>`).join("")}</tr>`).join("")}</tbody>
     </table>
@@ -1023,7 +1031,7 @@ async function refreshUploads() {
         ${uploads.map(u => `
           <tr>
             <td>${escapeHtml(u.filename)}${JSON.parse(u.file_fixes).length ? `<br /><span class="row-fixes-text">автоисправления файла: ${escapeHtml(JSON.parse(u.file_fixes).join(", "))}</span>` : ""}</td>
-            <td>${u.marketplace === "wb" ? "Wildberries" : "Ozon"}</td>
+            <td>${mpBadge(u.marketplace)}</td>
             <td>${escapeHtml((u.uploaded_at || "").slice(0, 16).replace("T", " "))}</td>
             <td class="num">${u.rows_ok}</td>
             <td class="num">${u.rows_fixed ? `<span class="chip chip-fixed">${u.rows_fixed}</span>` : 0}</td>

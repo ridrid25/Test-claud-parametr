@@ -12,7 +12,18 @@
   --success: #006300;
   --shadow-sm: 0 1px 2px rgba(11, 11, 11, 0.04);
   --shadow-md: 0 1px 2px rgba(11, 11, 11, 0.04), 0 10px 24px -14px rgba(11, 11, 11, 0.18);
-  --focus-ring: rgba(42, 120, 214, 0.35);
+  --focus-ring: rgba(13, 125, 116, 0.35);
+
+  /* Интерфейсный акцент — тёплый teal. Намеренно не синий (не путать с Ozon)
+     и не зелёный (не путать с «прибылью»): кнопки, активная вкладка, ссылки. */
+  --accent: #0d7d74;
+  --accent-strong: #0a655e;
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  /* Фирменные цвета каналов — смысловой код: сразу видно, где ВБ, где Ozon. */
+  --wb: #c01a9c;
+  --wb-soft: color-mix(in srgb, var(--wb) 13%, transparent);
+  --ozon: #1668e3;
+  --ozon-soft: color-mix(in srgb, var(--ozon) 13%, transparent);
 
   --series-1: #2a78d6; /* blue */
   --series-2: #1baf7a; /* aqua */
@@ -54,10 +65,18 @@
     --baseline: #383835;
     --border: rgba(255, 255, 255, 0.10);
     --border-strong: rgba(255, 255, 255, 0.16);
-    --success: #0ca30c;
+    --success: #3ecf6a;
     --shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.03);
     --shadow-md: 0 1px 0 rgba(255, 255, 255, 0.03), 0 12px 28px -16px rgba(0, 0, 0, 0.6);
-    --focus-ring: rgba(57, 135, 229, 0.40);
+    --focus-ring: rgba(43, 167, 155, 0.45);
+
+    --accent: #2ba79b;
+    --accent-strong: #43bcb0;
+    --accent-soft: color-mix(in srgb, var(--accent) 20%, transparent);
+    --wb: #e05bc4;
+    --wb-soft: color-mix(in srgb, var(--wb) 20%, transparent);
+    --ozon: #5b9bff;
+    --ozon-soft: color-mix(in srgb, var(--ozon) 20%, transparent);
 
     --series-1: #3987e5;
     --series-2: #199e70;
@@ -128,10 +147,10 @@ body {
 }
 
 .brand-mark {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-  background: var(--series-1);
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, var(--wb), var(--ozon));
   flex-shrink: 0;
 }
 
@@ -195,7 +214,7 @@ body {
 
 .field input:focus, .field select:focus, .field-group input:focus {
   outline: none;
-  border-color: var(--series-1);
+  border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
@@ -221,8 +240,8 @@ body {
 .field-group button:active, .btn-link:active { transform: scale(0.98); }
 
 .field-group button.primary {
-  background: var(--series-1);
-  border-color: var(--series-1);
+  background: var(--accent);
+  border-color: var(--accent);
   color: #ffffff;
 }
 
@@ -258,11 +277,12 @@ body {
 .tab:active { transform: scale(0.97); }
 
 .tab.active {
-  color: var(--text-primary);
-  background: var(--surface-1);
+  color: #ffffff;
+  background: var(--accent);
   font-weight: 600;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--accent) 60%, transparent);
 }
+.tab.active:hover { color: #ffffff; }
 
 .stat-row {
   display: grid;
@@ -288,10 +308,12 @@ body {
 .stat-tile .value.negative { color: var(--status-critical); }
 /* The single bold accent on the view — the bottom-line KPI. */
 .stat-tile-hero {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--series-1) 7%, var(--surface-1)), var(--surface-1));
-  border-color: color-mix(in srgb, var(--series-1) 30%, var(--border));
+  background: linear-gradient(155deg, color-mix(in srgb, var(--accent) 14%, var(--surface-1)), var(--surface-1));
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
+  box-shadow: 0 1px 2px rgba(11,11,11,0.04), 0 12px 26px -18px color-mix(in srgb, var(--accent) 70%, transparent);
 }
-.stat-tile-hero .label { color: var(--series-1); }
+.stat-tile-hero .label { color: var(--accent-strong); }
+.stat-tile-hero .value.positive { color: var(--success); }
 
 @media (hover: none) { .stat-tile:hover { transform: none; box-shadow: var(--shadow-sm); } }
 
@@ -447,8 +469,8 @@ td.num, th.num { text-align: right; }
 .btn-primary {
   padding: 9px 16px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--series-1);
-  background: var(--series-1);
+  border: 1px solid var(--accent);
+  background: var(--accent);
   color: #ffffff;
   font-size: 13px;
   font-weight: 500;
@@ -488,7 +510,28 @@ td.num, th.num { text-align: right; }
 .chip-ok { background: color-mix(in srgb, var(--status-good, #0ca30c) 15%, transparent); color: var(--success); }
 .chip-fixed { background: color-mix(in srgb, var(--series-3) 18%, transparent); color: var(--text-primary); }
 .chip-error { background: color-mix(in srgb, var(--status-critical) 15%, transparent); color: var(--status-critical); }
-.chip-imported { background: color-mix(in srgb, var(--series-1) 15%, transparent); color: var(--text-primary); }
+.chip-imported { background: var(--accent-soft); color: var(--accent-strong); }
+
+/* Маркетплейс-бейдж: цветной значок + название. Фирменные цвета каналов,
+   чтобы ВБ и Ozon различались с первого взгляда. */
+.mp-badge { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; white-space: nowrap; }
+.mp-dot {
+  width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.02em; color: #fff;
+}
+.mp-wb { color: var(--wb); }
+.mp-wb .mp-dot { background: var(--wb); }
+.mp-ozon { color: var(--ozon); }
+.mp-ozon .mp-dot { background: var(--ozon); }
+/* Компактный вариант — только значок (для плотных таблиц). */
+.mp-badge.mp-compact { gap: 0; }
+.mp-badge.mp-compact .mp-label { display: none; }
+th.mp-col { text-align: right; }
+th.mp-col .mp-badge { justify-content: flex-end; }
+/* Бейдж-шапка в карточках подключения */
+.connect-mp-head .mp-badge { font-size: 15px; }
+.connect-mp-head .mp-dot { width: 26px; height: 26px; font-size: 11px; }
 
 .row-editor td input {
   font: inherit;
@@ -548,7 +591,7 @@ td.num, th.num { text-align: right; }
 }
 .segment:hover { border-color: var(--border-strong); color: var(--text-primary); }
 .segment:active { transform: scale(0.96); }
-.segment.active { background: var(--series-1); border-color: var(--series-1); color: #fff; }
+.segment.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 .segment .seg-count { opacity: 0.75; margin-left: 4px; }
 .group-controls { margin-bottom: 12px; display: flex; gap: 16px; flex-wrap: wrap; }
 .field-inline { flex-direction: row; align-items: center; gap: 8px; }

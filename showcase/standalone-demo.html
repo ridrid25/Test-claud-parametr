@@ -14,7 +14,14 @@
   --success: #006300;
   --shadow-sm: 0 1px 2px rgba(11, 11, 11, 0.04);
   --shadow-md: 0 1px 2px rgba(11, 11, 11, 0.04), 0 10px 24px -14px rgba(11, 11, 11, 0.18);
-  --focus-ring: rgba(42, 120, 214, 0.35);
+  --focus-ring: rgba(13, 125, 116, 0.35);
+  --accent: #0d7d74;
+  --accent-strong: #0a655e;
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --wb: #c01a9c;
+  --wb-soft: color-mix(in srgb, var(--wb) 13%, transparent);
+  --ozon: #1668e3;
+  --ozon-soft: color-mix(in srgb, var(--ozon) 13%, transparent);
   --series-1: #2a78d6;
   --series-2: #1baf7a;
   --series-3: #eda100;
@@ -42,7 +49,14 @@
     --success: #0ca30c;
     --shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.03);
     --shadow-md: 0 1px 0 rgba(255, 255, 255, 0.03), 0 12px 28px -16px rgba(0, 0, 0, 0.6);
-    --focus-ring: rgba(57, 135, 229, 0.40);
+    --focus-ring: rgba(43, 167, 155, 0.45);
+    --accent: #2ba79b;
+    --accent-strong: #43bcb0;
+    --accent-soft: color-mix(in srgb, var(--accent) 20%, transparent);
+    --wb: #e05bc4;
+    --wb-soft: color-mix(in srgb, var(--wb) 20%, transparent);
+    --ozon: #5b9bff;
+    --ozon-soft: color-mix(in srgb, var(--ozon) 20%, transparent);
     --series-1: #3987e5;
     --series-2: #199e70;
     --series-3: #c98500;
@@ -93,7 +107,14 @@
   --success: #006300;
   --shadow-sm: 0 1px 2px rgba(11, 11, 11, 0.04);
   --shadow-md: 0 1px 2px rgba(11, 11, 11, 0.04), 0 10px 24px -14px rgba(11, 11, 11, 0.18);
-  --focus-ring: rgba(42, 120, 214, 0.35);
+  --focus-ring: rgba(13, 125, 116, 0.35);
+  --accent: #0d7d74;
+  --accent-strong: #0a655e;
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --wb: #c01a9c;
+  --wb-soft: color-mix(in srgb, var(--wb) 13%, transparent);
+  --ozon: #1668e3;
+  --ozon-soft: color-mix(in srgb, var(--ozon) 13%, transparent);
   --series-1: #2a78d6;
   --series-2: #1baf7a;
   --series-3: #eda100;
@@ -151,7 +172,7 @@ body {
   gap: 24px;
 }
 .brand { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.brand-mark { width: 10px; height: 10px; border-radius: 3px; background: var(--series-1); flex-shrink: 0; }
+.brand-mark { width: 12px; height: 12px; border-radius: 4px; background: linear-gradient(135deg, var(--wb), var(--ozon)); flex-shrink: 0; }
 .eyebrow { font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
 .sidebar-title h1 { font-size: 21px; margin: 6px 0 4px; letter-spacing: -0.01em; }
 .muted { color: var(--text-muted); font-size: 13px; }
@@ -168,7 +189,7 @@ body {
   transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 .field input:hover, .field select:hover { border-color: var(--border-strong); }
-.field input:focus, .field select:focus { outline: none; border-color: var(--series-1); box-shadow: 0 0 0 3px var(--focus-ring); }
+.field input:focus, .field select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--focus-ring); }
 .btn {
   padding: 9px 11px; border-radius: 8px; border: 1px solid var(--border);
   background: var(--page); color: var(--text-primary);
@@ -179,8 +200,8 @@ body {
 .btn:hover { border-color: var(--border-strong); background: var(--surface-2); }
 .btn:active { transform: scale(0.97); }
 .btn-primary {
-  padding: 9px 16px; border-radius: 8px; border: 1px solid var(--series-1);
-  background: var(--series-1); color: #ffffff;
+  padding: 9px 16px; border-radius: 8px; border: 1px solid var(--accent);
+  background: var(--accent); color: #ffffff;
   font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer;
   transition: filter 140ms var(--ease-out), transform 140ms var(--ease-out);
 }
@@ -205,7 +226,8 @@ body {
 }
 .tab:hover { color: var(--text-primary); }
 .tab:active { transform: scale(0.97); }
-.tab.active { color: var(--text-primary); background: var(--surface-1); font-weight: 600; box-shadow: var(--shadow-sm); }
+.tab.active { color: #fff; background: var(--accent); font-weight: 600; box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--accent) 60%, transparent); }
+.tab.active:hover { color: #fff; }
 .tab:focus-visible, .btn:focus-visible, .btn-primary:focus-visible, .btn-small:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
 .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 28px; }
 .stat-tile {
@@ -221,10 +243,18 @@ body {
 /* The single bold accent on the whole view — the bottom-line KPI. */
 .stat-tile-hero {
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--series-1) 7%, var(--surface-1)), var(--surface-1));
-  border-color: color-mix(in srgb, var(--series-1) 30%, var(--border));
+    linear-gradient(155deg, color-mix(in srgb, var(--accent) 14%, var(--surface-1)), var(--surface-1));
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
+  box-shadow: 0 1px 2px rgba(11,11,11,0.04), 0 12px 26px -18px color-mix(in srgb, var(--accent) 70%, transparent);
 }
-.stat-tile-hero .label { color: var(--series-1); }
+.stat-tile-hero .label { color: var(--accent-strong); }
+.stat-tile-hero .value.positive { color: var(--success); }
+.mp-badge { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; white-space: nowrap; }
+.mp-dot { width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 9.5px; font-weight: 700; letter-spacing: 0.02em; color: #fff; }
+.mp-wb { color: var(--wb); } .mp-wb .mp-dot { background: var(--wb); }
+.mp-ozon { color: var(--ozon); } .mp-ozon .mp-dot { background: var(--ozon); }
+th.mp-col { text-align: right; } th.mp-col .mp-badge { justify-content: flex-end; }
+.connect-mp-head .mp-badge { font-size: 15px; } .connect-mp-head .mp-dot { width: 26px; height: 26px; font-size: 11px; }
 .card {
   background: var(--surface-1); border: 1px solid var(--border); border-radius: 16px;
   padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-sm);
@@ -331,7 +361,7 @@ td.num, th.num { text-align: right; }
 }
 .segment:hover { border-color: var(--border-strong); color: var(--text-primary); }
 .segment:active { transform: scale(0.96); }
-.segment.active { background: var(--series-1); border-color: var(--series-1); color: #fff; }
+.segment.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 .segment .seg-count { opacity: 0.75; margin-left: 4px; }
 .group-controls { margin-bottom: 10px; display: flex; gap: 12px; flex-wrap: wrap; }
 .group-row td { font-weight: 600; background: var(--surface-2); cursor: pointer; }
@@ -521,7 +551,7 @@ th.sorted-desc::after { content: " ↓"; }
         <div class="connect-grid">
           <div class="connect-mp">
             <div class="connect-mp-head">
-              <strong>Wildberries</strong>
+              <span class="mp-badge mp-wb"><span class="mp-dot">WB</span><span class="mp-label">Wildberries</span></span>
               <span class="conn-status" id="wb-conn-status">не подключено</span>
             </div>
             <label class="field">
@@ -532,7 +562,7 @@ th.sorted-desc::after { content: " ↓"; }
           </div>
           <div class="connect-mp">
             <div class="connect-mp-head">
-              <strong>Ozon</strong>
+              <span class="mp-badge mp-ozon"><span class="mp-dot">OZ</span><span class="mp-label">Ozon</span></span>
               <span class="conn-status" id="ozon-conn-status">не подключено</span>
             </div>
             <label class="field">
@@ -1015,6 +1045,12 @@ const fmtMoneyCompact = v => {
 };
 const fmtPercent = v => (v * 100).toFixed(1) + "%";
 const escapeHtml = v => String(v ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+const MP_LABELS = { wb: "Wildberries", ozon: "Ozon" };
+function mpBadge(mp, compact = false) {
+  const cls = mp === "wb" ? "mp-wb" : "mp-ozon";
+  const short = mp === "wb" ? "WB" : "OZ";
+  return `<span class="mp-badge ${cls}"><span class="mp-dot">${short}</span>${compact ? "" : `<span class="mp-label">${MP_LABELS[mp] || escapeHtml(mp)}</span>`}</span>`;
+}
 const expenses = r => r.commission + r.logistics + r.storage + r.promotion + r.penalty + r.other_deduction;
 
 function renderStatRow(rows) {
@@ -1344,7 +1380,7 @@ function renderChannels(a) {
     (a.channels[k].payout / (a.channels[k].realization || 1)) > (a.channels[best].payout / (a.channels[best].realization || 1)) ? k : best, keys[0]);
   el.innerHTML = `
     <table>
-      <thead><tr><th>Показатель</th>${keys.map(k => `<th class="num">${names[k] || k}</th>`).join("")}</tr></thead>
+      <thead><tr><th>Показатель</th>${keys.map(k => `<th class="mp-col">${mpBadge(k)}</th>`).join("")}</tr></thead>
       <tbody>${rows.map(([label, fn]) => `
         <tr><td>${label}</td>${keys.map(k => `<td class="num">${fn(a.channels[k])}</td>`).join("")}</tr>`).join("")}</tbody>
     </table>
@@ -1594,7 +1630,7 @@ function productCardRow(p, colspan) {
         <div>
           <h4>Паспорт товара</h4>
           <dl class="kv">
-            <dt>Маркетплейс</dt><dd>${MP_NAMES[p.marketplace] || p.marketplace}</dd>
+            <dt>Маркетплейс</dt><dd>${mpBadge(p.marketplace)}</dd>
             <dt>Категория</dt><dd>${escapeHtml(p.category) || "—"}</dd>
             <dt>Бренд</dt><dd>${escapeHtml(p.brand) || "—"}</dd>
             <dt>Класс ABC</dt><dd><span class="abc-chip ${ABC_CHIP[p.abc] || ""}">${p.abc === "L" ? "−" : p.abc}</span></dd>
