@@ -1,0 +1,2532 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Финансовый срез — Маркетплейсы</title>
+<style>
+html, body { margin: 0; padding: 0; background: var(--page); }
+:root {
+  --surface-1: #fcfcfb;
+  --surface-2: #f3f3f0;
+  --page: #f9f9f7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --gridline: #e1e0d9;
+  --baseline: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --border-strong: rgba(11, 11, 11, 0.16);
+  --success: #006300;
+  --shadow-sm: 0 1px 2px rgba(11, 11, 11, 0.04);
+  --shadow-md: 0 1px 2px rgba(11, 11, 11, 0.04), 0 10px 24px -14px rgba(11, 11, 11, 0.18);
+  --focus-ring: rgba(13, 125, 116, 0.35);
+  --accent: #0d7d74;
+  --accent-strong: #0a655e;
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --wb: #c01a9c;
+  --wb-soft: color-mix(in srgb, var(--wb) 13%, transparent);
+  --ozon: #1668e3;
+  --ozon-soft: color-mix(in srgb, var(--ozon) 13%, transparent);
+  --series-1: #2a78d6;
+  --series-2: #1baf7a;
+  --series-3: #eda100;
+  --series-5: #4a3aa7;
+  --series-6: #e34948;
+  --series-7: #e87ba4;
+  --series-8: #eb6834;
+  --status-good: #0ca30c;
+  --status-critical: #d03b3b;
+  --status-serious: #d1662a;
+  --banner-bg: #eef4fc;
+  --banner-border: #2a78d6;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface-1: #1a1a19;
+    --surface-2: #212120;
+    --page: #0d0d0d;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --gridline: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --success: #0ca30c;
+    --shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.03);
+    --shadow-md: 0 1px 0 rgba(255, 255, 255, 0.03), 0 12px 28px -16px rgba(0, 0, 0, 0.6);
+    --focus-ring: rgba(43, 167, 155, 0.45);
+    --accent: #2ba79b;
+    --accent-strong: #43bcb0;
+    --accent-soft: color-mix(in srgb, var(--accent) 20%, transparent);
+    --wb: #e05bc4;
+    --wb-soft: color-mix(in srgb, var(--wb) 20%, transparent);
+    --ozon: #5b9bff;
+    --ozon-soft: color-mix(in srgb, var(--ozon) 20%, transparent);
+    --series-1: #3987e5;
+    --series-2: #199e70;
+    --series-3: #c98500;
+    --series-5: #9085e9;
+    --series-6: #e66767;
+    --series-7: #d55181;
+    --series-8: #d95926;
+    --banner-bg: #16202e;
+    --banner-border: #3987e5;
+  }
+}
+:root[data-theme="dark"] {
+  --surface-1: #1a1a19;
+  --surface-2: #212120;
+  --page: #0d0d0d;
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #898781;
+  --gridline: #2c2c2a;
+  --baseline: #383835;
+  --border: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --success: #0ca30c;
+  --shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.03);
+  --shadow-md: 0 1px 0 rgba(255, 255, 255, 0.03), 0 12px 28px -16px rgba(0, 0, 0, 0.6);
+  --focus-ring: rgba(57, 135, 229, 0.40);
+  --series-1: #3987e5;
+  --series-2: #199e70;
+  --series-3: #c98500;
+  --series-5: #9085e9;
+  --series-6: #e66767;
+  --series-7: #d55181;
+  --series-8: #d95926;
+  --banner-bg: #16202e;
+  --banner-border: #3987e5;
+}
+:root[data-theme="light"] {
+  --surface-1: #fcfcfb;
+  --surface-2: #f3f3f0;
+  --page: #f9f9f7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --gridline: #e1e0d9;
+  --baseline: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --border-strong: rgba(11, 11, 11, 0.16);
+  --success: #006300;
+  --shadow-sm: 0 1px 2px rgba(11, 11, 11, 0.04);
+  --shadow-md: 0 1px 2px rgba(11, 11, 11, 0.04), 0 10px 24px -14px rgba(11, 11, 11, 0.18);
+  --focus-ring: rgba(13, 125, 116, 0.35);
+  --accent: #0d7d74;
+  --accent-strong: #0a655e;
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --wb: #c01a9c;
+  --wb-soft: color-mix(in srgb, var(--wb) 13%, transparent);
+  --ozon: #1668e3;
+  --ozon-soft: color-mix(in srgb, var(--ozon) 13%, transparent);
+  --series-1: #2a78d6;
+  --series-2: #1baf7a;
+  --series-3: #eda100;
+  --series-5: #4a3aa7;
+  --series-6: #e34948;
+  --series-7: #e87ba4;
+  --series-8: #eb6834;
+  --status-good: #0ca30c;
+  --status-critical: #d03b3b;
+  --status-serious: #d1662a;
+  --banner-bg: #eef4fc;
+  --banner-border: #2a78d6;
+}
+
+/* Strong custom easing — built-in CSS curves are too weak to read as intentional (Kowalski). */
+:root { --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); }
+
+* { box-sizing: border-box; }
+html { overflow-x: clip; }  /* guard against sub-pixel horizontal scroll without breaking sticky */
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--page);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+@keyframes cardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes growX { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* Cards rise in with a short cascade when a tab becomes visible (occasional → delight is fine).
+   Bound to display change on tab switch, not to content refresh, so it never replays on filtering. */
+.tab-panel > .card { animation: cardIn 400ms var(--ease-out) both; }
+.tab-panel > .card:nth-child(2) { animation-delay: 55ms; }
+.tab-panel > .card:nth-child(3) { animation-delay: 110ms; }
+.tab-panel > .card:nth-child(4) { animation-delay: 165ms; }
+.tab-panel > .card:nth-child(n+5) { animation-delay: 210ms; }
+.demo-banner {
+  background: var(--banner-bg);
+  border-bottom: 2px solid var(--banner-border);
+  padding: 10px 24px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+/* minmax(0,…) lets the content column shrink instead of growing to its
+   widest table — wide content scrolls inside its own overflow container. */
+.layout { display: grid; grid-template-columns: 272px minmax(0, 1fr); min-height: 100vh; }
+.content, .sidebar { min-width: 0; }
+.sidebar {
+  background: var(--surface-1);
+  border-right: 1px solid var(--border);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.brand { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.brand-mark { width: 12px; height: 12px; border-radius: 4px; background: linear-gradient(135deg, var(--wb), var(--ozon)); flex-shrink: 0; }
+.eyebrow { font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+.sidebar-title h1 { font-size: 21px; margin: 6px 0 4px; letter-spacing: -0.01em; }
+.muted { color: var(--text-muted); font-size: 13px; }
+.hint { color: var(--text-secondary); font-size: 13px; }
+.sidebar-section { display: flex; flex-direction: column; gap: 12px; padding-top: 16px; border-top: 1px solid var(--gridline); }
+.sidebar-section:first-of-type { padding-top: 0; border-top: none; }
+.sidebar-section-title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+.field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-secondary); }
+.field > span { font-weight: 500; }
+.field input, .field select {
+  font: inherit; padding: 9px 11px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--page); color: var(--text-primary);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.field input:hover, .field select:hover { border-color: var(--border-strong); }
+.field input:focus, .field select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--focus-ring); }
+.btn {
+  padding: 9px 11px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--page); color: var(--text-primary);
+  text-align: center; text-decoration: none; font-size: 13px; font-weight: 500;
+  cursor: pointer; font-family: inherit;
+  transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out), transform 140ms var(--ease-out);
+}
+.btn:hover { border-color: var(--border-strong); background: var(--surface-2); }
+.btn:active { transform: scale(0.97); }
+.btn-primary {
+  padding: 9px 16px; border-radius: 8px; border: 1px solid var(--accent);
+  background: var(--accent); color: #ffffff;
+  font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer;
+  transition: filter 140ms var(--ease-out), transform 140ms var(--ease-out);
+}
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-primary:active { transform: scale(0.97); }
+.btn-small {
+  padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface-1); color: var(--text-primary);
+  font-size: 12px; font-weight: 500; font-family: inherit; cursor: pointer; margin-right: 4px;
+  transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out), transform 140ms var(--ease-out);
+}
+.btn-small:hover { border-color: var(--border-strong); background: var(--surface-2); }
+.btn-small:active { transform: scale(0.96); }
+.btn-small.danger { color: var(--status-critical); }
+.content { padding: 32px 32px 32px 40px; max-width: 1180px; }
+.content-header h2 { margin: 6px 0 0; font-size: 25px; letter-spacing: -0.01em; }
+.tabs { display: flex; gap: 2px; margin: 24px 0; padding: 4px; background: var(--surface-2); border-radius: 12px; width: fit-content; flex-wrap: wrap; }
+.tab {
+  border: none; background: none; font: inherit; font-size: 13px; font-weight: 500;
+  padding: 8px 14px; border-radius: 8px; color: var(--text-secondary); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px;
+  transition: background-color 160ms var(--ease-out), color 160ms var(--ease-out), transform 140ms var(--ease-out);
+}
+.tab svg { width: 15px; height: 15px; flex-shrink: 0; }
+/* Каждый раздел — своим цветом иконки, чтобы вкладки читались с полувзгляда. */
+.tab[data-tab="uploads"] svg { color: #2a78d6; }
+.tab[data-tab="analysis"] svg { color: #7b3fe4; }
+.tab[data-tab="overview"] svg { color: #12a05f; }
+.tab[data-tab="products"] svg { color: #e56a1f; }
+.tab[data-tab="returns"] svg { color: #e0443f; }
+.tab[data-tab="control"] svg { color: #d99a00; }
+.tab[data-tab="connect"] svg { color: #c01a9c; }
+.tab.active svg { color: #fff; }
+.tab:hover { color: var(--accent-strong); background: var(--accent-soft); }
+.tab:active { transform: scale(0.97); }
+.tab.active { color: #fff; background: var(--accent); font-weight: 600; box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--accent) 60%, transparent); }
+.tab.active:hover { color: #fff; }
+.tab:focus-visible, .btn:focus-visible, .btn-primary:focus-visible, .btn-small:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 28px; }
+.stat-row[hidden] { display: none; }
+.stat-tile {
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
+  padding: 18px 18px 20px; box-shadow: var(--shadow-sm);
+  transition: transform 220ms var(--ease-out), box-shadow 220ms var(--ease-out), border-color 220ms var(--ease-out);
+}
+.stat-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--border-strong); }
+.stat-tile .label { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 10px; }
+.stat-tile .value { font-size: 28px; font-weight: 640; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.05; white-space: nowrap; }
+.stat-tile .value.positive { color: var(--success); }
+.stat-tile .value.negative { color: var(--status-critical); }
+.stat-tile .value.spend { color: var(--status-serious); }
+/* Цветная метка слева: синяя — то, что приходит; оранжевая — то, что уходит. */
+.stat-tile.tone-in { border-left: 3px solid var(--series-1); }
+.stat-tile.tone-out { border-left: 3px solid var(--status-serious); }
+/* The single bold accent on the whole view — the bottom-line KPI. */
+.stat-tile-hero {
+  background:
+    linear-gradient(155deg, color-mix(in srgb, var(--accent) 14%, var(--surface-1)), var(--surface-1));
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
+  box-shadow: 0 1px 2px rgba(11,11,11,0.04), 0 12px 26px -18px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.stat-tile-hero .label { color: var(--accent-strong); }
+.stat-tile-hero .value.positive { color: var(--success); }
+.mp-badge { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; white-space: nowrap; }
+.mp-dot { width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 9.5px; font-weight: 700; letter-spacing: 0.02em; color: #fff; }
+.mp-wb { color: var(--wb); } .mp-wb .mp-dot { background: var(--wb); }
+.mp-ozon { color: var(--ozon); } .mp-ozon .mp-dot { background: var(--ozon); }
+th.mp-col { text-align: right; } th.mp-col .mp-badge { justify-content: flex-end; }
+.connect-mp-head .mp-badge { font-size: 15px; } .connect-mp-head .mp-dot { width: 26px; height: 26px; font-size: 11px; }
+.card {
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 16px;
+  padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-sm);
+}
+.card-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; gap: 16px; }
+.card-header h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.card-header .muted { font-size: 12.5px; text-align: right; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--gridline); }
+th { color: var(--text-muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; }
+tbody tr:hover { background: var(--surface-2); }
+tbody tr:last-child td { border-bottom: none; }
+td.num, th.num { text-align: right; }
+.flag {
+  display: inline-block; padding: 3px 9px; border-radius: 999px;
+  font-size: 11px; font-weight: 500; margin-right: 4px;
+  background: color-mix(in srgb, var(--status-critical) 15%, transparent);
+  color: var(--status-critical);
+}
+.chip { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+.chip-ok { background: color-mix(in srgb, var(--status-good) 15%, transparent); color: var(--success); }
+.chip-fixed { background: color-mix(in srgb, var(--series-3) 18%, transparent); color: var(--text-primary); }
+.chip-error { background: color-mix(in srgb, var(--status-critical) 15%, transparent); color: var(--status-critical); }
+.legend { display: flex; gap: 16px; margin-bottom: 12px; font-size: 12.5px; color: var(--text-secondary); flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.bar-row { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
+.bar-row .bar-label { width: 140px; font-size: 12.5px; color: var(--text-secondary); flex-shrink: 0; }
+.bar-row .bar-track { flex: 1; background: var(--surface-2); border-radius: 8px; height: 20px; overflow: hidden; }
+/* Bars grow from the baseline on render — reinforces magnitude, GPU-only (scaleX). */
+.bar-row .bar-fill { height: 100%; border-radius: 0 4px 4px 0; transform-origin: left center; animation: growX 480ms var(--ease-out) both; }
+.bar-row .bar-value { width: 110px; text-align: right; font-size: 12.5px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.wide-values .bar-value { width: 160px; }
+.col-chart { display: flex; align-items: flex-end; gap: 20px; height: 200px; border-bottom: 1px solid var(--baseline); padding: 0 4px; }
+.col-group { display: flex; align-items: flex-end; gap: 2px; flex: 1; height: 100%; }
+.col-bar { flex: 1; max-width: 24px; border-radius: 4px 4px 0 0; min-height: 1px; transform-origin: bottom center; animation: growY 480ms var(--ease-out) both; }
+@keyframes growY { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.col-labels { display: flex; gap: 20px; padding: 8px 4px 0; }
+.col-labels span { flex: 1; text-align: center; font-size: 11px; color: var(--text-secondary); }
+.data-table-toggle {
+  margin-top: 12px; font-size: 12.5px; color: var(--series-1); cursor: pointer;
+  background: none; border: none; padding: 0; font-weight: 500; font-family: inherit;
+}
+.data-table-toggle:hover { text-decoration: underline; }
+.upload-form { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.upload-form .field { min-width: 180px; }
+.connect-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+.connect-mp { border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.connect-mp-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.conn-status { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: color-mix(in srgb, var(--status-critical) 12%, transparent); color: var(--status-critical); }
+.conn-status.conn-on { background: color-mix(in srgb, var(--status-good) 15%, transparent); color: var(--success); }
+.connect-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
+.demo-note { border-left: 3px solid var(--series-3); padding-left: 10px; color: var(--text-secondary); }
+.demo-banner { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  margin-bottom: 18px; padding: 12px 16px; border-radius: 12px;
+  background: color-mix(in srgb, var(--series-3) 12%, var(--surface-1));
+  border: 1px solid color-mix(in srgb, var(--series-3) 40%, var(--border)); font-size: 13.5px; }
+.row-editor td input {
+  font: inherit; font-size: 12px; width: 100%; min-width: 70px;
+  padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px;
+  background: var(--page); color: var(--text-primary);
+}
+.row-error-text { color: var(--status-critical); font-size: 12px; max-width: 260px; }
+.row-fixes-text { color: var(--text-secondary); font-size: 12px; max-width: 260px; }
+.empty-state { text-align: center; padding: 48px 24px; color: var(--text-secondary); }
+.empty-state .big { font-size: 17px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+
+.insights { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+.insight {
+  border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;
+  background: var(--surface-1); border-left-width: 4px;
+  font-size: 13.5px; line-height: 1.5;
+}
+.insight .insight-title { font-weight: 600; margin-bottom: 4px; display: flex; align-items: baseline; gap: 8px; }
+.insight .insight-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; transform: translateY(-1px); }
+.insight .insight-action { margin-top: 6px; color: var(--text-secondary); font-size: 12.5px; }
+.insight.critical { border-left-color: var(--status-critical); }
+.insight.critical .insight-dot { background: var(--status-critical); }
+.insight.warning { border-left-color: var(--series-3); }
+.insight.warning .insight-dot { background: var(--series-3); }
+.insight.good { border-left-color: var(--status-good); }
+.insight.good .insight-dot { background: var(--status-good); }
+.insight.neutral { border-left-color: var(--series-1); }
+.insight.neutral .insight-dot { background: var(--series-1); }
+.abc-chip { display: inline-block; min-width: 22px; text-align: center; padding: 2px 7px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+.abc-A { background: color-mix(in srgb, var(--status-good) 18%, transparent); color: var(--success); }
+.abc-B { background: color-mix(in srgb, var(--series-1) 16%, transparent); color: var(--text-primary); }
+.abc-C { background: color-mix(in srgb, var(--series-3) 20%, transparent); color: var(--text-primary); }
+.abc-L { background: color-mix(in srgb, var(--status-critical) 16%, transparent); color: var(--status-critical); }
+.stack-bar { display: flex; height: 34px; border-radius: 8px; overflow: hidden; gap: 2px; background: var(--surface-2); }
+.stack-seg { min-width: 2px; }
+.stack-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 20px; margin-top: 14px; font-size: 12.5px; }
+.stack-legend .legend-item { display: grid; grid-template-columns: 12px 1fr auto auto; align-items: center; gap: 8px; color: var(--text-secondary); }
+.stack-legend .legend-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stack-legend .legend-pct { font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.stack-legend .legend-rub { color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.segments { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+/* Семантический цвет сегмента: каждый несёт --seg, а сам вид (обводка/заливка/
+   текст) выводится из него через color-mix — работает и в light, и в dark. */
+.segment {
+  --seg: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--seg) 40%, var(--border));
+  border-radius: 999px; padding: 6px 14px;
+  background: color-mix(in srgb, var(--seg) 9%, var(--surface-1));
+  color: color-mix(in srgb, var(--seg) 72%, var(--text-primary));
+  font-size: 12.5px; font-weight: 600; font-family: inherit; cursor: pointer;
+  transition: background-color 140ms var(--ease-out), color 140ms var(--ease-out), border-color 140ms var(--ease-out), transform 140ms var(--ease-out);
+}
+.segment[data-segment="all"]     { --seg: var(--accent); }
+.segment[data-segment="loss"]    { --seg: var(--status-critical); }
+.segment[data-segment="dead"]    { --seg: color-mix(in srgb, var(--text-muted) 68%, var(--series-3)); }
+.segment[data-segment="returns"] { --seg: var(--status-serious); }
+.segment[data-segment="A"]       { --seg: var(--status-good); }
+.segment[data-segment="B"]       { --seg: var(--series-1); }
+.segment[data-segment="C"]       { --seg: var(--series-3); }
+.segment:hover { background: color-mix(in srgb, var(--seg) 17%, var(--surface-1)); border-color: color-mix(in srgb, var(--seg) 60%, var(--border)); }
+.segment:active { transform: scale(0.96); }
+.segment.active { background: var(--seg); border-color: var(--seg); color: #fff; box-shadow: 0 2px 8px -3px color-mix(in srgb, var(--seg) 65%, transparent); }
+.segment.active .seg-count { opacity: 0.85; }
+.segment .seg-count { opacity: 0.7; margin-left: 5px; font-variant-numeric: tabular-nums; }
+.group-controls { margin-bottom: 10px; display: flex; gap: 12px; flex-wrap: wrap; }
+/* Группы — с цветной меткой слева и более выразительным фоном, чтобы уровни
+   иерархии читались. Метка через inset-тень: не сдвигает раскладку таблицы. */
+.group-row td { font-weight: 600; background: color-mix(in srgb, var(--accent) 7%, var(--surface-2)); cursor: pointer; }
+.group-row td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.group-row:hover td { background: color-mix(in srgb, var(--accent) 14%, var(--surface-2)); }
+.group-row.level-2 td { font-weight: 500; background: color-mix(in srgb, var(--accent) 4%, var(--surface-1)); }
+.group-row.level-2 td:first-child { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
+/* «Возвраты» — тема потерь: метка групп оранжевая, а не акцентная. */
+#table-returns .group-row td { background: color-mix(in srgb, var(--status-serious) 8%, var(--surface-2)); }
+#table-returns .group-row td:first-child { box-shadow: inset 3px 0 0 var(--status-serious); }
+#table-returns .group-row:hover td { background: color-mix(in srgb, var(--status-serious) 15%, var(--surface-2)); }
+.group-caret { display: inline-block; width: 14px; color: var(--text-secondary); }
+.cat-ic { display: inline-flex; vertical-align: middle; margin-right: 7px; }
+.cat-ic svg { width: 17px; height: 17px; }
+tr.product-line { cursor: pointer; }
+.product-card td { background: color-mix(in srgb, var(--series-1) 4%, var(--surface-1)); }
+.pcard { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; padding: 6px 2px; }
+.pcard h4 { margin: 0 0 8px; font-size: 13px; }
+.pcard table { font-size: 12.5px; }
+.pcard td, .pcard th { padding: 5px 8px; }
+.pcard .share-track { background: var(--surface-2); border-radius: 4px; height: 8px; min-width: 60px; overflow: hidden; }
+.pcard .share-fill { height: 100%; border-radius: 0 2px 2px 0; background: var(--series-2); }
+.pcard .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 12.5px; }
+.pcard .kv dt { color: var(--text-secondary); margin: 0; }
+.pcard .kv dd { margin: 0; font-weight: 500; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--text-primary); }
+th.sorted-asc::after { content: " ↑"; }
+th.sorted-desc::after { content: " ↓"; }
+.delta-up { color: var(--success); }
+.delta-down { color: var(--status-critical); }
+.result-count { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 10px; }
+/* Предпросмотр: панель переключения «Компьютер / Телефон» и рамка вьюпорта.
+   Адаптивность — через @container (ниже), поэтому телефон реагирует на ширину
+   рамки, а не окна: можно посмотреть мобильный вид, не сужая окно. */
+.preview-toolbar {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
+}
+.preview-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+.preview-btn {
+  font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+  padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text-secondary);
+  transition: background-color 140ms var(--ease-out), color 140ms var(--ease-out), border-color 140ms var(--ease-out);
+}
+.preview-btn:hover { color: var(--text-primary); border-color: var(--border-strong); }
+.preview-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+#app-viewport { container-type: inline-size; container-name: viewport; }
+/* Рамка телефона — фиксированного размера (как настоящий телефон). Полосы
+   прокрутки нет: контент листается кнопками-стрелками ↑ ↓ в углу рамки. */
+#app-viewport.phone {
+  max-width: 400px; height: 760px; margin: 24px auto; position: relative;
+  overflow: hidden; border: 11px solid #141414; border-radius: 40px;
+  box-shadow: 0 30px 60px -24px rgba(11,11,11,0.5);
+  /* Корпус — колонка: сверху прокручиваемый экран, снизу панель управления.
+     Так стрелки живут в «шасси» телефона и физически не могут накрыть данные. */
+  display: flex; flex-direction: column;
+}
+#app-viewport.phone #phone-scroll { flex: 1 1 auto; min-height: 0; height: auto; overflow-y: auto; scroll-behavior: smooth; scrollbar-width: none; -ms-overflow-style: none; }
+#app-viewport.phone #phone-scroll::-webkit-scrollbar { display: none; }
+#app-viewport.phone .layout { min-height: 0; }
+#app-viewport.phone .sidebar { position: static; }
+/* Нижняя панель прокрутки — часть корпуса, вне области контента (не absolute). */
+.phone-nav { display: none; }
+#app-viewport.phone .phone-nav {
+  display: flex; flex-direction: row; align-items: center; gap: 10px;
+  flex-shrink: 0; padding: 10px 14px;
+  background: var(--surface-1); border-top: 1px solid var(--border-strong);
+  box-shadow: 0 -8px 20px -16px rgba(11,11,11,0.5);
+}
+.phone-nav button {
+  flex: 1; height: 40px; border-radius: 12px; cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
+  background: var(--accent-soft); color: var(--accent-strong);
+  font-size: 13px; font-weight: 600; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  transition: transform 120ms var(--ease-out), background-color 120ms var(--ease-out), border-color 120ms var(--ease-out);
+}
+.phone-nav button .arrow { font-size: 16px; line-height: 1; }
+.phone-nav button:hover { background: color-mix(in srgb, var(--accent) 20%, var(--surface-1)); border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+.phone-nav button:active { transform: scale(0.96); }
+
+@container viewport (max-width: 860px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  /* Content first on phones — the dashboard (tabs, KPIs, analysis) must be
+     what you see, not a long filter form. Filters drop below. */
+  .content { order: 1; padding: 18px 14px 28px; max-width: none; }
+  .sidebar { order: 2; position: static; height: auto; overflow: visible; border-right: none; border-top: 1px solid var(--border); gap: 18px; }
+  /* Заголовок помещается в одну строку — экономим высоту экрана. */
+  .content-header h2 { font-size: 17px; letter-spacing: -0.02em; }
+  .content-header .eyebrow { font-size: 10px; }
+  /* Ровно 3 вкладки в ряд → две аккуратные строки (Загрузка/Анализ/Обзор,
+     Товары/Возвраты/Подключение), без бокового скролла. */
+  .tabs { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .tabs .tab { justify-content: center; padding: 9px 6px; font-size: 12px; }
+  .tabs .tab svg { width: 14px; height: 14px; }
+  /* Two-up KPI tiles; the bottom-line hero spans the full width and leads. */
+  .stat-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-tile { padding: 14px 14px 16px; }
+  .stat-tile-hero { grid-column: 1 / -1; }
+  .stat-tile .value { font-size: 22px; }
+  .insights { grid-template-columns: 1fr; }
+  .pcard { grid-template-columns: 1fr; }
+  /* Плотнее: карточки и таблицы дышат меньше, но остаются читаемыми. */
+  .card { padding: 16px 14px; border-radius: 14px; margin-bottom: 16px; }
+  .card-header { margin-bottom: 12px; gap: 10px; }
+  th, td { padding: 8px 9px; }
+  /* Компактные чипы-сегменты в 1–2 ряда вместо трёх с большим воздухом. */
+  .segments { gap: 6px; margin-bottom: 10px; }
+  .segment { padding: 5px 11px; font-size: 11.5px; }
+  /* Группировка / Внутри группы — два аккуратных столбца, без разброса. */
+  .group-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; margin-bottom: 8px; }
+  .group-controls .field { max-width: none; gap: 4px; font-size: 12px; }
+  .group-controls .field select { padding: 7px 9px; }
+  .segments + .group-controls { margin-top: 2px; }
+}
+/* Reduced motion: strip movement/scale but keep opacity fades that aid comprehension. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .stat-tile:hover, .btn:active, .btn-primary:active, .btn-small:active, .segment:active, .tab:active { transform: none !important; }
+}
+/* Gate the hover-lift behind real pointers so touch taps don't trigger it. */
+@media (hover: none) { .stat-tile:hover { transform: none; box-shadow: var(--shadow-sm); } }
+</style>
+</head>
+<body>
+
+<div id="app-viewport">
+<div id="phone-scroll">
+<div class="demo-banner">
+  🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-title">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <span class="eyebrow">Финтабло / МП</span>
+      </div>
+      <h1>Маркетплейсы</h1>
+      <p class="muted">ВБ и Ozon — анализ из CSV</p>
+    </div>
+
+    <div class="sidebar-section">
+      <span class="sidebar-section-title">Фильтры</span>
+      <label class="field">
+        <span>Маркетплейс</span>
+        <select id="f-marketplace">
+          <option value="">Все</option>
+          <option value="wb">Wildberries</option>
+          <option value="ozon">Ozon</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>С даты</span>
+        <input id="f-date-from" type="date" />
+      </label>
+      <label class="field">
+        <span>По дату</span>
+        <input id="f-date-to" type="date" />
+      </label>
+      <label class="field">
+        <span>Поиск товара</span>
+        <input id="f-search" type="text" placeholder="Название или SKU" />
+      </label>
+    </div>
+
+    <div class="sidebar-section">
+      <span class="sidebar-section-title">Экспорт</span>
+      <button id="export-csv" class="btn" type="button">Товары CSV</button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <header class="content-header">
+      <div class="eyebrow">Финансовый срез</div>
+      <h2>Выручка, удержания и выплаты</h2>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab active" role="tab" aria-selected="true" aria-controls="panel-uploads" id="tab-uploads" data-tab="uploads"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Загрузка</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-analysis" id="tab-analysis" data-tab="analysis"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.6.6 1 1.3 1 2.5h6c0-1.2.4-1.9 1-2.5A6 6 0 0 0 12 3z"/></svg>Анализ</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-overview" id="tab-overview" data-tab="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M7 21V11"/><path d="M12 21V6"/><path d="M17 21v-8"/></svg>Обзор</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-products" id="tab-products" data-tab="products"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v8l-9 4-9-4V8l9-4z"/><path d="M3 8l9 4 9-4"/><path d="M12 12v8"/></svg>Товары</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-returns" id="tab-returns" data-tab="returns"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10H8"/></svg>Возвраты</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-connect" id="tab-connect" data-tab="connect"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg>Подключение</button>
+    </nav>
+
+    <section class="stat-row" id="stat-row"></section>
+
+    <div id="demo-banner" class="demo-banner" hidden>
+      <span>Показан <strong>пример</strong> — демо-данные ВБ и Ozon, чтобы дашборд не был пустым. Чтобы увидеть свои цифры, загрузите CSV на вкладке «Загрузка».</span>
+      <button id="demo-clear" class="btn-small" type="button">Убрать демо</button>
+    </div>
+
+    <section class="tab-panel" data-panel="uploads" role="tabpanel" id="panel-uploads" aria-labelledby="tab-uploads">
+      <div class="card">
+        <div class="card-header">
+          <h3>Загрузить отчёт из файла</h3>
+          <span class="muted">CSV из кабинетов ВБ/Ozon или сводный отчёт; кодировка, разделители, числа и даты исправляются автоматически</span>
+        </div>
+        <div class="upload-form">
+          <label class="field">
+            <span>Маркетплейс файла</span>
+            <select id="upload-marketplace">
+              <option value="wb">Wildberries</option>
+              <option value="ozon">Ozon</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Файл CSV (можно несколько)</span>
+            <input id="upload-file" type="file" accept=".csv,text/csv" multiple />
+          </label>
+          <button id="upload-submit" class="btn-primary" type="button">Загрузить</button>
+        </div>
+        <p class="hint" style="margin-bottom:0">Если в файле есть колонка «Маркетплейс», она важнее выбора в форме — можно грузить смешанные файлы.</p>
+        <p class="hint" id="upload-status" hidden></p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Себестоимость (файл продавца)</h3>
+          <span class="muted">CSV со столбцами SKU и себестоимостью за штуку — включит расчёт чистой прибыли</span>
+        </div>
+        <div class="upload-form">
+          <label class="field">
+            <span>Файл себестоимости CSV</span>
+            <input id="cost-file" type="file" accept=".csv,text/csv" />
+          </label>
+          <button id="cost-submit" class="btn-primary" type="button">Загрузить себестоимость</button>
+          <button id="cost-remove" class="btn-small danger" type="button" hidden>Убрать себестоимость</button>
+        </div>
+        <p class="hint" id="cost-status" style="margin-bottom:0">Понимает «Полная себестоимость за шт», «Себестоимость закупки за шт» или просто «Себестоимость». Пока файл не загружен, анализ идёт без неё.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Загруженные файлы</h3>
+          <span class="muted">данные живут, пока открыта страница</span>
+        </div>
+        <div id="uploads-list"></div>
+      </div>
+
+      <div class="card" id="rows-card" hidden>
+        <div class="card-header">
+          <h3 id="rows-title">Строки файла</h3>
+          <span class="muted">строки с ошибками можно исправить прямо здесь</span>
+        </div>
+        <div class="table-wrap" id="upload-rows"></div>
+      </div>
+    </section>
+
+    <section class="tab-panel" data-panel="connect" role="tabpanel" id="panel-connect" aria-labelledby="tab-connect" hidden>
+      <div class="card">
+        <div class="card-header">
+          <h3>Ключи доступа</h3>
+          <span class="muted">в рабочей версии данные подтягиваются из кабинетов автоматически, без выгрузки файлов</span>
+        </div>
+        <div class="connect-grid">
+          <div class="connect-mp">
+            <div class="connect-mp-head">
+              <span class="mp-badge mp-wb"><span class="mp-dot">WB</span><span class="mp-label">Wildberries</span></span>
+              <span class="conn-status" id="wb-conn-status">не подключено</span>
+            </div>
+            <label class="field">
+              <span>API-ключ (токен категории «Финансы»)</span>
+              <input id="wb-key" type="password" placeholder="Вставьте токен из кабинета ВБ" autocomplete="off" />
+            </label>
+            <p class="hint" style="margin:0">Кабинет ВБ → Настройки → Доступ к API → создать токен с категорией «Финансы».</p>
+          </div>
+          <div class="connect-mp">
+            <div class="connect-mp-head">
+              <span class="mp-badge mp-ozon"><span class="mp-dot">OZ</span><span class="mp-label">Ozon</span></span>
+              <span class="conn-status" id="ozon-conn-status">не подключено</span>
+            </div>
+            <label class="field">
+              <span>Client-Id</span>
+              <input id="ozon-client-id" type="text" placeholder="Client-Id из кабинета Ozon" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>Api-Key</span>
+              <input id="ozon-key" type="password" placeholder="Api-Key из кабинета Ozon" autocomplete="off" />
+            </label>
+            <p class="hint" style="margin:0">Кабинет Ozon → Настройки → API-ключи.</p>
+          </div>
+        </div>
+        <div class="connect-actions">
+          <button id="save-credentials" class="btn-primary" type="button">Сохранить ключи</button>
+          <button id="disconnect-all" class="btn-small danger" type="button" hidden>Отключить всё</button>
+        </div>
+        <p class="hint" id="credentials-status" hidden></p>
+        <p class="hint demo-note">Это демонстрация в браузере: ключи никуда не отправляются и живут только в этой вкладке. Реальная загрузка по API работает в развёрнутой версии приложения (нужен сервер) — здесь показано, как выглядит подключение.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Загрузить данные по API</h3>
+          <span class="muted">за выбранный период из подключённых кабинетов</span>
+        </div>
+        <div class="upload-form">
+          <label class="field"><span>С даты</span><input id="sync-date-from" type="date" /></label>
+          <label class="field"><span>По дату</span><input id="sync-date-to" type="date" /></label>
+          <button id="sync-submit" class="btn-primary" type="button">Загрузить данные</button>
+        </div>
+        <p class="hint" id="sync-status" hidden></p>
+        <p class="hint demo-note" style="margin-bottom:0">В этом браузерном демо загрузка по API отключена — попробуйте вкладку «Загрузка», чтобы увидеть анализ на своём CSV. В рабочей версии эта кнопка сходит в кабинеты и зальёт данные за период.</p>
+      </div>
+    </section>
+
+    <section class="tab-panel" data-panel="analysis" role="tabpanel" id="panel-analysis" aria-labelledby="tab-analysis" hidden>
+      <div class="card">
+        <div class="card-header">
+          <h3>Ключевые выводы</h3>
+          <span class="muted">автоматически, по текущему фильтру</span>
+        </div>
+        <div class="insights" id="insights"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Куда уходит рубль реализации</h3>
+          <span class="muted">сколько остаётся вам и сколько забирают возвраты и маркетплейс</span>
+        </div>
+        <div id="ruble-flow"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Здоровье ассортимента</h3>
+          <span class="muted">сколько товаров в каждой зоне маржинальности</span>
+        </div>
+        <div id="margin-histogram"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>ABC-анализ ассортимента</h3>
+          <span class="muted">по вкладу в выплату: A — 80%, B — ещё 15%, C — остальное, Убыток — минусовые</span>
+        </div>
+        <div class="table-wrap" id="abc-summary"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Каналы: Wildberries vs Ozon</h3>
+          <span class="muted">юнит-экономика на рубль реализации</span>
+        </div>
+        <div class="table-wrap" id="channel-compare"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Где теряются деньги</h3>
+          <span class="muted">крупнейшие потери — графикой; полный список за переключателем</span>
+        </div>
+        <div id="loss-block"></div>
+      </div>
+    </section>
+
+    <section class="tab-panel" data-panel="overview" role="tabpanel" id="panel-overview" aria-labelledby="tab-overview" hidden>
+      <div class="card">
+        <div class="card-header">
+          <h3>Динамика по месяцам</h3>
+          <span class="muted">чистая выручка, расходы и выплаты</span>
+        </div>
+        <div id="chart-dynamics"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Структура удержаний</h3>
+          <span class="muted">в разрезе статей</span>
+        </div>
+        <div id="chart-deductions"></div>
+      </div>
+    </section>
+
+    <section class="tab-panel" data-panel="products" role="tabpanel" id="panel-products" aria-labelledby="tab-products" hidden>
+      <div class="card">
+        <div class="card-header">
+          <h3>Товары</h3>
+          <span class="muted">сегменты — одним кликом; группировка — списком</span>
+        </div>
+        <div class="segments" id="product-segments"></div>
+        <div class="group-controls">
+          <label class="field" style="max-width:220px">
+            <span>Группировка</span>
+            <select id="product-grouping">
+              <option value="section" selected>По разделу</option>
+              <option value="category">По подкатегории</option>
+              <option value="brand">По бренду</option>
+              <option value="marketplace">По маркетплейсу</option>
+              <option value="abc">По классу ABC</option>
+              <option value="">Без группировки (список)</option>
+            </select>
+          </label>
+          <label class="field" style="max-width:220px">
+            <span>Внутри группы</span>
+            <select id="product-grouping2">
+              <option value="category" selected>Подкатегории</option>
+              <option value="brand">Бренды</option>
+              <option value="marketplace">Маркетплейсы</option>
+              <option value="abc">Классы ABC</option>
+              <option value="">Сразу товары</option>
+            </select>
+          </label>
+        </div>
+        <p class="hint" style="margin-top:0">Клик по группе — раскрыть подгруппы, по подгруппе — товары (худшие первыми), по товару — карточка с полной раскладкой.</p>
+        <div class="table-wrap" id="table-products"></div>
+      </div>
+    </section>
+
+    <section class="tab-panel" data-panel="returns" role="tabpanel" id="panel-returns" aria-labelledby="tab-returns" hidden>
+      <div class="card">
+        <div class="card-header">
+          <h3>Возвратность по товарам</h3>
+          <span class="muted">товары с возвратностью ≥ 30%</span>
+        </div>
+        <div class="table-wrap" id="table-returns"></div>
+      </div>
+    </section>
+  </main>
+</div>
+</div>
+<div class="phone-nav">
+  <button id="phone-up" type="button" aria-label="Прокрутить вверх"><span class="arrow" aria-hidden="true">↑</span>Вверх</button>
+  <button id="phone-down" type="button" aria-label="Прокрутить вниз"><span class="arrow" aria-hidden="true">↓</span>Вниз</button>
+</div>
+</div>
+
+<script>
+"use strict";
+
+/* ==== Разбор CSV (порт серверного etl/import_csv.py) ==== */
+
+const COLUMN_ALIASES = {
+  marketplace: ["marketplace", "маркетплейс", "площадка", "мп"],
+  period_date: ["period_date", "дата", "дата продажи", "дата операции", "sale_dt",
+    "operation_date", "дата начисления", "период", "дата отчёта", "дата отчета"],
+  sku: ["sku", "артикул", "артикул поставщика", "артикул продавца", "sa_name",
+    "код товара", "артикул wb", "ozon sku id", "sku мп"],
+  product_name: ["product_name", "товар", "название", "название товара", "наименование",
+    "предмет", "subject_name", "наименование товара"],
+  category: ["category", "категория", "категория/предмет", "группа товаров"],
+  brand: ["brand", "бренд", "торговая марка"],
+  doc_type: ["doc_type", "тип документа", "обоснование для оплаты", "тип операции",
+    "doc_type_name", "операция"],
+  quantity: ["quantity", "количество", "кол-во", "шт", "продано"],
+  realization: ["realization", "реализация", "продажа", "сумма продажи", "retail_amount",
+    "вайлдберриз реализовал товар (пр)", "цена реализации", "accruals_for_sale", "сумма реализации"],
+  returns: ["returns", "возврат", "возвраты", "сумма возврата"],
+  commission: ["commission", "комиссия", "комиссия мп", "вознаграждение вайлдберриз",
+    "sale_commission", "ppvz_sales_commission", "комиссия за продажу"],
+  logistics: ["logistics", "логистика", "доставка", "услуги по доставке",
+    "delivery_rub", "стоимость логистики", "логистика мп", "последняя миля"],
+  storage: ["storage", "хранение", "storage_fee", "стоимость хранения", "хранение/размещение"],
+  promotion: ["promotion", "продвижение", "реклама", "supplier_promo"],
+  penalty: ["penalty", "штраф", "штрафы", "общая сумма штрафов"],
+  other_deduction: ["other_deduction", "прочие удержания", "удержания", "deduction",
+    "прочие услуги", "эквайринг"],
+  payout: ["payout", "к выплате", "к перечислению", "итого к оплате",
+    "ppvz_for_pay", "к перечислению продавцу за реализованный товар", "сумма выплат", "amount"],
+};
+
+const SUMMABLE = new Set(["realization", "returns", "commission", "logistics",
+  "storage", "promotion", "penalty", "other_deduction", "payout", "quantity"]);
+const MARKETPLACE_VALUES = {
+  ozon: "ozon", "озон": "ozon",
+  wb: "wb", "вб": "wb", wildberries: "wb", "вайлдберриз": "wb",
+};
+const RETURN_DOC_TYPES = new Set(["возврат", "return", "возврат товара"]);
+const NUMERIC_FIELDS = ["quantity", "realization", "returns", "commission",
+  "logistics", "storage", "promotion", "penalty", "other_deduction", "payout"];
+const HEADER_UNIT_RE = /[,\s]+(₽|руб\.?|шт\.?|%)\s*$/i;
+const NUM_CLEAN_RE = /[₽руб\s  ]/gi;
+
+function decodeBytes(buffer) {
+  const utf8 = new TextDecoder("utf-8").decode(buffer);
+  // U+FFFD marks bytes UTF-8 couldn't decode — likely a cp1251 export.
+  if (!utf8.includes("\uFFFD")) return { text: utf8.replace(/^﻿/, ""), fix: null };
+  const cp1251 = new TextDecoder("windows-1251").decode(buffer);
+  return { text: cp1251, fix: "кодировка cp1251 → UTF-8" };
+}
+
+function sniffDelimiter(text) {
+  const header = text.split(/\r?\n/, 1)[0] || "";
+  const counts = { ";": (header.match(/;/g) || []).length, ",": (header.match(/,/g) || []).length, "\t": (header.match(/\t/g) || []).length };
+  const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  return best[1] > 0 ? best[0] : ",";
+}
+
+function csvParse(text, delim) {
+  const rows = [];
+  let row = [], cell = "", inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { cell += '"'; i++; }
+        else inQuotes = false;
+      } else cell += ch;
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === delim) {
+      row.push(cell); cell = "";
+    } else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && text[i + 1] === "\n") i++;
+      row.push(cell); cell = "";
+      rows.push(row); row = [];
+    } else {
+      cell += ch;
+    }
+  }
+  if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+  return rows;
+}
+
+function mapHeaders(headers) {
+  const mapping = []; // [{index, field}]
+  const claimed = new Set();
+  headers.forEach((header, index) => {
+    let key = String(header || "").trim().toLowerCase().replace(/^"|"$/g, "");
+    key = key.replace(HEADER_UNIT_RE, "");
+    for (const [field, aliases] of Object.entries(COLUMN_ALIASES)) {
+      if (aliases.includes(key) && (SUMMABLE.has(field) || !claimed.has(field))) {
+        mapping.push({ index, field });
+        claimed.add(field);
+        break;
+      }
+    }
+  });
+  return mapping;
+}
+
+function parseNumber(value) {
+  let text = String(value ?? "").trim().replace(NUM_CLEAN_RE, "");
+  if (!text) return 0;
+  if (text.includes(",") && text.includes(".")) {
+    if (text.lastIndexOf(",") > text.lastIndexOf(".")) text = text.replaceAll(".", "").replace(",", ".");
+    else text = text.replaceAll(",", "");
+  } else if (text.includes(",")) {
+    text = text.replace(",", ".");
+  }
+  const num = Number(text);
+  if (Number.isNaN(num)) throw new Error(`не число: ${value}`);
+  return num;
+}
+
+function parseDateStr(value) {
+  const text = String(value ?? "").trim().slice(0, 19);
+  if (/^\d{4}-(0[1-9]|1[0-2])$/.test(text)) return `${text}-01`;
+  let m = text.match(/^(\d{4})[-.](\d{2})[-.](\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = text.match(/^(\d{2})[./-](\d{2})[./-](\d{4})/);
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+  throw new Error(`не дата: ${value}`);
+}
+
+function normalizeRow(marketplace, rowIndex, fieldValues) {
+  const fixes = [], errors = [];
+  const data = {
+    marketplace, period_date: "", sku: "", product_name: "", category: "", brand: "",
+    quantity: 0, realization: 0, returns: 0, commission: 0, logistics: 0, storage: 0,
+    promotion: 0, penalty: 0, other_deduction: 0, payout: 0,
+  };
+
+  const rawDate = firstValue(fieldValues.period_date);
+  try {
+    data.period_date = parseDateStr(rawDate);
+    if (data.period_date !== String(rawDate ?? "").trim())
+      fixes.push(`дата '${rawDate}' → ${data.period_date}`);
+  } catch {
+    errors.push(`Нет распознаваемой даты (значение: '${rawDate ?? ""}'). Укажите дату в формате ГГГГ-ММ-ДД.`);
+  }
+
+  data.sku = String(firstValue(fieldValues.sku) ?? "").trim();
+  data.product_name = String(firstValue(fieldValues.product_name) ?? "").trim();
+  data.category = String(firstValue(fieldValues.category) ?? "").trim();
+  data.brand = String(firstValue(fieldValues.brand) ?? "").trim();
+  if (!data.sku && !data.product_name)
+    errors.push("Не указан ни артикул, ни название товара — строку не к чему привязать.");
+
+  const rawMp = String(firstValue(fieldValues.marketplace) ?? "").trim();
+  if (rawMp) {
+    const known = MARKETPLACE_VALUES[rawMp.toLowerCase()];
+    if (known) data.marketplace = known;
+    else errors.push(`Неизвестный маркетплейс в строке: '${rawMp}' (ожидается Wildberries или Ozon).`);
+  }
+
+  for (const field of NUMERIC_FIELDS) {
+    let values = fieldValues[field];
+    if (values == null) continue;
+    if (!Array.isArray(values)) values = [values];
+    values = values.filter(v => v !== "" && v != null);
+    if (!values.length) continue;
+    let total = 0, failed = false;
+    for (const item of values) {
+      try { total += parseNumber(item); }
+      catch { errors.push(`Не удалось разобрать число в колонке '${field}': '${item}'`); failed = true; break; }
+    }
+    if (failed) continue;
+    if (values.length > 1) fixes.push(`${field}: ${values.map(v => String(v).trim()).join(" + ")} → ${round2(total)}`);
+    else {
+      const src = String(values[0]).trim();
+      if (src && src !== String(total) && (NUM_CLEAN_RE.test(src) || src.includes(","))) {
+        fixes.push(`${field}: '${values[0]}' → ${round2(total)}`);
+      }
+      NUM_CLEAN_RE.lastIndex = 0;
+    }
+    data[field] = field === "quantity" ? Math.trunc(total) : total;
+  }
+
+  if (errors.length) return { status: "error", fixes, error: errors.join(" "), data, rowIndex };
+
+  const docType = String(firstValue(fieldValues.doc_type) ?? "").trim().toLowerCase();
+  if (RETURN_DOC_TYPES.has(docType) && data.realization && !data.returns) {
+    data.returns = Math.abs(data.realization);
+    data.realization = 0;
+    fixes.push("строка-возврат: сумма перенесена из реализации в возвраты");
+  }
+  if (data.returns < 0) {
+    data.returns = Math.abs(data.returns);
+    fixes.push("возврат с минусом приведён к положительному значению");
+  }
+  return { status: fixes.length ? "fixed" : "ok", fixes, error: null, data, rowIndex };
+}
+
+function firstValue(v) { return Array.isArray(v) ? v.find(x => x !== "" && x != null) : v; }
+function round2(n) { return Math.round(n * 100) / 100; }
+
+function parseFile(formMarketplace, buffer) {
+  const { text, fix: encodingFix } = decodeBytes(buffer);
+  const delimiter = sniffDelimiter(text);
+  const fileFixes = [];
+  if (encodingFix) fileFixes.push(encodingFix);
+  if (delimiter !== ",") fileFixes.push(`разделитель '${delimiter === "\t" ? "таб" : delimiter}'`);
+
+  const table = csvParse(text, delimiter).filter(r => r.some(c => String(c).trim() !== ""));
+  if (!table.length) throw new Error("Файл пустой — в нём нет ни одной строки.");
+  const headers = table[0];
+  const mapping = mapHeaders(headers);
+  const mappedFields = new Set(mapping.map(m => m.field));
+
+  if (!mappedFields.has("period_date"))
+    throw new Error("Не найдена колонка с датой. Ожидаются заголовки вида 'Дата', 'Дата продажи', 'Период'. Найдены: " +
+      headers.filter(h => String(h).trim()).join(", ").slice(0, 300));
+  if (!["realization", "returns", "payout", "commission"].some(f => mappedFields.has(f)))
+    throw new Error("Не найдено ни одной суммы (реализация / возврат / комиссия / к выплате). Проверьте, что это финансовый отчёт.");
+  if (mappedFields.has("marketplace")) fileFixes.push("маркетплейс каждой строки взят из колонки файла");
+
+  const rows = [];
+  for (let i = 1; i < table.length; i++) {
+    const rawRow = table[i];
+    const fieldValues = {};
+    for (const { index, field } of mapping) {
+      const value = index < rawRow.length ? rawRow[index] : "";
+      if (field in fieldValues) {
+        if (!Array.isArray(fieldValues[field])) fieldValues[field] = [fieldValues[field]];
+        fieldValues[field].push(value);
+      } else fieldValues[field] = value;
+    }
+    rows.push(normalizeRow(formMarketplace, i - 1, fieldValues));
+  }
+  if (!rows.length) throw new Error("В файле есть заголовки, но нет ни одной строки с данными.");
+  return { fileFixes, rows };
+}
+
+/* ==== Состояние ==== */
+
+const state = { files: [], nextId: 1, openRowsFileId: null, costs: new Map(), costFileName: null };
+
+const costsLoaded = () => state.costs.size > 0;
+
+// Cost-column candidates in priority order (checked after unit stripping).
+const COST_COLUMN_CANDIDATES = [
+  "полная себестоимость за шт", "полная себестоимость",
+  "себестоимость закупки за шт", "себестоимость за шт", "себестоимость",
+  "unit_cost", "cost", "закупочная цена",
+];
+
+function parseCostsFile(buffer) {
+  const { text } = decodeBytes(buffer);
+  const delimiter = sniffDelimiter(text);
+  const table = csvParse(text, delimiter).filter(r => r.some(c => String(c).trim() !== ""));
+  if (table.length < 2) throw new Error("Файл пустой или в нём только заголовки.");
+  // Match against BOTH the raw header and its unit-stripped form: "Себестоимость, ₽"
+  // only matches after stripping, but "Полная себестоимость за шт" must NOT be
+  // stripped (its " шт" is part of the name), so keep both.
+  const headerKeys = table[0].map(h => {
+    const raw = String(h || "").trim().toLowerCase().replace(/^"|"$/g, "");
+    return new Set([raw, raw.replace(HEADER_UNIT_RE, "")]);
+  });
+
+  let skuIdx = -1;
+  headerKeys.forEach((keys, idx) => {
+    if (skuIdx === -1 && COLUMN_ALIASES.sku.some(a => keys.has(a))) skuIdx = idx;
+  });
+  if (skuIdx === -1) throw new Error("Не найдена колонка с SKU/артикулом. Ожидается «SKU МП», «Артикул» или похожая.");
+
+  let costIdx = -1;
+  for (const candidate of COST_COLUMN_CANDIDATES) {
+    const idx = headerKeys.findIndex(keys => keys.has(candidate));
+    if (idx !== -1) { costIdx = idx; break; }
+  }
+  if (costIdx === -1) throw new Error("Не найдена колонка себестоимости. Ожидается «Полная себестоимость за шт», «Себестоимость закупки за шт» или «Себестоимость».");
+
+  const costs = new Map();
+  let skipped = 0;
+  for (let i = 1; i < table.length; i++) {
+    const sku = String(table[i][skuIdx] ?? "").trim();
+    if (!sku) { skipped++; continue; }
+    try {
+      const cost = parseNumber(table[i][costIdx]);
+      if (cost > 0) costs.set(sku, cost);
+      else skipped++;
+    } catch { skipped++; }
+  }
+  if (!costs.size) throw new Error("Ни одной строки с валидной себестоимостью не найдено.");
+  return { costs, skipped, costColumn: table[0][costIdx] };
+}
+
+function goodRows() {
+  const out = [];
+  for (const f of state.files)
+    for (const r of f.rows)
+      if (r.status !== "error") out.push(r.data);
+  return out;
+}
+
+function filteredRows() {
+  const mp = document.getElementById("f-marketplace").value;
+  const from = document.getElementById("f-date-from").value;
+  const to = document.getElementById("f-date-to").value;
+  return goodRows().filter(r =>
+    (!mp || r.marketplace === mp) &&
+    (!from || r.period_date >= from) &&
+    (!to || r.period_date <= to));
+}
+
+/* ==== Отрисовка (как в основном приложении) ==== */
+
+const SERIES = {
+  netRevenue: { color: "var(--series-1)", label: "Чистая выручка" },
+  mpExpenses: { color: "var(--series-2)", label: "Расходы МП" },
+  payout: { color: "var(--series-3)", label: "К выплате" },
+};
+const DEDUCTION_LABELS = [
+  ["commission", "Комиссия МП", "var(--series-1)"],
+  ["logistics", "Логистика МП", "var(--series-2)"],
+  ["storage", "Хранение", "var(--series-3)"],
+  ["promotion", "Продвижение", "var(--series-5)"],
+  ["penalty", "Штрафы", "var(--series-6)"],
+  ["other_deduction", "Прочие удержания", "var(--series-8)"],
+];
+const RETURN_RATE_RED_ZONE = 0.30;
+const EXPENSE_SHARE_RED_ZONE = 0.50;
+
+const fmtMoney = v => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(v) + " ₽";
+// Compact ruble for KPI hero tiles: "107,1 млн ₽" — exact value stays in the tooltip.
+const fmtMoneyCompact = v => {
+  const a = Math.abs(v), sign = v < 0 ? "−" : "";
+  if (a >= 1e6) return sign + (a / 1e6).toFixed(1).replace(".", ",") + " млн ₽";
+  if (a >= 1e4) return sign + Math.round(a / 1e3) + " тыс ₽";
+  return fmtMoney(v);
+};
+const fmtPercent = v => (v * 100).toFixed(1) + "%";
+const escapeHtml = v => String(v ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+const MP_LABELS = { wb: "Wildberries", ozon: "Ozon" };
+function mpBadge(mp, compact = false) {
+  const cls = mp === "wb" ? "mp-wb" : "mp-ozon";
+  const short = mp === "wb" ? "WB" : "OZ";
+  return `<span class="mp-badge ${cls}"><span class="mp-dot">${short}</span>${compact ? "" : `<span class="mp-label">${MP_LABELS[mp] || escapeHtml(mp)}</span>`}</span>`;
+}
+const expenses = r => r.commission + r.logistics + r.storage + r.promotion + r.penalty + r.other_deduction;
+
+function renderStatRow(rows) {
+  const s = { realization: 0, returns: 0, mp_expenses: 0, payout: 0, cogs: 0 };
+  for (const r of rows) {
+    s.realization += r.realization; s.returns += r.returns; s.mp_expenses += expenses(r); s.payout += r.payout;
+    const unit = state.costs.get(r.sku);
+    if (unit != null) s.cogs += unit * (r.quantity || 0);
+  }
+  const net = s.realization - s.returns;
+  // The KPI row is a funnel that must END on the real bottom line. With
+  // costs loaded that's чистая прибыль (the hero); without, it's к выплате.
+  // tone: «in» — приходит (реализация), «out» — уходит (возвраты/расходы/
+  // себестоимость), signed — итог со знаком. Цвет даёт мгновенное «где хорошо
+  // / где плохо» без чтения цифр.
+  const tiles = costsLoaded()
+    ? [
+        { label: "Реализация", value: s.realization, tone: "in" },
+        { label: "Возвраты", value: s.returns, tone: "out" },
+        { label: "Расходы МП", value: s.mp_expenses, tone: "out" },
+        { label: "Себестоимость", value: s.cogs, tone: "out" },
+        { label: "Чистая прибыль", value: s.payout - s.cogs, signed: true, hero: true },
+      ]
+    : [
+        { label: "Реализация", value: s.realization, tone: "in" },
+        { label: "Возвраты", value: s.returns, tone: "out" },
+        { label: "Чистая выручка", value: net, signed: true },
+        { label: "Расходы МП", value: s.mp_expenses, tone: "out" },
+        { label: "К выплате", value: s.payout, signed: true, hero: true },
+      ];
+  document.getElementById("stat-row").innerHTML = tiles.map(t => {
+    const valueClass = t.signed ? (t.value >= 0 ? "positive" : "negative") : (t.tone === "out" ? "spend" : "");
+    return `
+    <div class="stat-tile ${t.hero ? "stat-tile-hero" : ""} ${t.tone ? "tone-" + t.tone : ""}" title="${t.label}: ${fmtMoney(t.value)}">
+      <div class="label">${t.label}</div>
+      <div class="value ${valueClass}">${fmtMoneyCompact(t.value)}</div>
+    </div>`;
+  }).join("");
+}
+
+function wireTableToggle(container) {
+  container.querySelectorAll(".data-table-toggle").forEach(toggle => {
+    toggle.addEventListener("click", () => {
+      const target = document.getElementById(toggle.dataset.target);
+      target.hidden = !target.hidden;
+      toggle.textContent = target.hidden ? "Показать таблицу" : "Скрыть таблицу";
+    });
+  });
+}
+
+function renderDeductions(rows) {
+  const el = document.getElementById("chart-deductions");
+  const sums = {};
+  for (const [key] of DEDUCTION_LABELS) sums[key] = 0;
+  for (const r of rows) for (const [key] of DEDUCTION_LABELS) sums[key] += r[key];
+  const max = Math.max(...Object.values(sums), 1);
+  const items = DEDUCTION_LABELS.map(([key, label, color]) => ({ key, label, color, value: sums[key] }))
+    .sort((a, b) => b.value - a.value);
+  el.innerHTML = items.map(r => `
+    <div class="bar-row">
+      <span class="bar-label">${r.label}</span>
+      <div class="bar-track"><div class="bar-fill" title="${escapeHtml(r.label)}: ${fmtMoney(r.value)}" style="width:${(r.value / max * 100).toFixed(1)}%; background:${r.color}"></div></div>
+      <span class="bar-value">${fmtMoney(r.value)}</span>
+    </div>`).join("") + `
+    <button class="data-table-toggle" data-target="deductions-table" type="button">Показать таблицу</button>
+    <table id="deductions-table" hidden>
+      <thead><tr><th>Статья</th><th class="num">Сумма</th></tr></thead>
+      <tbody>${items.map(r => `<tr><td>${escapeHtml(r.label)}</td><td class="num">${fmtMoney(r.value)}</td></tr>`).join("")}</tbody>
+    </table>`;
+  wireTableToggle(el);
+}
+
+function renderDynamics(rows) {
+  const el = document.getElementById("chart-dynamics");
+  const byMonth = new Map();
+  for (const r of rows) {
+    const month = r.period_date.slice(0, 7);
+    if (!byMonth.has(month)) byMonth.set(month, { month, net_revenue: 0, mp_expenses: 0, payout: 0 });
+    const m = byMonth.get(month);
+    m.net_revenue += r.realization - r.returns;
+    m.mp_expenses += expenses(r);
+    m.payout += r.payout;
+  }
+  const months = [...byMonth.values()].sort((a, b) => a.month.localeCompare(b.month));
+  if (!months.length) { el.innerHTML = `<p class="hint">Нет данных за выбранный период.</p>`; return; }
+  const max = Math.max(...months.flatMap(m => [m.net_revenue, m.mp_expenses, m.payout]), 1);
+  const bar = (value, color, label, month) =>
+    `<div class="col-bar" title="${month} — ${escapeHtml(label)}: ${fmtMoney(value)}" style="height:${Math.max(value / max * 100, 0)}%; background:${color}"></div>`;
+  el.innerHTML = `
+    <div class="legend">${Object.values(SERIES).map(s =>
+      `<span class="legend-item"><span class="legend-swatch" style="background:${s.color}"></span>${s.label}</span>`).join("")}</div>
+    <div class="col-chart">
+      ${months.map(m => `<div class="col-group">
+        ${bar(m.net_revenue, SERIES.netRevenue.color, SERIES.netRevenue.label, m.month)}
+        ${bar(m.mp_expenses, SERIES.mpExpenses.color, SERIES.mpExpenses.label, m.month)}
+        ${bar(m.payout, SERIES.payout.color, SERIES.payout.label, m.month)}
+      </div>`).join("")}
+    </div>
+    <div class="col-labels">${months.map(m => `<span>${m.month}</span>`).join("")}</div>
+    <button class="data-table-toggle" data-target="dynamics-table" type="button">Показать таблицу</button>
+    <table id="dynamics-table" hidden>
+      <thead><tr><th>Месяц</th><th class="num">Чистая выручка</th><th class="num">Расходы МП</th><th class="num">К выплате</th></tr></thead>
+      <tbody>${months.map(m => `<tr><td>${m.month}</td><td class="num">${fmtMoney(m.net_revenue)}</td><td class="num">${fmtMoney(m.mp_expenses)}</td><td class="num">${fmtMoney(m.payout)}</td></tr>`).join("")}</tbody>
+    </table>`;
+  wireTableToggle(el);
+}
+
+function productAggregates(rows, applySearch = true) {
+  const search = applySearch ? document.getElementById("f-search").value.trim().toLowerCase() : "";
+  const bySku = new Map();
+  for (const r of rows) {
+    const key = r.sku || r.product_name;
+    if (!bySku.has(key)) bySku.set(key, {
+      sku: r.sku, product_name: r.product_name, category: r.category || "", brand: r.brand || "",
+      marketplace: r.marketplace, realization: 0, returns: 0, mp_expenses: 0, payout: 0,
+      promotion: 0, commission: 0, logistics: 0, storage: 0, penalty: 0, other_deduction: 0, quantity: 0,
+    });
+    const p = bySku.get(key);
+    if (!p.product_name && r.product_name) p.product_name = r.product_name;
+    if (!p.category && r.category) p.category = r.category;
+    if (!p.brand && r.brand) p.brand = r.brand;
+    p.realization += r.realization; p.returns += r.returns; p.mp_expenses += expenses(r); p.payout += r.payout;
+    p.promotion += r.promotion; p.commission += r.commission; p.logistics += r.logistics;
+    p.storage += r.storage; p.penalty += r.penalty; p.other_deduction += r.other_deduction;
+    p.quantity += r.quantity;
+  }
+  let products = [...bySku.values()];
+  if (search) products = products.filter(p =>
+    (p.product_name || "").toLowerCase().includes(search) || (p.sku || "").toLowerCase().includes(search));
+  for (const p of products) {
+    const gross = p.realization + p.returns;
+    p.return_rate = gross ? p.returns / gross : 0;
+    p.net_revenue = p.realization - p.returns;
+    p.payout_margin = p.realization ? p.payout / p.realization : (p.payout < 0 ? -1 : 0);
+    // Себестоимость: COGS = цена за шт × продано шт; прибыль = к выплате − COGS.
+    p.unit_cost = state.costs.get(p.sku) ?? null;
+    p.cogs = p.unit_cost != null ? p.unit_cost * (p.quantity || 0) : 0;
+    p.profit = p.payout - p.cogs;
+    p.profit_margin = p.realization ? p.profit / p.realization : (p.profit < 0 ? -1 : 0);
+    // «Итоговая» метрика для таблиц/сегментов: прибыль, когда есть себестоимость.
+    p.result = costsLoaded() ? p.profit : p.payout;
+    p.margin = costsLoaded() ? p.profit_margin : p.payout_margin;
+    p.red_flags = [];
+    if (p.result < 0) p.red_flags.push(costsLoaded() ? "убыток с уч. себестоимости" : "убыток");
+    if (p.return_rate >= RETURN_RATE_RED_ZONE) p.red_flags.push("высокая возвратность");
+    if (p.net_revenue < 0) p.red_flags.push("отрицательная чистая выручка");
+    else if (p.realization && p.mp_expenses / p.realization >= EXPENSE_SHARE_RED_ZONE) p.red_flags.push("высокая доля расходов МП");
+  }
+  return products.sort((a, b) => a.result - b.result);
+}
+
+/* ==== Аналитика ==== */
+
+function assignAbc(products) {
+  // ABC by contribution to the result metric (profit when costs are loaded,
+  // payout otherwise); loss-makers form their own class.
+  const metric = p => p.result;
+  const positive = products.filter(p => metric(p) > 0).sort((a, b) => metric(b) - metric(a));
+  const totalPositive = positive.reduce((s, p) => s + metric(p), 0) || 1;
+  let cumulative = 0;
+  for (const p of positive) {
+    cumulative += metric(p);
+    p.abc = cumulative <= totalPositive * 0.8 ? "A" : cumulative <= totalPositive * 0.95 ? "B" : "C";
+  }
+  for (const p of products) if (metric(p) <= 0) p.abc = metric(p) < 0 ? "L" : "C";
+  return products;
+}
+
+function computeAnalysis(rows) {
+  const products = assignAbc(productAggregates(rows, false));
+  const total = { realization: 0, returns: 0, payout: 0, promotion: 0, expenses: 0 };
+  for (const r of rows) {
+    total.realization += r.realization; total.returns += r.returns;
+    total.payout += r.payout; total.promotion += r.promotion; total.expenses += expenses(r);
+  }
+
+  const losers = products.filter(p => p.result < 0).sort((a, b) => a.result - b.result);
+  const lossSum = losers.reduce((s, p) => s + p.result, 0);
+  const deadStock = products.filter(p => !p.realization && !p.returns && p.mp_expenses > 0);
+  const deadCost = deadStock.reduce((s, p) => s + p.mp_expenses, 0);
+
+  // Себестоимость: суммы и покрытие (какая доля товаров сматчилась по SKU).
+  const withCost = products.filter(p => p.unit_cost != null);
+  const cogsTotal = withCost.reduce((s, p) => s + p.cogs, 0);
+  const profitTotal = total.payout - cogsTotal;
+  const costCoverage = products.length ? withCost.length / products.length : 0;
+
+  const byReturnsRub = [...products].sort((a, b) => b.returns - a.returns);
+  const top10ReturnsShare = total.returns
+    ? byReturnsRub.slice(0, 10).reduce((s, p) => s + p.returns, 0) / total.returns : 0;
+
+  const positiveSorted = products.filter(p => p.payout > 0).sort((a, b) => b.payout - a.payout);
+  const positiveTotal = positiveSorted.reduce((s, p) => s + p.payout, 0);
+  const top10PayoutShare = positiveTotal
+    ? positiveSorted.slice(0, 10).reduce((s, p) => s + p.payout, 0) / positiveTotal : 0;
+
+  const byMonth = new Map();
+  for (const r of rows) {
+    const month = r.period_date.slice(0, 7);
+    if (!byMonth.has(month)) byMonth.set(month, { payout: 0, net: 0, expenses: 0 });
+    const m = byMonth.get(month);
+    m.payout += r.payout; m.net += r.realization - r.returns; m.expenses += expenses(r);
+  }
+  const months = [...byMonth.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+
+  const channels = {};
+  for (const r of rows) {
+    if (!channels[r.marketplace]) channels[r.marketplace] = { realization: 0, returns: 0, commission: 0, logistics: 0, storage: 0, promotion: 0, other: 0, payout: 0 };
+    const c = channels[r.marketplace];
+    c.realization += r.realization; c.returns += r.returns; c.commission += r.commission;
+    c.logistics += r.logistics; c.storage += r.storage; c.promotion += r.promotion;
+    c.other += r.penalty + r.other_deduction; c.payout += r.payout;
+  }
+
+  return { products, total, losers, lossSum, deadStock, deadCost, byReturnsRub, top10ReturnsShare, top10PayoutShare, months, channels, cogsTotal, profitTotal, costCoverage };
+}
+
+function renderInsights(a) {
+  const el = document.getElementById("insights");
+  const cards = [];
+  const pct = v => (v * 100).toFixed(1) + "%";
+
+  if (costsLoaded()) {
+    const profitMargin = a.total.realization ? a.profitTotal / a.total.realization : 0;
+    cards.push({ severity: a.profitTotal < 0 ? "critical" : "good",
+      title: `Чистая прибыль: ${fmtMoney(a.profitTotal)} (рентабельность ${pct(profitMargin)})`,
+      body: `К выплате ${fmtMoney(a.total.payout)} минус себестоимость проданного ${fmtMoney(a.cogsTotal)}. Это настоящий результат бизнеса, а не оборот.`,
+      action: a.costCoverage < 0.95 ? `Внимание: себестоимость найдена только для ${pct(a.costCoverage)} товаров — по остальным прибыль завышена.` : "" });
+  }
+
+  if (a.losers.length) {
+    const lossWord = costsLoaded() ? "с учётом себестоимости приносят убыток" : "после удержаний МП приносят убыток";
+    cards.push({ severity: "critical", title: `Убыточные товары: ${a.losers.length} шт., минус ${fmtMoney(Math.abs(a.lossSum))}`,
+      body: `Эти позиции ${lossWord}. Худший: «${a.losers[0].product_name}» (${fmtMoney(a.losers[0].result)}).`,
+      action: `Если убрать или переоценить их, ${costsLoaded() ? "прибыль" : "выплата"} за период вырастет на ${fmtMoney(Math.abs(a.lossSum))}.` });
+  } else {
+    cards.push({ severity: "good", title: "Убыточных товаров нет", body: costsLoaded() ? "Все позиции с продажами прибыльны с учётом себестоимости." : "Все позиции с продажами дают положительную выплату." });
+  }
+
+  if (a.deadStock.length) {
+    cards.push({ severity: "warning", title: `Расходы без продаж: ${a.deadStock.length} товаров, ${fmtMoney(a.deadCost)}`,
+      body: "По этим товарам не было ни одной продажи за период, но начислены хранение/логистика/прочие удержания.",
+      action: "Проверьте остатки: вывезти со склада, снизить цену или закрыть карточку." });
+  }
+
+  const returnsShare = a.total.realization ? a.total.returns / a.total.realization : 0;
+  cards.push({ severity: returnsShare > 0.1 ? "warning" : "neutral",
+    title: `Возвраты: ${fmtMoney(a.total.returns)} (${pct(returnsShare)} реализации)`,
+    body: `Топ-10 товаров дают ${pct(a.top10ReturnsShare)} всех возвратов в рублях — работа с ними даст максимальный эффект.`,
+    action: a.byReturnsRub[0] && a.byReturnsRub[0].returns > 0 ? `Главный источник: «${a.byReturnsRub[0].product_name}» — ${fmtMoney(a.byReturnsRub[0].returns)}.` : "" });
+
+  const drr = a.total.realization ? a.total.promotion / a.total.realization : 0;
+  cards.push({ severity: drr > 0.1 ? "warning" : "neutral",
+    title: `ДРР (продвижение): ${pct(drr)} от реализации`,
+    body: `Потрачено на продвижение ${fmtMoney(a.total.promotion)}.` + (drr > 0.1 ? " Выше типичного порога 10% — проверьте отдачу кампаний." : " В пределах нормы (до 10%).") });
+
+  cards.push({ severity: a.top10PayoutShare > 0.5 ? "warning" : "good",
+    title: `Концентрация: топ-10 товаров дают ${pct(a.top10PayoutShare)} выплаты`,
+    body: a.top10PayoutShare > 0.5
+      ? "Больше половины денег приносит узкая группа товаров — падение любого из них сильно ударит по выручке."
+      : "Выручка распределена по ассортименту — зависимость от отдельных хитов умеренная." });
+
+  if (a.months.length >= 2) {
+    const [prevName, prev] = a.months[a.months.length - 2];
+    const [lastName, last] = a.months[a.months.length - 1];
+    const delta = prev.payout ? (last.payout - prev.payout) / Math.abs(prev.payout) : 0;
+    cards.push({ severity: delta < -0.05 ? "warning" : delta > 0.05 ? "good" : "neutral",
+      title: `Динамика выплаты: ${delta >= 0 ? "+" : ""}${pct(delta)} (${prevName} → ${lastName})`,
+      body: `${fmtMoney(prev.payout)} → ${fmtMoney(last.payout)}.` });
+  }
+
+  const expShare = a.total.realization ? a.total.expenses / a.total.realization : 0;
+  cards.push({ severity: expShare > 0.35 ? "warning" : "neutral",
+    title: `Маркетплейсы забирают ${pct(expShare)} реализации`,
+    body: `Все удержания за период: ${fmtMoney(a.total.expenses)}. Средняя маржа к выплате: ${pct(a.total.realization ? a.total.payout / a.total.realization : 0)}.` });
+
+  el.innerHTML = cards.map(c => `
+    <div class="insight ${c.severity}">
+      <div class="insight-title"><span class="insight-dot"></span>${c.title}</div>
+      <div>${c.body}</div>
+      ${c.action ? `<div class="insight-action">→ ${c.action}</div>` : ""}
+    </div>`).join("");
+}
+
+function renderAbc(a) {
+  const el = document.getElementById("abc-summary");
+  const metricWord = costsLoaded() ? "прибыли" : "выплаты";
+  const classes = [
+    ["A", `Приносят 80% ${metricWord}`, "abc-A"],
+    ["B", `Ещё 15% ${metricWord}`, "abc-B"],
+    ["C", "Хвост: последние 5%", "abc-C"],
+    ["L", "Убыточные", "abc-L"],
+  ];
+  const total = a.products.length || 1;
+  el.innerHTML = `
+    <table>
+      <thead><tr><th>Класс</th><th>Что означает</th><th class="num">Товаров</th><th class="num">Доля SKU</th><th class="num">Сумма ${metricWord}</th></tr></thead>
+      <tbody>${classes.map(([cls, label, chipCls]) => {
+        const items = a.products.filter(p => p.abc === cls);
+        const sum = items.reduce((s, p) => s + p.result, 0);
+        return `<tr>
+          <td><span class="abc-chip ${chipCls}">${cls === "L" ? "−" : cls}</span></td>
+          <td>${label}</td>
+          <td class="num">${items.length}</td>
+          <td class="num">${(items.length / total * 100).toFixed(1)}%</td>
+          <td class="num">${fmtMoney(sum)}</td>
+        </tr>`;
+      }).join("")}</tbody>
+    </table>
+    <p class="hint" style="margin-bottom:0">Классы видны и в таблице «Товары». Классика управления ассортиментом: A — беречь и не допускать out-of-stock, B — растить, C — проверить целесообразность, «−» — убирать или переоценивать.</p>`;
+}
+
+function renderChannels(a) {
+  const el = document.getElementById("channel-compare");
+  const names = { wb: "Wildberries", ozon: "Ozon" };
+  const keys = Object.keys(a.channels);
+  if (keys.length < 2) {
+    el.innerHTML = `<p class="hint">В данных только один маркетплейс — сравнивать не с чем.</p>`;
+    return;
+  }
+  const pctOf = (v, base) => base ? (v / base * 100).toFixed(1) + "%" : "—";
+  const rows = [
+    ["Реализация", c => fmtMoney(c.realization)],
+    ["Возвратность", c => pctOf(c.returns, c.realization)],
+    ["Комиссия", c => pctOf(c.commission, c.realization)],
+    ["Логистика", c => pctOf(c.logistics, c.realization)],
+    ["Хранение", c => pctOf(c.storage, c.realization)],
+    ["Продвижение (ДРР)", c => pctOf(c.promotion, c.realization)],
+    ["Штрафы и прочее", c => pctOf(c.other, c.realization)],
+    ["К выплате с рубля", c => c.realization ? (c.payout / c.realization).toFixed(2) + " ₽" : "—"],
+  ];
+  const better = keys.reduce((best, k) =>
+    (a.channels[k].payout / (a.channels[k].realization || 1)) > (a.channels[best].payout / (a.channels[best].realization || 1)) ? k : best, keys[0]);
+  el.innerHTML = `
+    <table>
+      <thead><tr><th>Показатель</th>${keys.map(k => `<th class="mp-col">${mpBadge(k)}</th>`).join("")}</tr></thead>
+      <tbody>${rows.map(([label, fn]) => `
+        <tr><td>${label}</td>${keys.map(k => `<td class="num">${fn(a.channels[k])}</td>`).join("")}</tr>`).join("")}</tbody>
+    </table>
+    <p class="hint" style="margin-bottom:0">Эффективнее сейчас: <strong>${names[better] || better}</strong> — больше остаётся с каждого рубля реализации. Наращивать канал стоит по выплате, а не по обороту.</p>`;
+}
+
+function lossAdvice(p) {
+  return !p.realization ? "нет продаж — вывезти остатки или закрыть карточку"
+    : p.return_rate >= RETURN_RATE_RED_ZONE ? "высокие возвраты — проверить качество/размерную сетку/фото"
+    : p.mp_expenses > p.realization ? "расходы выше выручки — поднять цену или сменить схему поставки"
+    : (p.unit_cost != null && p.cogs > p.payout && p.payout > 0) ? "себестоимость съедает выплату — пересмотреть закупочную цену или продажную"
+    : "пересчитать юнит-экономику";
+}
+
+function barRows(items, color, valueFn, labelFn, titleFn, valueLabelFn) {
+  const max = Math.max(...items.map(valueFn), 1);
+  return items.map(item => `
+    <div class="bar-row">
+      <span class="bar-label" title="${escapeHtml(titleFn ? titleFn(item) : labelFn(item))}">${escapeHtml(labelFn(item))}</span>
+      <div class="bar-track"><div class="bar-fill" title="${escapeHtml(titleFn ? titleFn(item) : "")}" style="width:${(valueFn(item) / max * 100).toFixed(1)}%; background:${color}"></div></div>
+      <span class="bar-value">${valueLabelFn ? valueLabelFn(item) : fmtMoney(valueFn(item))}</span>
+    </div>`).join("");
+}
+
+const trunc = (text, n = 26) => {
+  const s = String(text || "—");
+  return s.length > n ? s.slice(0, n - 1) + "…" : s;
+};
+
+function renderRubleFlow(a) {
+  const el = document.getElementById("ruble-flow");
+  const realization = a.total.realization;
+  if (!realization) { el.innerHTML = `<p class="hint">Нет реализации за период.</p>`; return; }
+  const channelTotals = Object.values(a.channels).length ? a.channels : null;
+  const sums = { commission: 0, logistics: 0, storage: 0, promotion: 0, other: 0 };
+  // recompute deduction categories from raw rows via channels or fall back:
+  if (channelTotals) {
+    for (const c of Object.values(channelTotals)) {
+      sums.commission += c.commission; sums.logistics += c.logistics;
+      sums.storage += c.storage; sums.promotion += c.promotion; sums.other += c.other;
+    }
+  }
+  const ownParts = costsLoaded()
+    ? [
+        ["Чистая прибыль (вам)", Math.max(a.profitTotal, 0), "var(--series-2)"],
+        ["Себестоимость проданного", a.cogsTotal, "var(--series-7)"],
+      ]
+    : [["К выплате (вам)", Math.max(a.total.payout, 0), "var(--series-2)"]];
+  const segments = [
+    ...ownParts,
+    ["Возвраты", a.total.returns, "var(--series-6)"],
+    ["Комиссия МП", sums.commission, "var(--series-1)"],
+    ["Логистика", sums.logistics, "var(--series-3)"],
+    ["Хранение", sums.storage, "var(--series-5)"],
+    ["Продвижение", sums.promotion, "var(--series-8)"],
+    ["Штрафы и прочее", sums.other, "var(--baseline)"],
+  ].filter(([, v]) => v > 0);
+  const total = segments.reduce((s, [, v]) => s + v, 0) || 1;
+  el.innerHTML = `
+    <div class="stack-bar">
+      ${segments.map(([label, value, color]) =>
+        `<div class="stack-seg" title="${escapeHtml(label)}: ${fmtMoney(value)} (${(value / total * 100).toFixed(1)}%)" style="flex:${(value / total).toFixed(4)}; background:${color}"></div>`).join("")}
+    </div>
+    <div class="stack-legend">
+      ${segments.map(([label, value, color]) => `
+        <span class="legend-item">
+          <span class="legend-swatch" style="background:${color}"></span>
+          <span class="legend-name">${label}</span>
+          <span class="legend-pct">${(value / total * 100).toFixed(1)}%</span>
+          <span class="legend-rub">${fmtMoney(value)}</span>
+        </span>`).join("")}
+    </div>`;
+}
+
+const MARGIN_BINS = [
+  ["Убыточные (маржа < 0)", p => p.margin < 0, "var(--series-6)"],
+  ["0–20%", p => p.margin >= 0 && p.margin < 0.2, "var(--series-8)"],
+  ["20–40%", p => p.margin >= 0.2 && p.margin < 0.4, "var(--series-3)"],
+  ["40–60%", p => p.margin >= 0.4 && p.margin < 0.6, "var(--series-1)"],
+  ["60–80%", p => p.margin >= 0.6 && p.margin < 0.8, "var(--series-2)"],
+  ["80%+", p => p.margin >= 0.8, "var(--series-5)"],
+];
+
+function renderMarginHistogram(products) {
+  const el = document.getElementById("margin-histogram");
+  if (!products.length) { el.innerHTML = `<p class="hint">Нет товаров.</p>`; return; }
+  const bins = MARGIN_BINS.map(([label, fn, color]) => ({ label, color, count: products.filter(fn).length }));
+  const max = Math.max(...bins.map(b => b.count), 1);
+  el.innerHTML = bins.map(b => `
+    <div class="bar-row">
+      <span class="bar-label" style="width:170px">${b.label}</span>
+      <div class="bar-track"><div class="bar-fill" title="${b.label}: ${b.count} товаров (${(b.count / products.length * 100).toFixed(1)}%)" style="width:${(b.count / max * 100).toFixed(1)}%; background:${b.color}"></div></div>
+      <span class="bar-value">${b.count} тов. (${(b.count / products.length * 100).toFixed(0)}%)</span>
+    </div>`).join("") +
+    `<p class="hint" style="margin-bottom:0">${costsLoaded()
+      ? "Рентабельность = чистая прибыль (после себестоимости) / реализация. Здоровый профиль — горб справа; всё, что слева от 20%, — кандидаты на пересмотр цены или закупки."
+      : "Маржа = «к выплате» / реализация (без себестоимости — загрузите файл себестоимости на вкладке «Загрузка», и здесь появится настоящая рентабельность). Здоровый профиль — горб справа."}</p>`;
+}
+
+function renderLossBlock(a) {
+  const el = document.getElementById("loss-block");
+  if (!a.losers.length) {
+    el.innerHTML = `<p class="hint">Убыточных товаров нет — отлично.</p>`;
+    return;
+  }
+  const top = a.losers.slice(0, 12);
+  const bySection = new Map();
+  for (const p of a.losers) {
+    const section = GROUP_DIMS.section(p);
+    bySection.set(section, (bySection.get(section) || 0) + Math.abs(p.payout));
+  }
+  const sections = [...bySection.entries()].map(([name, loss]) => ({ name, loss }))
+    .sort((a, b) => b.loss - a.loss).slice(0, 8);
+
+  const lossNote = costsLoaded() ? " (с учётом себестоимости)" : "";
+  el.innerHTML = `
+    <p class="result-count">Всего убыточных${lossNote}: <strong>${a.losers.length}</strong> на <strong>${fmtMoney(Math.abs(a.lossSum))}</strong>. Ниже — крупнейшие потери и разделы, где они сидят.</p>
+    <div class="pcard" style="gap:24px">
+      <div>
+        <h4>Топ-12 товаров по потерям</h4>
+        ${barRows(top, "var(--series-6)", p => Math.abs(p.result), p => trunc(p.product_name), p => `${p.product_name}: ${fmtMoney(p.result)} — ${lossAdvice(p)}`)}
+      </div>
+      <div>
+        <h4>Потери по разделам</h4>
+        ${barRows(sections, "var(--series-8)", s => s.loss, s => trunc(s.name))}
+      </div>
+    </div>
+    <button class="data-table-toggle" data-target="loss-full-table" type="button">Показать таблицу (все ${a.losers.length} с рекомендациями)</button>
+    <div class="table-wrap" id="loss-full-table" hidden>
+      <table>
+        <thead><tr><th>Товар</th><th class="num">Реализация</th><th class="num">Расходы МП</th>${costsLoaded() ? `<th class="num">Себестоимость</th>` : ""}<th class="num">% возврата</th><th class="num">Убыток</th><th>Что делать</th></tr></thead>
+        <tbody>${a.losers.map(p => `
+          <tr>
+            <td>${escapeHtml(p.product_name) || "—"}<br /><span class="muted">${escapeHtml(p.sku)}</span></td>
+            <td class="num">${fmtMoney(p.realization)}</td>
+            <td class="num">${fmtMoney(p.mp_expenses)}</td>
+            ${costsLoaded() ? `<td class="num">${p.unit_cost != null ? fmtMoney(p.cogs) : "—"}</td>` : ""}
+            <td class="num">${fmtPercent(p.return_rate)}</td>
+            <td class="num delta-down">${fmtMoney(p.result)}</td>
+            <td class="hint">${lossAdvice(p)}</td>
+          </tr>`).join("")}</tbody>
+      </table>
+    </div>`;
+  wireTableToggle(el);
+}
+
+function renderAnalysis(rows) {
+  const a = computeAnalysis(rows);
+  renderInsights(a);
+  renderRubleFlow(a);
+  renderMarginHistogram(a.products);
+  renderAbc(a);
+  renderChannels(a);
+  renderLossBlock(a);
+  return a;
+}
+
+const ABC_CHIP = { A: "abc-A", B: "abc-B", C: "abc-C", L: "abc-L" };
+let productSort = { key: "payout", dir: "asc" };
+let productSegment = "all";
+let expandedGroups = new Set();
+
+const SEGMENTS = [
+  ["all", "Все", () => true],
+  ["loss", "Убыточные", p => p.result < 0],
+  ["dead", "Мёртвый сток", p => !p.realization && !p.returns && p.mp_expenses > 0],
+  ["returns", "Возвраты ≥ 30%", p => p.return_rate >= RETURN_RATE_RED_ZONE],
+  ["A", "Класс A", p => p.abc === "A"],
+  ["B", "Класс B", p => p.abc === "B"],
+  ["C", "Класс C", p => p.abc === "C"],
+];
+
+function renderSegments(products) {
+  const el = document.getElementById("product-segments");
+  el.innerHTML = SEGMENTS.map(([key, label, fn]) => {
+    const count = products.filter(fn).length;
+    return `<button class="segment ${productSegment === key ? "active" : ""}" data-segment="${key}" type="button">${label}<span class="seg-count">${count}</span></button>`;
+  }).join("");
+  el.querySelectorAll("button[data-segment]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      productSegment = btn.dataset.segment;
+      refresh();
+    });
+  });
+}
+
+const MP_NAMES = { wb: "Wildberries", ozon: "Ozon" };
+const ABC_NAMES = { A: "A — ядро (80% выплаты)", B: "B — середина", C: "C — хвост", L: "− Убыточные" };
+
+const GROUP_DIMS = {
+  section: p => (p.category || "").split("/")[0].trim() || "Без раздела",
+  category: p => {
+    const parts = (p.category || "").split("/");
+    return (parts[1] || parts[0] || "").trim() || "Без подкатегории";
+  },
+  brand: p => p.brand || "Без бренда",
+  marketplace: p => MP_NAMES[p.marketplace] || p.marketplace,
+  abc: p => ABC_NAMES[p.abc] || p.abc,
+};
+
+// Цветная иконка раздела — чтобы группы различались с полувзгляда, не вчитываясь
+// в мелкий серый текст. Подбор по ключевым словам в названии раздела.
+const CATEGORY_ICONS = [
+  { re: /одежд|худи|футбол|плать|куртк|джинс|бель|свитер|штан|шорт|юбк|пальто/i, color: "#7b3fe4",
+    svg: '<path d="M8.5 3 4 6l2 3 1.2-.9V21h9.6V8.1L18 9l2-3-4.5-3a3.2 3.2 0 0 1-7 0z"/>' },
+  { re: /посуд|кружк|тарелк|чашк|стакан|кастрюл|сковор|бокал|кухн/i, color: "#0d9488",
+    svg: '<path d="M5 8h11v4a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5z"/><path d="M16 9h2a2 2 0 0 1 0 4h-2"/><path d="M7 2v3M10 2v3M13 2v3"/>' },
+  { re: /электрон|наушник|гаджет|техник|телефон|зарядк|кабел|аксессуар|смарт/i, color: "#e56a1f",
+    svg: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>' },
+  { re: /дом|плед|текстиль|подушк|одеял|штор|ковер|интерьер|быт/i, color: "#12a05f",
+    svg: '<path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/>' },
+  { re: /красот|космет|уход|парфюм|макияж|аромат/i, color: "#e0443f",
+    svg: '<path d="M9 2h6v3a3 3 0 0 1-6 0z"/><path d="M8 9h8v11a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2z"/>' },
+  { re: /дет|игрушк|малыш|школ/i, color: "#2a78d6",
+    svg: '<circle cx="12" cy="7" r="3"/><path d="M5 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/>' },
+];
+const FALLBACK_CAT_ICON = { color: "var(--text-muted)", svg: '<path d="M3 3h7l11 11-7 7L3 10z"/><circle cx="7" cy="7" r="1.4"/>' };
+function categoryIcon(name) {
+  const m = CATEGORY_ICONS.find(c => c.re.test(name || "")) || FALLBACK_CAT_ICON;
+  return `<span class="cat-ic" style="color:${m.color}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${m.svg}</svg></span>`;
+}
+
+function groupProducts(products, groupKey) {
+  const keyFn = GROUP_DIMS[groupKey];
+  const groups = new Map();
+  for (const p of products) {
+    const name = keyFn(p);
+    if (!groups.has(name)) groups.set(name, { name, items: [], realization: 0, returns: 0, mp_expenses: 0, payout: 0 });
+    const g = groups.get(name);
+    g.items.push(p);
+    g.realization += p.realization; g.returns += p.returns; g.mp_expenses += p.mp_expenses; g.payout += p.payout;
+  }
+  for (const g of groups.values()) {
+    g.margin = g.realization ? g.payout / g.realization : (g.payout < 0 ? -1 : 0);
+    g.return_rate = (g.realization + g.returns) ? g.returns / (g.realization + g.returns) : 0;
+    g.items.sort((a, b) => a.payout - b.payout); // worst first inside the group
+  }
+  return [...groups.values()].sort((a, b) => b.payout - a.payout);
+}
+
+let openProductSku = null;
+
+function productCardRow(p, colspan) {
+  const pct = v => p.realization ? (v / p.realization * 100).toFixed(1) + "%" : "—";
+  const maxDeduction = Math.max(p.commission, p.logistics, p.storage, p.promotion, p.penalty, p.other_deduction, 1);
+  const deductionRows = [
+    ["Комиссия МП", p.commission], ["Логистика", p.logistics], ["Хранение", p.storage],
+    ["Продвижение", p.promotion], ["Штрафы", p.penalty], ["Прочие удержания", p.other_deduction],
+  ].map(([label, value]) => `
+    <tr><td>${label}</td>
+      <td><div class="share-track"><div class="share-fill" style="width:${(value / maxDeduction * 100).toFixed(0)}%"></div></div></td>
+      <td class="num">${fmtMoney(value)}</td><td class="num">${pct(value)}</td></tr>`).join("");
+  return `
+    <tr class="product-card"><td colspan="${colspan}">
+      <div class="pcard">
+        <div>
+          <h4>Деньги: от продажи до выплаты</h4>
+          <table>
+            <tr><td>Реализация</td><td></td><td class="num">${fmtMoney(p.realization)}</td><td class="num">100%</td></tr>
+            <tr><td>− Возвраты</td><td></td><td class="num delta-down">${fmtMoney(p.returns)}</td><td class="num">${pct(p.returns)}</td></tr>
+            ${deductionRows}
+            <tr><td><strong>= К выплате</strong></td><td></td><td class="num ${p.payout < 0 ? "delta-down" : ""}"><strong>${fmtMoney(p.payout)}</strong></td><td class="num"><strong>${pct(p.payout)}</strong></td></tr>
+            ${p.unit_cost != null ? `
+            <tr><td>− Себестоимость (${p.quantity || 0} шт × ${fmtMoney(p.unit_cost)})</td><td></td><td class="num delta-down">${fmtMoney(p.cogs)}</td><td class="num">${pct(p.cogs)}</td></tr>
+            <tr><td><strong>= Чистая прибыль</strong></td><td></td><td class="num ${p.profit < 0 ? "delta-down" : ""}"><strong>${fmtMoney(p.profit)}</strong></td><td class="num"><strong>${pct(p.profit)}</strong></td></tr>` : (costsLoaded() ? `
+            <tr><td colspan="4" class="hint">Себестоимость для этого SKU не найдена в загруженном файле.</td></tr>` : "")}
+          </table>
+        </div>
+        <div>
+          <h4>Паспорт товара</h4>
+          <dl class="kv">
+            <dt>Маркетплейс</dt><dd>${mpBadge(p.marketplace)}</dd>
+            <dt>Категория</dt><dd>${escapeHtml(p.category) || "—"}</dd>
+            <dt>Бренд</dt><dd>${escapeHtml(p.brand) || "—"}</dd>
+            <dt>Класс ABC</dt><dd><span class="abc-chip ${ABC_CHIP[p.abc] || ""}">${p.abc === "L" ? "−" : p.abc}</span></dd>
+            <dt>Продано, шт</dt><dd>${p.quantity || "—"}</dd>
+            <dt>Возвратность</dt><dd>${fmtPercent(p.return_rate)}</dd>
+            ${p.unit_cost != null ? `
+            <dt>Себестоимость за шт</dt><dd>${fmtMoney(p.unit_cost)}</dd>
+            <dt>Чистая прибыль</dt><dd class="${p.profit < 0 ? "delta-down" : ""}">${fmtMoney(p.profit)}</dd>
+            <dt>Рентабельность</dt><dd class="${p.profit_margin < 0 ? "delta-down" : ""}">${fmtPercent(p.profit_margin)}</dd>` : `
+            <dt>Маржа к выплате</dt><dd class="${p.payout_margin < 0 ? "delta-down" : ""}">${fmtPercent(p.payout_margin)}</dd>`}
+            <dt>Сигналы</dt><dd>${p.red_flags.length ? p.red_flags.map(f => `<span class="flag">${f}</span>`).join(" ") : "нет"}</dd>
+          </dl>
+        </div>
+      </div>
+    </td></tr>`;
+}
+
+function productLineHtml(p, colspan, indent = 0) {
+  const line = `
+    <tr class="product-line" data-sku="${escapeHtml(p.sku)}">
+      <td style="padding-left:${14 + indent}px">${escapeHtml(p.product_name) || "—"}<br /><span class="muted">${escapeHtml(p.sku)}</span></td>
+      <td class="num">${p.quantity || ""}</td>
+      <td class="num">${fmtMoney(p.realization)}</td>
+      <td class="num">${fmtMoney(p.returns)}</td>
+      <td class="num">${fmtPercent(p.return_rate)}</td>
+      <td class="num">${fmtMoney(p.mp_expenses)}</td>
+      <td class="num ${p.margin < 0 ? "delta-down" : ""}">${fmtPercent(p.margin)}</td>
+      <td class="num ${p.payout < 0 ? "delta-down" : ""}">${fmtMoney(p.payout)}</td>
+    </tr>`;
+  return line + (openProductSku === p.sku ? productCardRow(p, colspan) : "");
+}
+
+const PRODUCT_COLUMNS = [
+  ["product_name", "Товар", false],
+  ["abc", "ABC", false],
+  ["realization", "Реализация", true],
+  ["returns", "Возврат", true],
+  ["return_rate", "% возврата", true],
+  ["mp_expenses", "Расходы МП", true],
+  ["margin", "Маржа", true],
+  ["payout", "К выплате", true],
+];
+
+function productRowHtml(p) {
+  const row = `
+    <tr class="product-line" data-sku="${escapeHtml(p.sku)}">
+      <td>${escapeHtml(p.product_name) || "—"}<br /><span class="muted">${escapeHtml(p.sku)}${p.category ? " · " + escapeHtml(p.category) : ""}</span></td>
+      <td><span class="abc-chip ${ABC_CHIP[p.abc] || ""}">${p.abc === "L" ? "−" : (p.abc || "")}</span></td>
+      <td class="num">${fmtMoney(p.realization)}</td>
+      <td class="num">${fmtMoney(p.returns)}</td>
+      <td class="num">${fmtPercent(p.return_rate)}</td>
+      <td class="num">${fmtMoney(p.mp_expenses)}</td>
+      <td class="num ${p.margin < 0 ? "delta-down" : ""}">${fmtPercent(p.margin)}</td>
+      <td class="num ${p.payout < 0 ? "delta-down" : ""}">${fmtMoney(p.payout)}</td>
+      <td>${p.red_flags.map(f => `<span class="flag">${f}</span>`).join("")}</td>
+    </tr>`;
+  return row + (openProductSku === p.sku ? productCardRow(p, 9) : "");
+}
+
+const PRODUCT_HEAD = () => `<thead><tr>${PRODUCT_COLUMNS.map(([key, label, isNum]) => {
+  const shown = key === "margin" && costsLoaded() ? "Рентаб." : label;
+  return `<th class="sortable ${isNum ? "num" : ""} ${productSort.key === key ? "sorted-" + productSort.dir : ""}" data-sort="${key}">${shown}</th>`;
+}).join("")}<th>Флаги</th></tr></thead>`;
+
+function renderProducts(products) {
+  const el = document.getElementById("table-products");
+  renderSegments(products);
+
+  const segment = SEGMENTS.find(([key]) => key === productSegment) || SEGMENTS[0];
+  let visible = products.filter(segment[2]);
+
+  if (!visible.length) {
+    el.innerHTML = state.files.length
+      ? `<p class="hint">В сегменте «${segment[1]}» ничего не найдено по текущим фильтрам.</p>`
+      : `<p class="hint">Нет товаров — загрузите файл на вкладке «Загрузка».</p>`;
+    return;
+  }
+
+  const grouping = document.getElementById("product-grouping").value;
+  const search = document.getElementById("f-search").value.trim();
+  const segNote = productSegment !== "all" ? ` в сегменте «${segment[1]}»` : "";
+  const searchNote = search ? ` по запросу «${escapeHtml(search)}»` : "";
+
+  if (grouping) {
+    const grouping2 = document.getElementById("product-grouping2").value;
+    const sub = (grouping2 && grouping2 !== grouping) ? grouping2 : null;
+    const COLSPAN = 8;
+
+    const groupRowHtml = (g, key, level) => {
+      const isOpen = expandedGroups.has(key);
+      return `
+        <tr class="group-row ${level === 2 ? "level-2" : ""}" data-group="${escapeHtml(key)}">
+          <td style="padding-left:${level === 2 ? 28 : 12}px"><span class="group-caret">${isOpen ? "▾" : "▸"}</span>${level === 1 ? categoryIcon(g.name) : ""}${escapeHtml(g.name)}</td>
+          <td class="num">${g.items.length}</td>
+          <td class="num">${fmtMoney(g.realization)}</td>
+          <td class="num">${fmtMoney(g.returns)}</td>
+          <td class="num">${fmtPercent(g.return_rate)}</td>
+          <td class="num">${fmtMoney(g.mp_expenses)}</td>
+          <td class="num ${g.margin < 0 ? "delta-down" : ""}">${fmtPercent(g.margin)}</td>
+          <td class="num ${g.payout < 0 ? "delta-down" : ""}">${fmtMoney(g.payout)}</td>
+        </tr>`;
+    };
+
+    const productBlock = (items, indent) =>
+      items.slice(0, 30).map(p => productLineHtml(p, COLSPAN, indent)).join("") +
+      (items.length > 30 ? `<tr><td colspan="${COLSPAN}" class="hint" style="padding-left:${indent + 14}px">…и ещё ${items.length - 30} товаров — уточните сегмент или поиск.</td></tr>` : "");
+
+    const groups = groupProducts(visible, grouping);
+    const count = `<p class="result-count">Групп: <strong>${groups.length}</strong>, товаров${segNote}${searchNote}: <strong>${visible.length}</strong>.</p>`;
+    el.innerHTML = count + `
+      <table>
+        <thead><tr><th>Группа / товар</th><th class="num">Шт</th><th class="num">Реализация</th><th class="num">Возвраты</th><th class="num">% возврата</th><th class="num">Расходы МП</th><th class="num">Маржа</th><th class="num">К выплате</th></tr></thead>
+        <tbody>${groups.map(g => {
+          const key1 = g.name;
+          let html = groupRowHtml(g, key1, 1);
+          if (expandedGroups.has(key1)) {
+            if (sub) {
+              const subgroups = groupProducts(g.items, sub);
+              html += subgroups.map(sg => {
+                const key2 = `${key1}||${sg.name}`;
+                let subHtml = groupRowHtml(sg, key2, 2);
+                if (expandedGroups.has(key2)) subHtml += productBlock(sg.items, 42);
+                return subHtml;
+              }).join("");
+            } else {
+              html += productBlock(g.items, 28);
+            }
+          }
+          return html;
+        }).join("")}</tbody>
+      </table>`;
+    el.querySelectorAll(".group-row").forEach(tr => {
+      tr.addEventListener("click", () => {
+        const name = tr.dataset.group;
+        if (expandedGroups.has(name)) expandedGroups.delete(name);
+        else expandedGroups.add(name);
+        refresh();
+      });
+    });
+    wireProductCards(el);
+    return;
+  }
+
+  const sorted = [...visible].sort((a, b) => {
+    const va = a[productSort.key], vb = b[productSort.key];
+    const cmp = typeof va === "string" ? String(va).localeCompare(String(vb), "ru") : (va - vb);
+    return productSort.dir === "asc" ? cmp : -cmp;
+  });
+  const LIMIT = 500;
+  const count = `<p class="result-count">Товаров${segNote}${searchNote}: <strong>${visible.length}</strong>${visible.length > LIMIT ? `, показаны первые ${LIMIT}` : ""}. Сортировка — клик по заголовку; группировка — списком выше.</p>`;
+  el.innerHTML = count + `
+    <table>
+      ${PRODUCT_HEAD()}
+      <tbody>${sorted.slice(0, LIMIT).map(productRowHtml).join("")}</tbody>
+    </table>`;
+  el.querySelectorAll("th[data-sort]").forEach(th => {
+    th.addEventListener("click", () => {
+      const key = th.dataset.sort;
+      if (productSort.key === key) productSort.dir = productSort.dir === "asc" ? "desc" : "asc";
+      else productSort = { key, dir: key === "product_name" || key === "abc" ? "asc" : "desc" };
+      refresh();
+    });
+  });
+  wireProductCards(el);
+}
+
+function wireProductCards(container) {
+  container.querySelectorAll("tr.product-line").forEach(tr => {
+    tr.addEventListener("click", () => {
+      const sku = tr.dataset.sku;
+      openProductSku = openProductSku === sku ? null : sku;
+      refresh();
+    });
+  });
+}
+
+let returnsGrouping = "section";
+const returnsExpanded = new Set();
+
+function returnRateOf(g) {
+  const gross = g.realization + g.returns;
+  return gross ? g.returns / gross : 0;
+}
+
+function renderReturnsInner(container, byRub) {
+  const rateLabel = v => `${fmtMoney(v.returns)} · ${fmtPercent(returnRateOf(v))}`;
+  if (!returnsGrouping) {
+    container.innerHTML = `
+      <table>
+        <thead><tr><th>Товар</th><th class="num">Потери, ₽</th><th class="num">% возврата</th><th class="num">Реализация</th><th>Сигнал</th></tr></thead>
+        <tbody>${byRub.slice(0, 300).map(p => `
+          <tr>
+            <td>${escapeHtml(p.product_name) || "—"}<br /><span class="muted">${escapeHtml(p.sku)}</span></td>
+            <td class="num delta-down">${fmtMoney(p.returns)}</td>
+            <td class="num">${fmtPercent(p.return_rate)}</td>
+            <td class="num">${fmtMoney(p.realization)}</td>
+            <td>${p.return_rate >= RETURN_RATE_RED_ZONE ? `<span class="flag">возвратность ≥ 30%</span>` : ""}</td>
+          </tr>`).join("")}${byRub.length > 300 ? `<tr><td colspan="5" class="hint">…показаны первые 300 — уточните фильтры или используйте экспорт CSV.</td></tr>` : ""}</tbody>
+      </table>`;
+    return;
+  }
+
+  const keyFn = GROUP_DIMS[returnsGrouping];
+  const groups = new Map();
+  for (const p of byRub) {
+    const name = keyFn(p);
+    const g = groups.get(name) || { name, items: [], returns: 0, realization: 0 };
+    g.items.push(p); g.returns += p.returns; g.realization += p.realization;
+    groups.set(name, g);
+  }
+  const sorted = [...groups.values()].sort((a, b) => b.returns - a.returns);
+
+  container.innerHTML = `
+    <table>
+      <thead><tr><th>Группа / товар</th><th class="num">Товаров</th><th class="num">Потери, ₽</th><th class="num">% возврата</th><th class="num">Реализация</th></tr></thead>
+      <tbody>${sorted.map(g => {
+        const key = g.name;
+        const isOpen = returnsExpanded.has(key);
+        let html = `
+          <tr class="group-row" data-ret-group="${escapeHtml(key)}">
+            <td><span class="group-caret">${isOpen ? "▾" : "▸"}</span>${categoryIcon(g.name)}${escapeHtml(g.name)}</td>
+            <td class="num">${g.items.length}</td>
+            <td class="num delta-down">${fmtMoney(g.returns)}</td>
+            <td class="num">${fmtPercent(returnRateOf(g))}</td>
+            <td class="num">${fmtMoney(g.realization)}</td>
+          </tr>`;
+        if (isOpen) {
+          html += g.items.slice(0, 30).map(p => `
+            <tr>
+              <td style="padding-left:32px">${escapeHtml(p.product_name) || "—"}<br /><span class="muted">${escapeHtml(p.sku)}</span></td>
+              <td class="num"></td>
+              <td class="num delta-down">${fmtMoney(p.returns)}</td>
+              <td class="num">${fmtPercent(p.return_rate)}${p.return_rate >= RETURN_RATE_RED_ZONE ? ` <span class="flag">≥ 30%</span>` : ""}</td>
+              <td class="num">${fmtMoney(p.realization)}</td>
+            </tr>`).join("");
+          if (g.items.length > 30) html += `<tr><td colspan="5" class="hint" style="padding-left:32px">…и ещё ${g.items.length - 30} товаров в группе.</td></tr>`;
+        }
+        return html;
+      }).join("")}</tbody>
+    </table>`;
+  container.querySelectorAll("tr[data-ret-group]").forEach(tr => {
+    tr.addEventListener("click", () => {
+      const key = tr.dataset.retGroup;
+      if (returnsExpanded.has(key)) returnsExpanded.delete(key);
+      else returnsExpanded.add(key);
+      renderReturnsInner(container, byRub);
+    });
+  });
+}
+
+function renderReturns(products, allRows) {
+  const el = document.getElementById("table-returns");
+  const withReturns = products.filter(p => p.returns > 0);
+  if (!withReturns.length) { el.innerHTML = `<p class="hint">Возвратов нет.</p>`; return; }
+  const totalReal = allRows.reduce((s, r) => s + r.realization, 0);
+  const totalReturns = allRows.reduce((s, r) => s + r.returns, 0);
+  const byRub = [...withReturns].sort((a, b) => b.returns - a.returns);
+
+  const bySection = new Map();
+  for (const p of withReturns) {
+    const section = GROUP_DIMS.section(p);
+    const g = bySection.get(section) || { name: section, returns: 0, realization: 0 };
+    g.returns += p.returns; g.realization += p.realization;
+    bySection.set(section, g);
+  }
+  const sections = [...bySection.values()].sort((a, b) => b.returns - a.returns).slice(0, 8);
+
+  const risky = withReturns.filter(p => p.return_rate >= RETURN_RATE_RED_ZONE);
+
+  el.innerHTML = `
+    <p class="result-count">Возвраты съели <strong>${fmtMoney(totalReturns)}</strong>${totalReal ? ` (${(totalReturns / totalReal * 100).toFixed(1)}% реализации)` : ""}. Красная зона (возвратность ≥ 30%): <strong>${risky.length}</strong> товаров.</p>
+    <div class="pcard wide-values" style="gap:24px">
+      <div>
+        <h4>Топ-10 товаров по потерям на возвратах</h4>
+        ${barRows(byRub.slice(0, 10), "var(--series-6)", p => p.returns, p => trunc(p.product_name),
+          p => `${p.product_name}: возвраты ${fmtMoney(p.returns)} (${fmtPercent(p.return_rate)})`,
+          p => `${fmtMoney(p.returns)} · ${fmtPercent(p.return_rate)}`)}
+      </div>
+      <div>
+        <h4>Возвраты по разделам</h4>
+        ${barRows(sections, "var(--series-8)", s => s.returns, s => trunc(s.name),
+          s => `${s.name}: ${fmtMoney(s.returns)}, возвратность ${fmtPercent(returnRateOf(s))}`,
+          s => `${fmtMoney(s.returns)} · ${fmtPercent(returnRateOf(s))}`)}
+      </div>
+    </div>
+    <button class="data-table-toggle" data-target="returns-full-table" type="button">Показать таблицу (${withReturns.length} товаров с возвратами)</button>
+    <div id="returns-full-table" hidden>
+      <div class="group-controls" style="margin-top:12px">
+        <label class="field" style="max-width:240px">
+          <span>Группировка таблицы</span>
+          <select id="returns-grouping">
+            <option value="section">По разделу</option>
+            <option value="category">По подкатегории</option>
+            <option value="brand">По бренду</option>
+            <option value="marketplace">По маркетплейсу</option>
+            <option value="abc">По классу ABC</option>
+            <option value="">Без группировки (список)</option>
+          </select>
+        </label>
+      </div>
+      <div class="table-wrap" id="returns-table-inner"></div>
+    </div>`;
+
+  const select = el.querySelector("#returns-grouping");
+  select.value = returnsGrouping;
+  const inner = el.querySelector("#returns-table-inner");
+  renderReturnsInner(inner, byRub);
+  select.addEventListener("change", () => {
+    returnsGrouping = select.value;
+    renderReturnsInner(inner, byRub);
+  });
+  wireTableToggle(el);
+}
+
+function refresh() {
+  const rows = filteredRows();
+  renderStatRow(rows);
+  renderDeductions(rows);
+  renderDynamics(rows);
+  const analysis = renderAnalysis(rows);
+  const search = document.getElementById("f-search").value.trim().toLowerCase();
+  let products = analysis.products;
+  if (search) products = products.filter(p =>
+    (p.product_name || "").toLowerCase().includes(search) || (p.sku || "").toLowerCase().includes(search));
+  renderProducts(products);
+  renderReturns(products, rows);
+  if (costsLoaded()) updateCostStatus();
+}
+
+/* ==== Вкладка «Загрузка» ==== */
+
+function showUploadStatus(text, isError = false) {
+  const el = document.getElementById("upload-status");
+  el.hidden = false;
+  el.textContent = text;
+  el.style.color = isError ? "var(--status-critical)" : "";
+}
+
+function renderUploadsList() {
+  const el = document.getElementById("uploads-list");
+  if (!state.files.length) {
+    el.innerHTML = `<div class="empty-state"><div class="big">Файлы ещё не загружались</div>
+      Выберите CSV-выгрузку выше — подойдут отчёты из кабинетов ВБ и Ozon или сводный отчёт по товарам.</div>`;
+    return;
+  }
+  el.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Файл</th><th class="num">Строк ОК</th><th class="num">Исправлено</th><th class="num">Ошибок</th><th>Действия</th></tr></thead>
+    <tbody>${state.files.map(f => {
+      const ok = f.rows.filter(r => r.status === "ok").length;
+      const fixed = f.rows.filter(r => r.status === "fixed").length;
+      const errors = f.rows.filter(r => r.status === "error").length;
+      return `<tr>
+        <td>${escapeHtml(f.name)}${f.fileFixes.length ? `<br /><span class="row-fixes-text">автоисправления: ${escapeHtml(f.fileFixes.join(", "))}</span>` : ""}</td>
+        <td class="num">${ok}</td>
+        <td class="num">${fixed ? `<span class="chip chip-fixed">${fixed}</span>` : 0}</td>
+        <td class="num">${errors ? `<span class="chip chip-error">${errors}</span>` : 0}</td>
+        <td>
+          <button class="btn-small" data-action="rows" data-id="${f.id}" type="button">Строки</button>
+          ${errors ? `<button class="btn-small" data-action="errors-csv" data-id="${f.id}" type="button">Ошибки CSV</button>` : ""}
+          <button class="btn-small danger" data-action="delete" data-id="${f.id}" type="button">Удалить</button>
+        </td>
+      </tr>`;
+    }).join("")}</tbody>
+  </table></div>`;
+  el.querySelectorAll("button[data-action]").forEach(btn => {
+    btn.addEventListener("click", () => handleFileAction(btn.dataset.action, Number(btn.dataset.id)));
+  });
+}
+
+function handleFileAction(action, fileId) {
+  const file = state.files.find(f => f.id === fileId);
+  if (!file) return;
+  if (action === "delete") {
+    if (!confirm("Удалить файл? Его данные исчезнут из дашборда.")) return;
+    state.files = state.files.filter(f => f.id !== fileId);
+    if (state.openRowsFileId === fileId) {
+      state.openRowsFileId = null;
+      document.getElementById("rows-card").hidden = true;
+    }
+    renderUploadsList();
+    refresh();
+    showUploadStatus("Файл удалён, дашборд пересчитан.");
+  } else if (action === "rows") {
+    state.openRowsFileId = fileId;
+    renderRowsEditor(file);
+  } else if (action === "errors-csv") {
+    const errorRows = file.rows.filter(r => r.status === "error");
+    const guard = v => /^[=+\-@]/.test(String(v)) ? "'" + v : String(v);
+    const lines = ["строка_в_файле,ошибка"].concat(
+      errorRows.map(r => `"${r.rowIndex + 2}","${guard(r.error).replaceAll('"', '""')}"`));
+    const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${file.name.replace(/\.csv$/i, "")}_errors.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+}
+
+const ROW_EDIT_FIELDS = [
+  ["period_date", "Дата"], ["sku", "Артикул"], ["product_name", "Товар"],
+  ["quantity", "Кол-во"], ["realization", "Реализация"], ["returns", "Возврат"],
+  ["commission", "Комиссия"], ["logistics", "Логистика"], ["storage", "Хранение"],
+  ["promotion", "Продвижение"], ["penalty", "Штраф"], ["other_deduction", "Прочее"],
+  ["payout", "К выплате"],
+];
+
+function renderRowsEditor(file) {
+  const card = document.getElementById("rows-card");
+  const container = document.getElementById("upload-rows");
+  card.hidden = false;
+  document.getElementById("rows-title").textContent = `Строки файла: ${file.name}`;
+  const chip = r => r.status === "ok" ? `<span class="chip chip-ok">ок</span>`
+    : r.status === "fixed" ? `<span class="chip chip-fixed">исправлено</span>`
+    : `<span class="chip chip-error">ошибка</span>`;
+  const LIMIT = 300;
+  const shown = file.rows.filter(r => r.status === "error")
+    .concat(file.rows.filter(r => r.status !== "error")).slice(0, LIMIT);
+  const note = file.rows.length > LIMIT ? `<p class="hint">Показаны первые ${LIMIT} строк (ошибки — первыми) из ${file.rows.length}.</p>` : "";
+  container.innerHTML = note + `
+    <table>
+      <thead><tr><th>№</th><th>Статус</th>${ROW_EDIT_FIELDS.map(([, l]) => `<th>${l}</th>`).join("")}<th></th></tr></thead>
+      <tbody>${shown.map(r => `
+        <tr class="row-editor" data-row-index="${r.rowIndex}">
+          <td>${r.rowIndex + 2}</td>
+          <td>${chip(r)}${r.error ? `<div class="row-error-text">${escapeHtml(r.error)}</div>` : ""}${r.fixes.length ? `<div class="row-fixes-text">${escapeHtml(r.fixes.join("; "))}</div>` : ""}</td>
+          ${ROW_EDIT_FIELDS.map(([field]) => `<td><input data-field="${field}" value="${escapeHtml(r.data[field] ?? "")}" ${r.status === "error" ? "" : "readonly"} /></td>`).join("")}
+          <td><button class="btn-small" data-edit-row="${r.rowIndex}" type="button">${r.status === "error" ? "Сохранить" : "Править"}</button></td>
+        </tr>`).join("")}</tbody>
+    </table>`;
+
+  container.querySelectorAll("button[data-edit-row]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tr = btn.closest("tr");
+      const inputs = tr.querySelectorAll("input[data-field]");
+      if (btn.textContent === "Править") {
+        inputs.forEach(i => i.removeAttribute("readonly"));
+        btn.textContent = "Сохранить";
+        return;
+      }
+      const fieldValues = {};
+      inputs.forEach(i => { fieldValues[i.dataset.field] = i.value; });
+      const rowIndex = Number(tr.dataset.rowIndex);
+      const result = normalizeRow(
+        file.rows.find(r => r.rowIndex === rowIndex)?.data.marketplace || file.marketplace,
+        rowIndex, fieldValues);
+      const pos = file.rows.findIndex(r => r.rowIndex === rowIndex);
+      file.rows[pos] = result;
+      showUploadStatus(result.status === "error"
+        ? `Строка всё ещё с ошибкой: ${result.error}` : "Строка исправлена и учтена в дашборде.",
+        result.status === "error");
+      renderRowsEditor(file);
+      renderUploadsList();
+      refresh();
+    });
+  });
+}
+
+const COST_STATUS_DEFAULT = "Понимает «Полная себестоимость за шт», «Себестоимость закупки за шт» или просто «Себестоимость». Пока файл не загружен, анализ идёт без неё.";
+
+function updateCostStatus(errorText) {
+  const el = document.getElementById("cost-status");
+  const removeBtn = document.getElementById("cost-remove");
+  if (errorText) {
+    el.textContent = errorText;
+    el.style.color = "var(--status-critical)";
+    return;
+  }
+  el.style.color = "";
+  if (!costsLoaded()) {
+    el.textContent = COST_STATUS_DEFAULT;
+    removeBtn.hidden = true;
+    return;
+  }
+  const skus = new Set(goodRows().map(r => r.sku).filter(Boolean));
+  let matched = 0;
+  for (const sku of skus) if (state.costs.has(sku)) matched++;
+  const coverage = skus.size ? ` Покрыто ${matched} из ${skus.size} товаров в продажах (${(matched / skus.size * 100).toFixed(0)}%).` : "";
+  el.textContent = `Себестоимость загружена: «${state.costFileName}», ${state.costs.size} SKU.${coverage} Анализ пересчитан на чистую прибыль.`;
+  removeBtn.hidden = false;
+}
+
+function setupCostUpload() {
+  document.getElementById("cost-submit").addEventListener("click", async () => {
+    const input = document.getElementById("cost-file");
+    const file = input.files[0];
+    if (!file) { updateCostStatus("Сначала выберите файл CSV с себестоимостью."); return; }
+    try {
+      const buffer = await file.arrayBuffer();
+      const { costs, skipped } = parseCostsFile(buffer);
+      state.costs = costs;
+      state.costFileName = file.name;
+      input.value = "";
+      refresh();
+      updateCostStatus();
+      if (skipped) {
+        const el = document.getElementById("cost-status");
+        el.textContent += ` Пропущено строк без валидной цены: ${skipped}.`;
+      }
+    } catch (err) {
+      console.error(err);
+      updateCostStatus(`«${file.name}»: ${err.message}`);
+    }
+  });
+  document.getElementById("cost-remove").addEventListener("click", () => {
+    state.costs = new Map();
+    state.costFileName = null;
+    refresh();
+    updateCostStatus();
+  });
+}
+
+function setupUploads() {
+  document.getElementById("upload-submit").addEventListener("click", async () => {
+    const input = document.getElementById("upload-file");
+    if (!input.files.length) { showUploadStatus("Сначала выберите файл CSV.", true); return; }
+    const marketplace = document.getElementById("upload-marketplace").value;
+    clearDemoData();
+    let loaded = 0, failed = 0;
+    for (const file of input.files) {
+      try {
+        const buffer = await file.arrayBuffer();
+        const { fileFixes, rows } = parseFile(marketplace, buffer);
+        state.files.push({ id: state.nextId++, name: file.name, marketplace, fileFixes, rows });
+        loaded++;
+      } catch (err) {
+        failed++;
+        showUploadStatus(`«${file.name}»: ${err.message}`, true);
+      }
+    }
+    input.value = "";
+    renderUploadsList();
+    refresh();
+    if (loaded && !failed) {
+      const last = state.files[state.files.length - 1];
+      const fixed = last.rows.filter(r => r.status === "fixed").length;
+      const errors = last.rows.filter(r => r.status === "error").length;
+      showUploadStatus(`Загружено файлов: ${loaded}. В последнем: исправлено автоматически — ${fixed}, с ошибками — ${errors}.` +
+        (errors ? " Ошибки можно поправить в «Строках»." : ""));
+      if (!errors) document.getElementById("tab-analysis").click();
+    }
+  });
+}
+
+/* ==== Экспорт товаров ==== */
+
+function setupExport() {
+  document.getElementById("export-csv").addEventListener("click", () => {
+    const products = productAggregates(filteredRows());
+    const guard = v => /^[=+\-@]/.test(String(v)) ? "'" + v : String(v);
+    const header = "sku,product_name,realization,returns,return_rate,mp_expenses,net_revenue,payout,red_flags";
+    const lines = products.map(p => [
+      guard(p.sku), guard(p.product_name), p.realization, p.returns,
+      fmtPercent(p.return_rate), p.mp_expenses, p.net_revenue, p.payout,
+      guard(p.red_flags.join("; ")),
+    ].map(c => `"${String(c).replaceAll('"', '""')}"`).join(","));
+    const blob = new Blob(["﻿" + [header, ...lines].join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "products.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  });
+}
+
+/* ==== Вкладки и фильтры ==== */
+
+// Переключатель предпросмотра «Компьютер / Телефон»: сужает вьюпорт, а адаптив
+// (через @container) сам переходит в мобильный режим — как на реальном телефоне.
+const appViewport = document.getElementById("app-viewport");
+const phoneScroll = document.getElementById("phone-scroll");
+document.querySelectorAll(".preview-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".preview-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    appViewport.classList.toggle("phone", btn.dataset.view === "phone");
+    phoneScroll.scrollTop = 0;
+  });
+});
+// Стрелки листают по ЦЕЛЬНЫМ блокам (карточка, график, таблица, сводка),
+// а не на фиксированную высоту — чтобы блок показывался целиком, без разреза.
+function blockTops() {
+  const base = phoneScroll.getBoundingClientRect().top - phoneScroll.scrollTop;
+  return [...phoneScroll.querySelectorAll(".demo-banner, .stat-row, .card")]
+    .filter(el => el.offsetParent !== null && !el.hidden && el.offsetHeight > 0)
+    .map(el => Math.round(el.getBoundingClientRect().top - base))
+    .sort((a, b) => a - b);
+}
+function scrollToBlock(dir) {
+  const tops = blockTops();
+  const cur = phoneScroll.scrollTop;
+  const margin = 12, eps = 6;
+  let target;
+  if (dir > 0) {
+    target = tops.find(t => t > cur + margin + eps);
+    if (target == null) target = phoneScroll.scrollHeight;      // дальше некуда — в самый низ
+  } else {
+    const above = tops.filter(t => t < cur + margin - eps);
+    target = above.length ? above[above.length - 1] : 0;        // к предыдущему блоку / в начало
+  }
+  phoneScroll.scrollTo({ top: Math.max(0, target - margin), behavior: "smooth" });
+}
+document.getElementById("phone-up").addEventListener("click", () => scrollToBlock(-1));
+document.getElementById("phone-down").addEventListener("click", () => scrollToBlock(1));
+
+// Сводка (KPI-строка) нужна только там, где смотрят итоги — «Анализ» и
+// «Обзор». На «Товарах», «Возвратах», «Загрузке», «Подключении» она лишняя
+// и лишь занимает место, поэтому прячем.
+// Сводка KPI — только на «Анализ». «Обзор» начинается со своих графиков
+// (динамика по месяцам, структура удержаний), поэтому вкладки различаются
+// с первого экрана, а не дублируют одинаковый верх.
+const KPI_TABS = new Set(["analysis"]);
+function updateStatRowVisibility(tabName) {
+  document.getElementById("stat-row").hidden = !KPI_TABS.has(tabName);
+}
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => { t.classList.remove("active"); t.setAttribute("aria-selected", "false"); });
+    document.querySelectorAll(".tab-panel").forEach(p => (p.hidden = true));
+    tab.classList.add("active");
+    tab.setAttribute("aria-selected", "true");
+    document.querySelector(`.tab-panel[data-panel="${tab.dataset.tab}"]`).hidden = false;
+    updateStatRowVisibility(tab.dataset.tab);
+  });
+});
+updateStatRowVisibility(document.querySelector(".tab.active")?.dataset.tab || "uploads");
+["f-marketplace", "f-date-from", "f-date-to", "product-grouping", "product-grouping2"].forEach(id =>
+  document.getElementById(id).addEventListener("change", refresh));
+let searchTimer;
+document.getElementById("f-search").addEventListener("input", () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(refresh, 250);
+});
+
+/* ==== Подключение по API (демо: ключи в localStorage, без реальных запросов) ==== */
+
+function connState() {
+  try { return JSON.parse(localStorage.getItem("mp_demo_conn") || "{}"); } catch { return {}; }
+}
+function renderConnStatus() {
+  const c = connState();
+  const wb = !!c.wb, oz = !!(c.ozonId && c.ozonKey);
+  const set = (id, on) => {
+    const el = document.getElementById(id);
+    el.textContent = on ? "подключено" : "не подключено";
+    el.classList.toggle("conn-on", on);
+  };
+  set("wb-conn-status", wb);
+  set("ozon-conn-status", oz);
+  document.getElementById("disconnect-all").hidden = !(wb || oz);
+}
+function setupConnect() {
+  renderConnStatus();
+  document.getElementById("save-credentials").addEventListener("click", () => {
+    const status = document.getElementById("credentials-status");
+    const wb = document.getElementById("wb-key").value.trim();
+    const ozonId = document.getElementById("ozon-client-id").value.trim();
+    const ozonKey = document.getElementById("ozon-key").value.trim();
+    if (!wb && !ozonId && !ozonKey) {
+      status.hidden = false; status.classList.add("row-error-text");
+      status.textContent = "Введите хотя бы один ключ."; return;
+    }
+    const c = connState();
+    if (wb) c.wb = true;
+    if (ozonId) c.ozonId = true;
+    if (ozonKey) c.ozonKey = true;
+    localStorage.setItem("mp_demo_conn", JSON.stringify(c));
+    ["wb-key", "ozon-client-id", "ozon-key"].forEach(id => (document.getElementById(id).value = ""));
+    renderConnStatus();
+    status.hidden = false; status.classList.remove("row-error-text");
+    status.textContent = "Ключи сохранены (в этом демо — только в вашем браузере). В рабочей версии теперь можно нажать «Загрузить данные».";
+  });
+  document.getElementById("disconnect-all").addEventListener("click", () => {
+    localStorage.removeItem("mp_demo_conn");
+    renderConnStatus();
+    const status = document.getElementById("credentials-status");
+    status.hidden = false; status.classList.remove("row-error-text");
+    status.textContent = "Ключи отключены.";
+  });
+  document.getElementById("sync-submit").addEventListener("click", () => {
+    const status = document.getElementById("sync-status");
+    status.hidden = false;
+    const c = connState();
+    if (!c.wb && !(c.ozonId && c.ozonKey)) {
+      status.classList.add("row-error-text");
+      status.textContent = "Сначала сохраните хотя бы один ключ выше.";
+      return;
+    }
+    status.classList.remove("row-error-text");
+    status.textContent = "В браузерном демо загрузка по API отключена. Чтобы увидеть анализ, откройте вкладку «Загрузка» и добавьте свой CSV — в рабочей версии эта кнопка сама заберёт данные из кабинета.";
+  });
+}
+
+const DEMO_SALES_CSV = "Маркетплейс;Дата;Артикул;Товар;Категория;Бренд;Продано, шт;Реализация, ₽;Возвраты, ₽;Комиссия МП, ₽;Логистика, ₽;Хранение, ₽;Продвижение, ₽;К выплате, ₽\nWildberries;2026-06-05;WB-001;Худи Northmoor 01;Одежда/Худи;Northmoor;47;81122;0;12168;8451;346;3244;56913\nWildberries;2026-06-05;WB-002;Худи Aurelka 02;Одежда/Худи;Aurelka;2;1444;606;216;106;308;0;208\nWildberries;2026-06-05;WB-003;Худи Aurelka 03;Одежда/Худи;Aurelka;14;34146;0;5121;3603;81;1365;23976\nOzon;2026-06-05;OZ-004;Худи Aurelka 04;Одежда/Худи;Aurelka;17;21012;1050;3151;1389;194;0;15228\nOzon;2026-06-05;OZ-005;Футболки Basico 05;Одежда/Футболки;Basico;38;63954;7674;9593;5894;193;0;40600\nOzon;2026-06-05;OZ-006;Футболки Basico 06;Одежда/Футболки;Basico;36;49932;0;7489;4977;395;0;37071\nWildberries;2026-06-05;WB-007;Футболки Northmoor 07;Одежда/Футболки;Northmoor;55;55715;6685;8357;5467;186;0;35020\nOzon;2026-06-05;OZ-008;Футболки Basico 08;Одежда/Футболки;Basico;13;43485;0;6522;4198;87;1739;30939\nWildberries;2026-06-05;WB-009;Кружки Keramo 09;Посуда/Кружки;Keramo;29;62466;0;9369;6313;393;0;46391\nWildberries;2026-06-05;WB-010;Кружки Keramo 10;Посуда/Кружки;Keramo;51;96492;0;14473;7011;290;3859;70859\nOzon;2026-06-05;OZ-011;Кружки Keramo 11;Посуда/Кружки;Keramo;41;108404;13008;16260;7433;71;0;71632\nOzon;2026-06-05;OZ-012;Кружки LuceCasa 12;Посуда/Кружки;LuceCasa;57;170430;0;25564;20424;70;6817;117555\nOzon;2026-06-05;OZ-013;Тарелки Keramo 13;Посуда/Тарелки;Keramo;48;38016;0;5702;3712;348;5322;22932\nOzon;2026-06-05;OZ-014;Тарелки Keramo 14;Посуда/Тарелки;Keramo;24;51912;6229;7786;4762;283;0;32852\nWildberries;2026-06-05;WB-015;Тарелки LuceCasa 15;Посуда/Тарелки;LuceCasa;49;158025;7901;23703;13603;232;0;112586\nOzon;2026-06-05;OZ-016;Тарелки Keramo 16;Посуда/Тарелки;Keramo;32;33120;1656;4968;3659;259;4636;17942\nWildberries;2026-06-05;WB-017;Наушники Voltra 17;Электроника/Наушники;Voltra;23;85629;0;12844;8214;250;0;64321\nWildberries;2026-06-05;WB-018;Наушники SonaX 18;Электроника/Наушники;SonaX;56;224336;0;33650;14239;290;0;176157\nWildberries;2026-06-05;WB-019;Наушники SonaX 19;Электроника/Наушники;SonaX;52;45916;0;6887;3108;243;6428;29250\nWildberries;2026-06-05;WB-020;Наушники SonaX 20;Электроника/Наушники;SonaX;33;137709;0;20656;15937;386;5508;95222\nWildberries;2026-06-05;WB-021;Пледы Aurelka 21;Дом/Пледы;Aurelka;25;83775;10053;12566;9548;231;0;51377\nWildberries;2026-06-05;WB-022;Пледы CozyNest 22;Дом/Пледы;CozyNest;4;7936;3333;1190;739;301;0;2373\nWildberries;2026-06-05;WB-023;Пледы CozyNest 23;Дом/Пледы;CozyNest;45;143280;60177;21492;9176;16;0;52419\nWildberries;2026-06-05;WB-024;Пледы CozyNest 24;Дом/Пледы;CozyNest;17;56780;0;8517;5871;292;2271;39829";
+const DEMO_COSTS_CSV = "SKU;Полная себестоимость за шт\nWB-001;1059\nWB-002;271\nWB-003;1152\nOZ-004;601\nOZ-005;958\nWB-007;467\nOZ-008;2156\nWB-009;810\nWB-010;886\nOZ-011;1057\nOZ-013;510\nOZ-014;692\nOZ-016;711\nWB-018;1468\nWB-019;340\nWB-020;1349\nWB-021;2326\nWB-022;1217\nWB-023;1493";
+
+function bufFromString(s) { return new TextEncoder().encode(s).buffer; }
+
+function clearDemoData() {
+  if (!state.isDemo) return;
+  state.files = [];
+  state.costs = new Map();
+  state.costFileName = null;
+  state.isDemo = false;
+  const banner = document.getElementById("demo-banner");
+  if (banner) banner.hidden = true;
+  updateCostStatus();
+}
+
+function initDemo() {
+  if (state.files.length) return; // the visitor already loaded their own data
+  try {
+    const { fileFixes, rows } = parseFile("wb", bufFromString(DEMO_SALES_CSV));
+    state.files.push({ id: state.nextId++, name: "Демо-данные (пример).csv", marketplace: "wb", fileFixes, rows });
+    const { costs } = parseCostsFile(bufFromString(DEMO_COSTS_CSV));
+    state.costs = costs;
+    state.costFileName = "Демо-себестоимость (пример).csv";
+    state.isDemo = true;
+    document.getElementById("demo-banner").hidden = false;
+  } catch (err) {
+    console.error("demo load failed", err);
+  }
+  renderUploadsList();
+  updateCostStatus();
+  refresh();
+  document.getElementById("tab-analysis").click();
+}
+
+document.getElementById("demo-clear").addEventListener("click", () => {
+  clearDemoData();
+  refresh();
+  document.getElementById("tab-uploads").click();
+});
+
+setupUploads();
+setupCostUpload();
+setupExport();
+setupConnect();
+renderUploadsList();
+refresh();
+initDemo();
+</script>
+
+</body>
+</html>
