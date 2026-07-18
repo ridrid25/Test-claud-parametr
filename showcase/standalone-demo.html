@@ -528,12 +528,6 @@ th.sorted-desc::after { content: " ↓"; }
 @media (hover: none) { .stat-tile:hover { transform: none; box-shadow: var(--shadow-sm); } }
 </style>
 
-<div class="preview-toolbar">
-  <span class="preview-label">Предпросмотр</span>
-  <button class="preview-btn active" data-view="desktop" type="button">💻 Компьютер</button>
-  <button class="preview-btn" data-view="phone" type="button">📱 Телефон</button>
-</div>
-
 <div id="app-viewport">
 <div id="phone-scroll">
 <div class="demo-banner">
@@ -825,10 +819,6 @@ th.sorted-desc::after { content: " ↓"; }
     </section>
   </main>
 </div>
-</div>
-<div class="phone-nav">
-  <button id="phone-up" type="button" aria-label="Прокрутить вверх"><span class="arrow" aria-hidden="true">↑</span>Вверх</button>
-  <button id="phone-down" type="button" aria-label="Прокрутить вниз"><span class="arrow" aria-hidden="true">↓</span>Вниз</button>
 </div>
 </div>
 
@@ -2349,44 +2339,6 @@ function setupExport() {
 }
 
 /* ==== Вкладки и фильтры ==== */
-
-// Переключатель предпросмотра «Компьютер / Телефон»: сужает вьюпорт, а адаптив
-// (через @container) сам переходит в мобильный режим — как на реальном телефоне.
-const appViewport = document.getElementById("app-viewport");
-const phoneScroll = document.getElementById("phone-scroll");
-document.querySelectorAll(".preview-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".preview-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    appViewport.classList.toggle("phone", btn.dataset.view === "phone");
-    phoneScroll.scrollTop = 0;
-  });
-});
-// Стрелки листают по ЦЕЛЬНЫМ блокам (карточка, график, таблица, сводка),
-// а не на фиксированную высоту — чтобы блок показывался целиком, без разреза.
-function blockTops() {
-  const base = phoneScroll.getBoundingClientRect().top - phoneScroll.scrollTop;
-  return [...phoneScroll.querySelectorAll(".demo-banner, .stat-row, .card")]
-    .filter(el => el.offsetParent !== null && !el.hidden && el.offsetHeight > 0)
-    .map(el => Math.round(el.getBoundingClientRect().top - base))
-    .sort((a, b) => a - b);
-}
-function scrollToBlock(dir) {
-  const tops = blockTops();
-  const cur = phoneScroll.scrollTop;
-  const margin = 12, eps = 6;
-  let target;
-  if (dir > 0) {
-    target = tops.find(t => t > cur + margin + eps);
-    if (target == null) target = phoneScroll.scrollHeight;      // дальше некуда — в самый низ
-  } else {
-    const above = tops.filter(t => t < cur + margin - eps);
-    target = above.length ? above[above.length - 1] : 0;        // к предыдущему блоку / в начало
-  }
-  phoneScroll.scrollTo({ top: Math.max(0, target - margin), behavior: "smooth" });
-}
-document.getElementById("phone-up").addEventListener("click", () => scrollToBlock(-1));
-document.getElementById("phone-down").addEventListener("click", () => scrollToBlock(1));
 
 // Сводка (KPI-строка) нужна только там, где смотрят итоги — «Анализ» и
 // «Обзор». На «Товарах», «Возвратах», «Загрузке», «Подключении» она лишняя
