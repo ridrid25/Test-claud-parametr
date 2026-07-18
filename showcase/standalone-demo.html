@@ -371,20 +371,41 @@ td.num, th.num { text-align: right; }
 .stack-legend .legend-pct { font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
 .stack-legend .legend-rub { color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .segments { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+/* Семантический цвет сегмента: каждый несёт --seg, а сам вид (обводка/заливка/
+   текст) выводится из него через color-mix — работает и в light, и в dark. */
 .segment {
-  border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px;
-  background: var(--surface-1); color: var(--text-secondary);
-  font-size: 12.5px; font-weight: 500; font-family: inherit; cursor: pointer;
+  --seg: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--seg) 40%, var(--border));
+  border-radius: 999px; padding: 6px 14px;
+  background: color-mix(in srgb, var(--seg) 9%, var(--surface-1));
+  color: color-mix(in srgb, var(--seg) 72%, var(--text-primary));
+  font-size: 12.5px; font-weight: 600; font-family: inherit; cursor: pointer;
   transition: background-color 140ms var(--ease-out), color 140ms var(--ease-out), border-color 140ms var(--ease-out), transform 140ms var(--ease-out);
 }
-.segment:hover { border-color: var(--border-strong); color: var(--text-primary); }
+.segment[data-segment="all"]     { --seg: var(--accent); }
+.segment[data-segment="loss"]    { --seg: var(--status-critical); }
+.segment[data-segment="dead"]    { --seg: color-mix(in srgb, var(--text-muted) 68%, var(--series-3)); }
+.segment[data-segment="returns"] { --seg: var(--status-serious); }
+.segment[data-segment="A"]       { --seg: var(--status-good); }
+.segment[data-segment="B"]       { --seg: var(--series-1); }
+.segment[data-segment="C"]       { --seg: var(--series-3); }
+.segment:hover { background: color-mix(in srgb, var(--seg) 17%, var(--surface-1)); border-color: color-mix(in srgb, var(--seg) 60%, var(--border)); }
 .segment:active { transform: scale(0.96); }
-.segment.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-.segment .seg-count { opacity: 0.75; margin-left: 4px; }
+.segment.active { background: var(--seg); border-color: var(--seg); color: #fff; box-shadow: 0 2px 8px -3px color-mix(in srgb, var(--seg) 65%, transparent); }
+.segment.active .seg-count { opacity: 0.85; }
+.segment .seg-count { opacity: 0.7; margin-left: 5px; font-variant-numeric: tabular-nums; }
 .group-controls { margin-bottom: 10px; display: flex; gap: 12px; flex-wrap: wrap; }
-.group-row td { font-weight: 600; background: var(--surface-2); cursor: pointer; }
-.group-row:hover td { background: var(--gridline); }
-.group-row.level-2 td { font-weight: 500; background: color-mix(in srgb, var(--surface-2) 45%, var(--surface-1)); }
+/* Группы — с цветной меткой слева и более выразительным фоном, чтобы уровни
+   иерархии читались. Метка через inset-тень: не сдвигает раскладку таблицы. */
+.group-row td { font-weight: 600; background: color-mix(in srgb, var(--accent) 7%, var(--surface-2)); cursor: pointer; }
+.group-row td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.group-row:hover td { background: color-mix(in srgb, var(--accent) 14%, var(--surface-2)); }
+.group-row.level-2 td { font-weight: 500; background: color-mix(in srgb, var(--accent) 4%, var(--surface-1)); }
+.group-row.level-2 td:first-child { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
+/* «Возвраты» — тема потерь: метка групп оранжевая, а не акцентная. */
+#table-returns .group-row td { background: color-mix(in srgb, var(--status-serious) 8%, var(--surface-2)); }
+#table-returns .group-row td:first-child { box-shadow: inset 3px 0 0 var(--status-serious); }
+#table-returns .group-row:hover td { background: color-mix(in srgb, var(--status-serious) 15%, var(--surface-2)); }
 .group-caret { display: inline-block; width: 14px; color: var(--text-secondary); }
 tr.product-line { cursor: pointer; }
 .product-card td { background: color-mix(in srgb, var(--series-1) 4%, var(--surface-1)); }
@@ -430,24 +451,33 @@ th.sorted-desc::after { content: " ↓"; }
   max-width: 400px; height: 760px; margin: 24px auto; position: relative;
   overflow: hidden; border: 11px solid #141414; border-radius: 40px;
   box-shadow: 0 30px 60px -24px rgba(11,11,11,0.5);
+  /* Корпус — колонка: сверху прокручиваемый экран, снизу панель управления.
+     Так стрелки живут в «шасси» телефона и физически не могут накрыть данные. */
+  display: flex; flex-direction: column;
 }
-#app-viewport.phone #phone-scroll { height: 100%; overflow-y: auto; scroll-behavior: smooth; scrollbar-width: none; -ms-overflow-style: none; }
+#app-viewport.phone #phone-scroll { flex: 1 1 auto; min-height: 0; height: auto; overflow-y: auto; scroll-behavior: smooth; scrollbar-width: none; -ms-overflow-style: none; }
 #app-viewport.phone #phone-scroll::-webkit-scrollbar { display: none; }
 #app-viewport.phone .layout { min-height: 0; }
 #app-viewport.phone .sidebar { position: static; }
+/* Нижняя панель прокрутки — часть корпуса, вне области контента (не absolute). */
 .phone-nav { display: none; }
 #app-viewport.phone .phone-nav {
-  display: flex; flex-direction: column; gap: 8px;
-  position: absolute; right: 16px; bottom: 20px; z-index: 30;
+  display: flex; flex-direction: row; align-items: center; gap: 10px;
+  flex-shrink: 0; padding: 10px 14px;
+  background: var(--surface-1); border-top: 1px solid var(--border-strong);
+  box-shadow: 0 -8px 20px -16px rgba(11,11,11,0.5);
 }
 .phone-nav button {
-  width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer;
-  background: var(--accent); color: #fff; font-size: 20px; line-height: 1;
-  box-shadow: 0 6px 16px -4px rgba(11,11,11,0.45);
-  transition: transform 120ms var(--ease-out), filter 120ms var(--ease-out);
+  flex: 1; height: 40px; border-radius: 12px; cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
+  background: var(--accent-soft); color: var(--accent-strong);
+  font-size: 13px; font-weight: 600; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  transition: transform 120ms var(--ease-out), background-color 120ms var(--ease-out), border-color 120ms var(--ease-out);
 }
-.phone-nav button:hover { filter: brightness(1.08); }
-.phone-nav button:active { transform: scale(0.92); }
+.phone-nav button .arrow { font-size: 16px; line-height: 1; }
+.phone-nav button:hover { background: color-mix(in srgb, var(--accent) 20%, var(--surface-1)); border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+.phone-nav button:active { transform: scale(0.96); }
 
 @container viewport (max-width: 860px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
@@ -470,6 +500,18 @@ th.sorted-desc::after { content: " ↓"; }
   .stat-tile .value { font-size: 22px; }
   .insights { grid-template-columns: 1fr; }
   .pcard { grid-template-columns: 1fr; }
+  /* Плотнее: карточки и таблицы дышат меньше, но остаются читаемыми. */
+  .card { padding: 16px 14px; border-radius: 14px; margin-bottom: 16px; }
+  .card-header { margin-bottom: 12px; gap: 10px; }
+  th, td { padding: 8px 9px; }
+  /* Компактные чипы-сегменты в 1–2 ряда вместо трёх с большим воздухом. */
+  .segments { gap: 6px; margin-bottom: 10px; }
+  .segment { padding: 5px 11px; font-size: 11.5px; }
+  /* Группировка / Внутри группы — два аккуратных столбца, без разброса. */
+  .group-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; margin-bottom: 8px; }
+  .group-controls .field { max-width: none; gap: 4px; font-size: 12px; }
+  .group-controls .field select { padding: 7px 9px; }
+  .segments + .group-controls { margin-top: 2px; }
 }
 /* Reduced motion: strip movement/scale but keep opacity fades that aid comprehension. */
 @media (prefers-reduced-motion: reduce) {
@@ -783,8 +825,8 @@ th.sorted-desc::after { content: " ↓"; }
 </div>
 </div>
 <div class="phone-nav">
-  <button id="phone-up" type="button" aria-label="Прокрутить вверх">↑</button>
-  <button id="phone-down" type="button" aria-label="Прокрутить вниз">↓</button>
+  <button id="phone-up" type="button" aria-label="Прокрутить вверх"><span class="arrow" aria-hidden="true">↑</span>Вверх</button>
+  <button id="phone-down" type="button" aria-label="Прокрутить вниз"><span class="arrow" aria-hidden="true">↓</span>Вниз</button>
 </div>
 </div>
 
