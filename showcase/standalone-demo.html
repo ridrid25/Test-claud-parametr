@@ -878,6 +878,7 @@ const COLUMN_ALIASES = {
   commission: ["commission", "комиссия", "комиссия мп", "вознаграждение вайлдберриз",
     "sale_commission", "ppvz_sales_commission", "комиссия за продажу"],
   logistics: ["logistics", "логистика", "доставка", "услуги по доставке",
+    "услуги по доставке товара покупателю", "возмещение за доставку",
     "delivery_rub", "стоимость логистики", "логистика мп", "последняя миля"],
   storage: ["storage", "хранение", "storage_fee", "стоимость хранения", "хранение/размещение"],
   promotion: ["promotion", "продвижение", "реклама", "supplier_promo"],
@@ -941,19 +942,31 @@ function csvParse(text, delim) {
   return rows;
 }
 
+// Частичное совпадение (без учёта регистра) для заголовков, которые площадки
+// называют по-разному: любой заголовок с «логистик» или «доставк» — это логистика.
+const HEADER_SUBSTRINGS = {
+  logistics: ["логистик", "доставк"],
+};
+
 function mapHeaders(headers) {
   const mapping = []; // [{index, field}]
   const claimed = new Set();
+  const canClaim = field => SUMMABLE.has(field) || !claimed.has(field);
   headers.forEach((header, index) => {
     let key = String(header || "").trim().toLowerCase().replace(/^"|"$/g, "");
     key = key.replace(HEADER_UNIT_RE, "");
+    let matched = null;
     for (const [field, aliases] of Object.entries(COLUMN_ALIASES)) {
-      if (aliases.includes(key) && (SUMMABLE.has(field) || !claimed.has(field))) {
-        mapping.push({ index, field });
-        claimed.add(field);
-        break;
+      if (aliases.includes(key) && canClaim(field)) { matched = field; break; }
+    }
+    // Фолбэк по частичному совпадению; «дата …» исключаем, чтобы дата доставки
+    // не попала в логистику.
+    if (!matched && !key.includes("дата")) {
+      for (const [field, subs] of Object.entries(HEADER_SUBSTRINGS)) {
+        if (subs.some(s => key.includes(s)) && canClaim(field)) { matched = field; break; }
       }
     }
+    if (matched) { mapping.push({ index, field: matched }); claimed.add(matched); }
   });
   return mapping;
 }
@@ -2460,13 +2473,22 @@ function setupUploads() {
     const input = document.getElementById("upload-file");
     if (!input.files.length) { showUploadStatus("Сначала выберите файл CSV.", true); return; }
     const marketplace = document.getElementById("upload-marketplace").value;
-    clearDemoData();
-    let loaded = 0, failed = 0;
+    let loaded = 0, failed = 0, skipped = 0;
     for (const file of input.files) {
       try {
         const buffer = await file.arrayBuffer();
+        const sig = hashBuffer(buffer);
+        // Защита от повторной загрузки: тот же файл по имени ИЛИ по содержимому уже
+        // в списке. В режиме демо не спрашиваем — демо не является реальной загрузкой.
+        const dup = state.files.find(f => f.name === file.name || f.sig === sig);
+        if (dup && !state.isDemo &&
+            !confirm(`«${file.name}»: этот файл уже загружен — данные задвоятся. Загрузить всё равно?`)) {
+          skipped++;
+          continue;
+        }
         const { fileFixes, rows } = parseFile(marketplace, buffer);
-        state.files.push({ id: state.nextId++, name: file.name, marketplace, fileFixes, rows });
+        clearDemoData(); // свой файл замещает демо — смешивать демо с реальными данными нельзя
+        state.files.push({ id: state.nextId++, name: file.name, marketplace, fileFixes, rows, sig });
         loaded++;
       } catch (err) {
         failed++;
@@ -2483,6 +2505,8 @@ function setupUploads() {
       showUploadStatus(`Загружено файлов: ${loaded}. В последнем: исправлено автоматически — ${fixed}, с ошибками — ${errors}.` +
         (errors ? " Ошибки можно поправить в «Строках»." : ""));
       if (!errors) document.getElementById("tab-analysis").click();
+    } else if (!loaded && skipped && !failed) {
+      showUploadStatus("Загрузка отменена — этот файл уже был загружен.");
     }
   });
 }
@@ -2611,7 +2635,16 @@ function clearDemoData() {
   state.isDemo = false;
   const banner = document.getElementById("demo-banner");
   if (banner) banner.hidden = true;
+  renderUploadsList();
   updateCostStatus();
+}
+
+// Быстрый хэш содержимого файла (FNV-1a + длина) — для защиты от повторной загрузки.
+function hashBuffer(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < bytes.length; i++) { h ^= bytes[i]; h = Math.imul(h, 0x01000193); }
+  return (h >>> 0).toString(16) + ":" + bytes.length;
 }
 
 function initDemo() {
