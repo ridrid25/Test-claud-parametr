@@ -273,6 +273,21 @@ body {
 }
 .stat-tile-hero .label { color: var(--accent-strong); }
 .stat-tile-hero .value.positive { color: var(--success); }
+/* «Проверка удержаний»: две строки компактных плашек (3 и 4), помещаются в ряд
+   и на телефоне — фиксированное число колонок, текст переносится внутри плашки. */
+.audit-tiles { display: grid; gap: 10px; margin-bottom: 12px; }
+.audit-tiles.row3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.audit-tiles.row4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.audit-tile {
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+  padding: 13px 13px 14px; box-shadow: var(--shadow-sm); min-width: 0;
+}
+.audit-tile .a-val { font-size: 24px; font-weight: 640; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.05; }
+.audit-tile .a-val.txt { font-size: 15px; font-weight: 620; line-height: 1.2; }
+.audit-tile .a-lbl { font-size: 10px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-top: 7px; line-height: 1.25; }
+.audit-tile.head { border-left: 3px solid var(--status-serious); }
+.audit-tile.head .a-val { color: var(--status-serious); }
+.audit-cta { margin-top: 4px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
 .mp-badge { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; white-space: nowrap; }
 .mp-dot { width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 9.5px; font-weight: 700; letter-spacing: 0.02em; color: #fff; }
 .mp-wb { color: var(--wb); } .mp-wb .mp-dot { background: var(--wb); }
@@ -520,6 +535,16 @@ th.sorted-desc::after { content: " ↓"; }
   .group-controls .field { max-width: none; gap: 4px; font-size: 12px; }
   .group-controls .field select { padding: 7px 9px; }
   .segments + .group-controls { margin-top: 2px; }
+  /* Плашки проверки остаются 3-в-ряд и 4-в-ряд, только мельче — чтобы уместились
+     на экране телефона без бокового скролла. */
+  .audit-tiles { gap: 6px; }
+  .audit-tiles.row4 { gap: 5px; }
+  .audit-tile { padding: 9px 7px 10px; border-radius: 10px; }
+  .audit-tile .a-val { font-size: 17px; }
+  .audit-tiles.row4 .audit-tile .a-val { font-size: 15px; }
+  .audit-tile .a-val.txt { font-size: 11px; }
+  .audit-tile .a-lbl { font-size: 8px; letter-spacing: 0.01em; margin-top: 4px; }
+  .audit-cta { width: 100%; justify-content: center; text-align: center; }
 }
 /* Reduced motion: strip movement/scale but keep opacity fades that aid comprehension. */
 @media (prefers-reduced-motion: reduce) {
@@ -778,6 +803,13 @@ th.sorted-desc::after { content: " ↓"; }
           <span class="muted">в разрезе статей</span>
         </div>
         <div id="chart-deductions"></div>
+      </div>
+      <div class="card" id="audit-card" hidden>
+        <div class="card-header">
+          <h3>Проверка удержаний</h3>
+          <span class="muted">кандидаты на проверку — по 4 признакам</span>
+        </div>
+        <div id="audit-body"></div>
       </div>
     </section>
 
@@ -1243,6 +1275,143 @@ function renderDeductions(rows) {
       <tbody>${items.map(r => `<tr><td>${escapeHtml(r.label)}</td><td class="num">${fmtMoney(r.value)}</td></tr>`).join("")}</tbody>
     </table>`;
   wireTableToggle(el);
+}
+
+/* ==== Проверка удержаний (клиентская эвристика, только сводка) ==== */
+// Статьи удержаний, которые считаем «операциями»: (строка, статья) с суммой > 0.
+const AUDIT_DEDUCTIONS = ["commission", "logistics", "storage", "promotion", "penalty", "other_deduction"];
+const AUDIT_TYPE_LABELS = {
+  dup: "Дубли списаний",
+  noSale: "Удержания без продажи",
+  tariff: "Скачки тарифа",
+  commission: "Отклонения комиссии",
+};
+const auditSection = r => (r.category || "").split("/")[0].trim() || "—";
+const auditDaysApart = (a, b) => Math.abs((Date.parse(a) - Date.parse(b)) / 86400000);
+const auditMedian = arr => {
+  const s = [...arr].sort((x, y) => x - y), n = s.length;
+  return n ? (n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2) : 0;
+};
+
+// Возвращает { show, total, counts{dup,noSale,tariff,commission}, minA, maxA, sumA }.
+// Каждая операция помечается максимум одним типом (приоритет: дубль → без продажи →
+// скачок тарифа → отклонение комиссии), поэтому сумма по типам равна total.
+function auditDeductions(rows) {
+  const data = rows.filter(r => r.sku && r.period_date);
+  const hasDeductions = data.some(r => AUDIT_DEDUCTIONS.some(k => r[k] > 0));
+  // Edge case: нужных данных нет или операций слишком мало — карточку не показываем.
+  if (data.length < 5 || !hasDeductions) return { show: false };
+
+  const flagged = new Map(); // индекс строки → тип
+  const amountAt = new Map(); // индекс строки → сумма под вопросом
+  const flag = (i, type, amt) => { if (!flagged.has(i)) { flagged.set(i, type); amountAt.set(i, amt); } };
+
+  // 1. Дубли: одинаковые SKU + статья + сумма, даты в пределах 3 дней.
+  const charges = [];
+  data.forEach((r, i) => AUDIT_DEDUCTIONS.forEach(k => { if (r[k] > 0) charges.push({ i, k, sku: r.sku, amt: r[k], date: r.period_date }); }));
+  const byCharge = new Map();
+  for (const c of charges) {
+    const key = `${c.sku}|${c.k}|${Math.round(c.amt)}`;
+    (byCharge.get(key) || byCharge.set(key, []).get(key)).push(c);
+  }
+  for (const group of byCharge.values()) {
+    if (group.length < 2) continue;
+    for (let a = 0; a < group.length; a++)
+      for (let b = a + 1; b < group.length; b++)
+        if (auditDaysApart(group[a].date, group[b].date) <= 3) {
+          flag(group[a].i, "dup", group[a].amt);
+          flag(group[b].i, "dup", group[b].amt);
+        }
+  }
+
+  // 2. Удержание без продажи: у SKU нет ни одной реализации за период, но есть удержание.
+  const realBySku = new Map();
+  for (const r of data) realBySku.set(r.sku, (realBySku.get(r.sku) || 0) + r.realization);
+  data.forEach((r, i) => {
+    if (flagged.has(i)) return;
+    const ded = AUDIT_DEDUCTIONS.reduce((s, k) => s + r[k], 0);
+    if ((realBySku.get(r.sku) || 0) <= 0 && ded > 0) flag(i, "noSale", ded);
+  });
+
+  // 3. Скачок тарифа: логистика на единицу ИЛИ эффективная комиссия SKU выросли
+  //    более чем на 25% месяц к месяцу без смены категории.
+  const skuMonths = new Map();
+  data.forEach((r, i) => {
+    const key = `${r.sku}|${r.period_date.slice(0, 7)}`;
+    let m = skuMonths.get(key);
+    if (!m) skuMonths.set(key, m = { sku: r.sku, month: r.period_date.slice(0, 7), category: r.category, qty: 0, realization: 0, logistics: 0, commission: 0, idxs: [] });
+    m.qty += r.quantity; m.realization += r.realization; m.logistics += r.logistics; m.commission += r.commission; m.idxs.push(i);
+  });
+  const monthsBySku = new Map();
+  for (const m of skuMonths.values()) (monthsBySku.get(m.sku) || monthsBySku.set(m.sku, []).get(m.sku)).push(m);
+  for (const months of monthsBySku.values()) {
+    months.sort((a, b) => a.month.localeCompare(b.month));
+    for (let j = 1; j < months.length; j++) {
+      const prev = months[j - 1], cur = months[j];
+      if (prev.category !== cur.category) continue;
+      const logiPrev = prev.qty ? prev.logistics / prev.qty : 0, logiCur = cur.qty ? cur.logistics / cur.qty : 0;
+      const commPrev = prev.realization ? prev.commission / prev.realization : 0, commCur = cur.realization ? cur.commission / cur.realization : 0;
+      if ((logiPrev > 0 && logiCur > logiPrev * 1.25) || (commPrev > 0 && commCur > commPrev * 1.25))
+        for (const i of cur.idxs) flag(i, "tariff", data[i].logistics + data[i].commission);
+    }
+  }
+
+  // 4. Отклонение комиссии: эффективный % комиссии SKU выше медианы его раздела на 3+ п.п.
+  const aggSku = new Map();
+  data.forEach((r, i) => {
+    let a = aggSku.get(r.sku);
+    if (!a) aggSku.set(r.sku, a = { realization: 0, commission: 0, section: auditSection(r), idxs: [] });
+    a.realization += r.realization; a.commission += r.commission; a.idxs.push(i);
+  });
+  const sectionPcts = new Map();
+  for (const a of aggSku.values()) {
+    if (a.realization <= 0) continue;
+    (sectionPcts.get(a.section) || sectionPcts.set(a.section, []).get(a.section)).push(a.commission / a.realization);
+  }
+  const sectionMedian = new Map();
+  for (const [sec, arr] of sectionPcts) sectionMedian.set(sec, auditMedian(arr));
+  for (const a of aggSku.values()) {
+    if (a.realization <= 0) continue;
+    if (a.commission / a.realization > (sectionMedian.get(a.section) || 0) + 0.03)
+      for (const i of a.idxs) flag(i, "commission", data[i].commission);
+  }
+
+  const counts = { dup: 0, noSale: 0, tariff: 0, commission: 0 };
+  const amounts = [];
+  for (const [i, type] of flagged) { counts[type]++; const amt = amountAt.get(i) || 0; if (amt > 0) amounts.push(amt); }
+  const total = flagged.size;
+  // Edge case: подозрительных операций не нашлось — карточку не показываем.
+  if (total === 0) return { show: false };
+  return {
+    show: true, total, counts,
+    minA: amounts.length ? Math.min(...amounts) : 0,
+    maxA: amounts.length ? Math.max(...amounts) : 0,
+    sumA: amounts.reduce((s, a) => s + a, 0),
+  };
+}
+
+function renderAudit(rows) {
+  const card = document.getElementById("audit-card");
+  const res = auditDeductions(rows);
+  if (!res.show) { card.hidden = true; return; }
+  card.hidden = false;
+  const money = v => fmtMoney(Math.round(v));
+  const range = res.minA === res.maxA ? money(res.maxA) : `от ${money(res.minA)} до ${money(res.maxA)}`;
+  const tile = (val, lbl, cls = "", valCls = "") => `<div class="audit-tile ${cls}"><div class="a-val ${valCls}">${val}</div><div class="a-lbl">${lbl}</div></div>`;
+  document.getElementById("audit-body").innerHTML = `
+    <p class="hint" style="margin-top:0">Автопроверка загруженных операций по 4 признакам. Это <strong>кандидаты на проверку</strong>, а не подтверждённые ошибки — ниже только сводка.</p>
+    <div class="audit-tiles row3">
+      ${tile(res.total + " шт", "Кандидатов на проверку", "head")}
+      ${tile(range, "Диапазон суммы", "", "txt")}
+      ${tile(money(res.sumA), "Сумма под вопросом", "", "txt")}
+    </div>
+    <div class="audit-tiles row4">
+      ${tile(res.counts.dup + " шт", AUDIT_TYPE_LABELS.dup)}
+      ${tile(res.counts.noSale + " шт", AUDIT_TYPE_LABELS.noSale)}
+      ${tile(res.counts.tariff + " шт", AUDIT_TYPE_LABELS.tariff)}
+      ${tile(res.counts.commission + " шт", AUDIT_TYPE_LABELS.commission)}
+    </div>
+    <a class="btn-primary audit-cta" href="https://t.me/Ridrid" target="_blank" rel="noopener noreferrer">Разобрать и вернуть — бесплатный аудит</a>`;
 }
 
 function renderDynamics(rows) {
@@ -2099,6 +2268,7 @@ function refresh() {
   const rows = filteredRows();
   renderStatRow(rows);
   renderDeductions(rows);
+  renderAudit(rows);
   renderDynamics(rows);
   const analysis = renderAnalysis(rows);
   const search = document.getElementById("f-search").value.trim().toLowerCase();
@@ -2436,7 +2606,7 @@ function setupConnect() {
   });
 }
 
-const DEMO_SALES_CSV = "Маркетплейс;Дата;Артикул;Товар;Категория;Бренд;Продано, шт;Реализация, ₽;Возвраты, ₽;Комиссия МП, ₽;Логистика, ₽;Хранение, ₽;Продвижение, ₽;К выплате, ₽\nWildberries;2026-06-05;WB-001;Худи Northmoor 01;Одежда/Худи;Northmoor;47;81122;0;12168;8451;346;3244;56913\nWildberries;2026-06-05;WB-002;Худи Aurelka 02;Одежда/Худи;Aurelka;2;1444;606;216;106;308;0;208\nWildberries;2026-06-05;WB-003;Худи Aurelka 03;Одежда/Худи;Aurelka;14;34146;0;5121;3603;81;1365;23976\nOzon;2026-06-05;OZ-004;Худи Aurelka 04;Одежда/Худи;Aurelka;17;21012;1050;3151;1389;194;0;15228\nOzon;2026-06-05;OZ-005;Футболки Basico 05;Одежда/Футболки;Basico;38;63954;7674;9593;5894;193;0;40600\nOzon;2026-06-05;OZ-006;Футболки Basico 06;Одежда/Футболки;Basico;36;49932;0;7489;4977;395;0;37071\nWildberries;2026-06-05;WB-007;Футболки Northmoor 07;Одежда/Футболки;Northmoor;55;55715;6685;8357;5467;186;0;35020\nOzon;2026-06-05;OZ-008;Футболки Basico 08;Одежда/Футболки;Basico;13;43485;0;6522;4198;87;1739;30939\nWildberries;2026-06-05;WB-009;Кружки Keramo 09;Посуда/Кружки;Keramo;29;62466;0;9369;6313;393;0;46391\nWildberries;2026-06-05;WB-010;Кружки Keramo 10;Посуда/Кружки;Keramo;51;96492;0;14473;7011;290;3859;70859\nOzon;2026-06-05;OZ-011;Кружки Keramo 11;Посуда/Кружки;Keramo;41;108404;13008;16260;7433;71;0;71632\nOzon;2026-06-05;OZ-012;Кружки LuceCasa 12;Посуда/Кружки;LuceCasa;57;170430;0;25564;20424;70;6817;117555\nOzon;2026-06-05;OZ-013;Тарелки Keramo 13;Посуда/Тарелки;Keramo;48;38016;0;5702;3712;348;5322;22932\nOzon;2026-06-05;OZ-014;Тарелки Keramo 14;Посуда/Тарелки;Keramo;24;51912;6229;7786;4762;283;0;32852\nWildberries;2026-06-05;WB-015;Тарелки LuceCasa 15;Посуда/Тарелки;LuceCasa;49;158025;7901;23703;13603;232;0;112586\nOzon;2026-06-05;OZ-016;Тарелки Keramo 16;Посуда/Тарелки;Keramo;32;33120;1656;4968;3659;259;4636;17942\nWildberries;2026-06-05;WB-017;Наушники Voltra 17;Электроника/Наушники;Voltra;23;85629;0;12844;8214;250;0;64321\nWildberries;2026-06-05;WB-018;Наушники SonaX 18;Электроника/Наушники;SonaX;56;224336;0;33650;14239;290;0;176157\nWildberries;2026-06-05;WB-019;Наушники SonaX 19;Электроника/Наушники;SonaX;52;45916;0;6887;3108;243;6428;29250\nWildberries;2026-06-05;WB-020;Наушники SonaX 20;Электроника/Наушники;SonaX;33;137709;0;20656;15937;386;5508;95222\nWildberries;2026-06-05;WB-021;Пледы Aurelka 21;Дом/Пледы;Aurelka;25;83775;10053;12566;9548;231;0;51377\nWildberries;2026-06-05;WB-022;Пледы CozyNest 22;Дом/Пледы;CozyNest;4;7936;3333;1190;739;301;0;2373\nWildberries;2026-06-05;WB-023;Пледы CozyNest 23;Дом/Пледы;CozyNest;45;143280;60177;21492;9176;16;0;52419\nWildberries;2026-06-05;WB-024;Пледы CozyNest 24;Дом/Пледы;CozyNest;17;56780;0;8517;5871;292;2271;39829";
+const DEMO_SALES_CSV = "Маркетплейс;Дата;Артикул;Товар;Категория;Бренд;Продано, шт;Реализация, ₽;Возвраты, ₽;Комиссия МП, ₽;Логистика, ₽;Хранение, ₽;Продвижение, ₽;К выплате, ₽\nWildberries;2026-06-05;WB-001;Худи Northmoor 01;Одежда/Худи;Northmoor;47;81122;0;12168;8451;346;3244;56913\nWildberries;2026-06-05;WB-002;Худи Aurelka 02;Одежда/Худи;Aurelka;2;1444;606;216;106;308;0;208\nWildberries;2026-06-05;WB-003;Худи Aurelka 03;Одежда/Худи;Aurelka;14;34146;0;5121;3603;81;1365;23976\nOzon;2026-06-05;OZ-004;Худи Aurelka 04;Одежда/Худи;Aurelka;17;21012;1050;3151;1389;194;0;15228\nOzon;2026-06-05;OZ-005;Футболки Basico 05;Одежда/Футболки;Basico;38;63954;7674;9593;5894;193;0;40600\nOzon;2026-06-05;OZ-006;Футболки Basico 06;Одежда/Футболки;Basico;36;49932;0;7489;4977;395;0;37071\nWildberries;2026-06-05;WB-007;Футболки Northmoor 07;Одежда/Футболки;Northmoor;55;55715;6685;8357;5467;186;0;35020\nOzon;2026-06-05;OZ-008;Футболки Basico 08;Одежда/Футболки;Basico;13;43485;0;6522;4198;87;1739;30939\nWildberries;2026-06-05;WB-009;Кружки Keramo 09;Посуда/Кружки;Keramo;29;62466;0;9369;6313;393;0;46391\nWildberries;2026-06-05;WB-010;Кружки Keramo 10;Посуда/Кружки;Keramo;51;96492;0;14473;7011;290;3859;70859\nOzon;2026-06-05;OZ-011;Кружки Keramo 11;Посуда/Кружки;Keramo;41;108404;13008;16260;7433;71;0;71632\nOzon;2026-06-05;OZ-012;Кружки LuceCasa 12;Посуда/Кружки;LuceCasa;57;170430;0;25564;20424;70;6817;117555\nOzon;2026-06-05;OZ-013;Тарелки Keramo 13;Посуда/Тарелки;Keramo;48;38016;0;5702;3712;348;5322;22932\nOzon;2026-06-05;OZ-014;Тарелки Keramo 14;Посуда/Тарелки;Keramo;24;51912;6229;7786;4762;283;0;32852\nWildberries;2026-06-05;WB-015;Тарелки LuceCasa 15;Посуда/Тарелки;LuceCasa;49;158025;7901;23703;13603;232;0;112586\nOzon;2026-06-05;OZ-016;Тарелки Keramo 16;Посуда/Тарелки;Keramo;32;33120;1656;4968;3659;259;4636;17942\nWildberries;2026-06-05;WB-017;Наушники Voltra 17;Электроника/Наушники;Voltra;23;85629;0;12844;8214;250;0;64321\nWildberries;2026-06-05;WB-018;Наушники SonaX 18;Электроника/Наушники;SonaX;56;224336;0;33650;14239;290;0;176157\nWildberries;2026-06-05;WB-019;Наушники SonaX 19;Электроника/Наушники;SonaX;52;45916;0;6887;3108;243;6428;29250\nWildberries;2026-06-05;WB-020;Наушники SonaX 20;Электроника/Наушники;SonaX;33;137709;0;20656;15937;386;5508;95222\nWildberries;2026-06-05;WB-021;Пледы Aurelka 21;Дом/Пледы;Aurelka;25;83775;10053;12566;9548;231;0;51377\nWildberries;2026-06-05;WB-022;Пледы CozyNest 22;Дом/Пледы;CozyNest;4;7936;3333;1190;739;301;0;2373\nWildberries;2026-06-05;WB-023;Пледы CozyNest 23;Дом/Пледы;CozyNest;45;143280;60177;21492;9176;16;0;52419\nWildberries;2026-06-05;WB-024;Пледы CozyNest 24;Дом/Пледы;CozyNest;17;56780;0;8517;5871;292;2271;39829\nWildberries;2026-05-06;WB-002;Худи Aurelka 02;Одежда/Худи;Aurelka;3;1200;0;180;24;20;0;976\nWildberries;2026-06-14;WB-070;Худи Basico 70;Одежда/Худи;Basico;3;9000;0;1980;1200;80;0;5740\nWildberries;2026-06-14;WB-071;Кружки Keramo 71;Посуда/Кружки;Keramo;3;9000;0;1980;1200;80;0;5740\nWildberries;2026-06-18;WB-050;Хранение — недостача;Прочее/Корректировки;—;0;0;0;0;0;620;0;-620\nOzon;2026-06-20;OZ-060;Логистика — перевыставление;Прочее/Корректировки;—;0;0;0;0;450;0;0;-450\nOzon;2026-06-21;OZ-060;Логистика — перевыставление;Прочее/Корректировки;—;0;0;0;0;450;0;0;-450";
 const DEMO_COSTS_CSV = "SKU;Полная себестоимость за шт\nWB-001;1059\nWB-002;271\nWB-003;1152\nOZ-004;601\nOZ-005;958\nWB-007;467\nOZ-008;2156\nWB-009;810\nWB-010;886\nOZ-011;1057\nOZ-013;510\nOZ-014;692\nOZ-016;711\nWB-018;1468\nWB-019;340\nWB-020;1349\nWB-021;2326\nWB-022;1217\nWB-023;1493";
 
 function bufFromString(s) { return new TextEncoder().encode(s).buffer; }
