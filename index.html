@@ -592,7 +592,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v6 · 20.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v7 · 20.07</span>
 </div>
 
 <div class="layout">
@@ -1878,7 +1878,7 @@ function renderReconcile(rows) {
       ${line("К перечислению (расчёт)", "<strong>" + m(r.finalPay) + "</strong>", "rec-total")}
     </tbody></table>
     <p class="hint" style="margin-top:6px">Справочно: комиссия фактическая (до компенсации СПП) — <strong>${m(r.commBefore)}</strong>. «Вознаграждение ВВ» в расчёт комиссии не берётся.</p>
-    <div style="margin-top:8px"><button id="reconcile-export" class="btn-small" type="button">⬇ Скачать в Excel</button></div>
+    <div style="margin-top:8px"><button id="reconcile-export" class="btn-small" type="button">⬇ Скачать в Excel</button><span id="reconcile-export-msg" class="hint" style="margin-left:8px"></span></div>
     <div class="upload-form" style="margin-top:8px; align-items:flex-end">
       <label class="field" style="max-width:260px"><span>Фактически поступило на счёт, ₽</span>
         <input id="reconcile-actual" type="text" inputmode="decimal" placeholder="сумма выплаты из банка" value="${actual != null ? escapeHtml(String(actual)) : ""}" /></label>
@@ -1927,11 +1927,17 @@ function exportReconcileXlsx(r) {
   XLSX.utils.book_append_sheet(wb, ws, "Сверка недели");
   const out = XLSX.write(wb, { type: "array", bookType: "xlsx" });
   const blob = new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const msg = document.getElementById("reconcile-export-msg");
+  const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
+  link.href = url;
   link.download = "Сверка_недели_WB.xlsx";
+  link.rel = "noopener";
+  link.style.display = "none";
+  document.body.appendChild(link);          // некоторые браузеры требуют якорь в DOM
   link.click();
-  URL.revokeObjectURL(link.href);
+  if (msg) msg.textContent = "Файл «Сверка_недели_WB.xlsx» сформирован → ищите в «Загрузках». Если не появился — откройте дашборд по прямой ссылке (в превью Claude скачивание заблокировано).";
+  setTimeout(() => { document.body.removeChild(link); URL.revokeObjectURL(url); }, 2000);
 }
 
 function renderDynamics(rows) {
