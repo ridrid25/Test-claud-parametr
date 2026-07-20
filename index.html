@@ -592,7 +592,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v7 · 20.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v8 · 20.07</span>
 </div>
 
 <div class="layout">
@@ -1925,18 +1925,23 @@ function exportReconcileXlsx(r) {
   ws["!cols"] = [{ wch: 46 }, { wch: 16 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Сверка недели");
+  const msg = document.getElementById("reconcile-export-msg");
+  // В превью-рамке (артефакт Claude) скачивание браузер блокирует — там кнопка
+  // бессмысленна. Определяем это и честно направляем на сайт.
+  if (window.self !== window.top) {
+    if (msg) msg.textContent = "⚠️ В этом превью скачать нельзя. Откройте сайт ridrid25.github.io/Test-claud-parametr и нажмите кнопку там.";
+    return;
+  }
   const out = XLSX.write(wb, { type: "array", bookType: "xlsx" });
   const blob = new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-  const msg = document.getElementById("reconcile-export-msg");
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
   link.download = "Сверка_недели_WB.xlsx";
-  link.rel = "noopener";
   link.style.display = "none";
   document.body.appendChild(link);          // некоторые браузеры требуют якорь в DOM
   link.click();
-  if (msg) msg.textContent = "Файл «Сверка_недели_WB.xlsx» сформирован → ищите в «Загрузках». Если не появился — откройте дашборд по прямой ссылке (в превью Claude скачивание заблокировано).";
+  if (msg) msg.textContent = "✓ Файл «Сверка_недели_WB.xlsx» — в папке «Загрузки».";
   setTimeout(() => { document.body.removeChild(link); URL.revokeObjectURL(url); }, 2000);
 }
 
