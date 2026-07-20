@@ -1518,7 +1518,19 @@ function renderStatRow(rows) {
   // tone: «in» — приходит (реализация), «out» — уходит (возвраты/расходы/
   // себестоимость), signed — итог со знаком. Цвет даёт мгновенное «где хорошо
   // / где плохо» без чтения цифр.
-  const tiles = costsLoaded()
+  // На WB-отчёте KPI берём из канонической сверки недели, чтобы «Анализ» и
+  // «Сверка недели» показывали ОДНУ И ТУ ЖЕ выплату и сходились (валовая − СПП =
+  // нетто; нетто − расходы = к выплате).
+  const rec = commissionReconcile(rows);
+  const tiles = rec.show
+    ? [
+        { label: "Валовая розница", value: rec.gross, tone: "in" },
+        { label: "СПП", value: rec.sppRub, tone: "out" },
+        { label: "Нетто реализация", value: rec.netto, signed: true },
+        { label: "Расходы МП", value: rec.netto - rec.finalPay, tone: "out" },
+        { label: "К выплате", value: rec.finalPay, signed: true, hero: true },
+      ]
+    : costsLoaded()
     ? [
         { label: "Реализация", value: s.realization, tone: "in" },
         { label: "Возвраты", value: s.returns, tone: "out" },
