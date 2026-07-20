@@ -581,7 +581,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v16 · 20.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v18 · 20.07</span>
 </div>
 
 <div class="layout">
@@ -1981,14 +1981,17 @@ function makeGen() {
     const align = applyAlign ? `<alignment${o.h ? ` horizontal="${o.h}"` : ""} vertical="center"${o.wrap ? ` wrapText="1"` : ""}/>` : "";
     const xf = `<xf numFmtId="${numFmtId}" fontId="${fontId}" fillId="${fillId}" borderId="${borderId}" xfId="0"` +
       `${numFmtId ? ' applyNumberFormat="1"' : ''}${fillId ? ' applyFill="1"' : ''}${borderId ? ' applyBorder="1"' : ''} applyFont="1"${applyAlign ? ' applyAlignment="1"' : ''}>${align}</xf>`;
-    this.xfs.push(xf); const idx = this.xfs.length - 1; this._xf[key] = idx; return idx;
+    // В cellXfs первым идёт дефолтный xf (индекс 0), поэтому реальный индекс
+    // нашего стиля = позиция в массиве + 1. Без этого сдвига все ячейки берут
+    // оформление соседнего стиля (тот самый баг с «серыми буквами»).
+    this.xfs.push(xf); const idx = this.xfs.length; this._xf[key] = idx; return idx;
   };
   Styles.prototype.xml = function () {
     const nf = this.numFmts.length ? `<numFmts count="${this.numFmts.length}">${this.numFmts.map(n => `<numFmt numFmtId="${n.id}" formatCode="${xe(n.code)}"/>`).join("")}</numFmts>` : "";
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${nf}<fonts count="${this.fonts.length}">${this.fonts.join("")}</fonts><fills count="${this.fills.length}">${this.fills.join("")}</fills><borders count="${this.borders.length}">${this.borders.join("")}</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${this.xfs.length + 1}"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>${this.xfs.join("")}</cellXfs></styleSheet>`;
   };
-  function sheetXml(rowsMeta, cols, merges) {
+  function sheetXml(rowsMeta, cols, merges, autoFilter) {
     let sd = "";
     rowsMeta.forEach((row, i) => {
       const r = i + 1;
@@ -2006,8 +2009,11 @@ function makeGen() {
     const colsX = cols ? `<cols>${cols.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join("")}</cols>` : "";
     const mg = merges && merges.length ? `<mergeCells count="${merges.length}">${merges.map(m => `<mergeCell ref="${m}"/>`).join("")}</mergeCells>` : "";
     const dim = `A1:${colName((cols ? cols.length : 6) - 1)}${rowsMeta.length}`;
+    // Автофильтр: воронка в шапке. Скрытые нулевые строки раскрываются через неё
+    // («Выделить всё»), а не «угадыванием» пропущенных номеров строк.
+    const af = autoFilter ? `<autoFilter ref="${autoFilter.ref}"><filterColumn colId="${autoFilter.col}"><customFilters><customFilter operator="notEqual" val="0"/></customFilters></filterColumn></autoFilter>` : "";
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="${dim}"/><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/>${colsX}<sheetData>${sd}</sheetData>${mg}</worksheet>`;
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="${dim}"/><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/>${colsX}<sheetData>${sd}</sheetData>${af}${mg}</worksheet>`;
   }
   return { xe, colName, Styles, sheetXml };
 }
@@ -2015,15 +2021,19 @@ function makeGen() {
 function buildFiles(model, G) {
   const { Styles, sheetXml } = G;
   const S = new Styles();
-  const MONEY = S.numFmt('#,##0" ₽";[Red]-#,##0" ₽"'), PCT = S.numFmt("0.0%"), INT = S.numFmt("#,##0"), MONEY2 = S.numFmt('#,##0.00" ₽"');
+  // Правило: все цифры и буквы — чёрные (без [Red] и серых оттенков).
+  const MONEY = S.numFmt('#,##0" ₽";-#,##0" ₽"'), PCT = S.numFmt("0.0%"), INT = S.numFmt("#,##0"), MONEY2 = S.numFmt('#,##0.00" ₽"');
   const TEAL = "0A655E", TEALLT = "DCEBE9", GREY = "F1F1EF", RED = "BF3E2E", GREEN = "057A55", MAG = "A01A6E", MAGLT = "F6E7F1", DARK = "0B0B0B", MUTED = "8A8A85";
   const thinB = S.border({ all: "thin" });
   const totalB = S.border({ all: "thin", top: "medium", topColor: TEAL });
   const sectB = S.border({ all: "thin", top: "medium", topColor: MAG });
 
-  // Единственный лист «Проверка» — оформленный каскад. Без группировки и кнопок слева.
+  // Единственный лист «Проверка» — оформленный каскад. Скрытие нулей — через
+  // автофильтр (воронка в шапке), а не группировку и кнопки слева.
   const R = model.rows;
-  const rowsMeta = R.map(row => {
+  const headerIdx = R.findIndex(r => r.k === "header");   // строка «Показатель…»
+  const totalIdx = R.findIndex(r => r.k === "total");     // «К перечислению (расчёт)»
+  const rowsMeta = R.map((row, idx) => {
     const k = row.k, z = row.z || [];
     const cells = new Array(6).fill(null);
     const strong = k === "strong", isTotal = k === "total", isSection = k === "section", isSubhead = k === "subhead", isSub = k === "sub";
@@ -2032,34 +2042,32 @@ function buildFiles(model, G) {
     const bord = isTotal ? totalB : isSection ? sectB : k === "header" ? thinB : 0;
     const ht = k === "title" ? 30 : isTotal ? 22 : isSection ? 20 : 0;
     if (k === "title") { cells[0] = { v: row.c[0], s: S.xf({ font: S.font({ b: 1, sz: 15, color: "FFFFFF" }), fill: S.fill(TEAL) }) }; for (let c = 1; c < 6; c++) cells[c] = { v: "", s: S.xf({ fill: S.fill(TEAL) }) }; return { cells, ht }; }
-    if (k === "subtitle") { cells[0] = { v: row.c[0], s: S.xf({ font: S.font({ i: 1, sz: 10, color: MUTED }) }) }; return { cells, ht }; }
+    if (k === "subtitle") { cells[0] = { v: row.c[0], s: S.xf({ font: S.font({ i: 1, sz: 10, color: DARK }) }) }; return { cells, ht }; }
     if (k === "blank") return { cells, ht };
-    if (k === "capsion") { cells[0] = { v: row.c[0], s: S.xf({ font: S.font({ b: 1, sz: 11, color: MUTED }) }) }; return { cells, ht }; }
-    const labelColor = isSection ? MAG : (isTotal || strong) ? TEAL : (isSub || isSubhead) ? MUTED : k === "ref" ? MUTED : DARK;
+    if (k === "capsion") { cells[0] = { v: row.c[0], s: S.xf({ font: S.font({ b: 1, sz: 11, color: DARK }) }) }; return { cells, ht }; }
+    // Весь текст — чёрный. Акценты передаём жирностью, заливкой и рамками.
     const labelBold = isSection || isTotal || strong || isSubhead || k === "header";
     const sz = isTotal ? 13 : isSection ? 12 : (isSub || isSubhead) ? 10 : k === "ref" ? 10 : 11;
-    const labFont = S.font({ b: labelBold ? 1 : 0, i: k === "ref" ? 1 : 0, sz, color: k === "header" ? DARK : labelColor });
+    const labFont = S.font({ b: labelBold ? 1 : 0, i: k === "ref" ? 1 : 0, sz, color: DARK });
     for (let c = 0; c < 6; c++) {
       const v = row.c[c];
       if (v === undefined) continue;
       if (c === 0) { cells[0] = { v, s: S.xf({ font: labFont, fill: fillId, border: bord, h: "left" }) }; continue; }
       const isNum = typeof v === "number";
-      let color = DARK;
-      if (isSection) color = MAG; else if (isTotal || strong) color = TEAL;
-      else if (k === "minus") color = RED; else if (k === "plus") color = GREEN;
-      else if (isSub || isSubhead) color = isNum ? (v < 0 ? RED : v > 0 ? GREEN : MUTED) : MUTED;
-      else if (k === "ref") color = MUTED;
       const vBold = isTotal || isSection || strong || isSubhead || k === "header";
       const vsz = isTotal ? 13 : isSection ? 12 : (isSub || isSubhead) ? 10 : k === "ref" ? 10 : 11;
-      const font = c === 5 ? S.font({ i: 1, sz: 9, color: MUTED }) : S.font({ b: vBold ? 1 : 0, i: k === "ref" ? 1 : 0, sz: vsz, color });
+      const font = c === 5 ? S.font({ i: 1, sz: 9, color: DARK }) : S.font({ b: vBold ? 1 : 0, i: k === "ref" ? 1 : 0, sz: vsz, color: DARK });
       const nf = z[c] === "M" ? MONEY : z[c] === "P" ? PCT : z[c] === "N" ? INT : z[c] === "M2" ? MONEY2 : 0;
       cells[c] = { v, s: S.xf({ font, fill: fillId, border: bord, numFmt: isNum ? nf : 0, h: c === 5 ? "left" : "right", wrap: c === 5 }), num: isNum };
     }
-    // Пустые (нулевые) подстроки-статьи прячем (строка остаётся в файле).
+    // Пустые (нулевые) подстроки прячем (строка остаётся в файле и вернётся,
+    // как только по статье появится сумма). Раскрыть — воронка в шапке.
     const hidden = isSub && typeof row.c[1] === "number" && Math.abs(row.c[1]) < 0.005;
     return { cells, ht, hidden };
   });
-  const sheetProv = sheetXml(rowsMeta, [46, 15, 9, 11, 12, 40], ["A1:F1", "A2:F2"]);
+  // Автофильтр по колонке «Сумма, ₽» (индекс 1), от шапки до строки итога.
+  const af = { ref: `A${headerIdx + 1}:F${totalIdx + 1}`, col: 1 };
+  const sheetProv = sheetXml(rowsMeta, [46, 15, 9, 11, 12, 40], ["A1:F1", "A2:F2"], af);
 
   return [
     { name: "[Content_Types].xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>` },
