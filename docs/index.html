@@ -592,7 +592,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v21 · 20.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v20 · 20.07</span>
 </div>
 
 <div class="layout">
@@ -2002,7 +2002,7 @@ function makeGen() {
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${nf}<fonts count="${this.fonts.length}">${this.fonts.join("")}</fonts><fills count="${this.fills.length}">${this.fills.join("")}</fills><borders count="${this.borders.length}">${this.borders.join("")}</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${this.xfs.length + 1}"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>${this.xfs.join("")}</cellXfs></styleSheet>`;
   };
-  function sheetXml(rowsMeta, cols, merges, autoFilter, tableParts) {
+  function sheetXml(rowsMeta, cols, merges, autoFilter) {
     let sd = "";
     rowsMeta.forEach((row, i) => {
       const r = i + 1;
@@ -2024,7 +2024,7 @@ function makeGen() {
     // («Выделить всё»), а не «угадыванием» пропущенных номеров строк.
     const af = autoFilter ? `<autoFilter ref="${autoFilter.ref}"><filterColumn colId="${autoFilter.col}"><customFilters><customFilter operator="notEqual" val="0"/></customFilters></filterColumn></autoFilter>` : "";
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="${dim}"/><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/>${colsX}<sheetData>${sd}</sheetData>${af}${mg}${tableParts || ""}</worksheet>`;
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="${dim}"/><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/>${colsX}<sheetData>${sd}</sheetData>${af}${mg}</worksheet>`;
   }
   return { xe, colName, Styles, sheetXml };
 }
@@ -2038,10 +2038,12 @@ function buildFiles(model, G) {
   const totalB = S.border({ all: "thin", top: "medium", topColor: TEAL });
   const sectB = S.border({ all: "thin", top: "medium", topColor: MAG });
 
-  // Единственный лист «Проверка» — оформленный каскад. Скрытие нулей — по
-  // блокам: каждый блок это «умная таблица» со своей стрелочкой фильтра.
+  // Единственный лист «Проверка» — оформленный каскад. Скрытие нулей — через
+  // автофильтр (воронка в шапке), а не группировку и кнопки слева.
   const R = model.rows;
-  const rowsMeta = R.map(row => {
+  const headerIdx = R.findIndex(r => r.k === "header");   // строка «Показатель…»
+  const totalIdx = R.findIndex(r => r.k === "total");     // «К перечислению (расчёт)»
+  const rowsMeta = R.map((row, idx) => {
     const k = row.k, z = row.z || [];
     const cells = new Array(6).fill(null);
     const strong = k === "strong", isTotal = k === "total", isSection = k === "section", isSubhead = k === "subhead", isSub = k === "sub";
@@ -2074,37 +2076,23 @@ function buildFiles(model, G) {
       const nf = z[c] === "M" ? MONEY : z[c] === "P" ? PCT : z[c] === "N" ? INT : z[c] === "M2" ? MONEY2 : 0;
       cells[c] = { v, s: S.xf({ font, fill: fillId, border: bord, numFmt: isNum ? nf : 0, h: c === 5 ? "left" : "right", wrap: c === 5 }), num: isNum };
     }
-    // Пустые (нулевые) строки внутри блока прячем (строка остаётся в файле и
-    // вернётся, как только появится сумма). Раскрыть — стрелочка своего блока.
-    const hidden = !!row.tbl && typeof row.c[1] === "number" && Math.abs(row.c[1]) < 0.005;
+    // Пустые (нулевые) подстроки прячем (строка остаётся в файле и вернётся,
+    // как только по статье появится сумма). Раскрыть — воронка в шапке.
+    const hidden = isSub && typeof row.c[1] === "number" && Math.abs(row.c[1]) < 0.005;
     return { cells, ht, hidden };
   });
-  // «Умные таблицы» по блокам: своя стрелочка фильтра на шапке каждого блока.
-  const tbls = model.tables || [];
-  const TNAMES = ["Статья", "Сумма, ₽", "Доля", "Кол-во, шт", "За 1 шт, ₽", "Примечание"];
-  const tableXmls = tbls.map((t, i) => {
-    const ref = `A${t.start + 1}:F${t.end + 1}`;
-    const colsX = TNAMES.map((n, ci) => `<tableColumn id="${ci + 1}" name="${G.xe(n)}"/>`).join("");
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<table xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" id="${i + 1}" name="${t.name}" displayName="${t.name}" ref="${ref}" totalsRowShown="0" headerRowCount="1"><autoFilter ref="${ref}"><filterColumn colId="1"><customFilters><customFilter operator="notEqual" val="0"/></customFilters></filterColumn></autoFilter><tableColumns count="6">${colsX}</tableColumns><tableStyleInfo showFirstColumn="0" showLastColumn="0" showRowStripes="0" showColumnStripes="0"/></table>`;
-  });
-  const tp = tbls.length ? `<tableParts count="${tbls.length}">${tbls.map((_, i) => `<tablePart r:id="rId${i + 1}"/>`).join("")}</tableParts>` : "";
-  const sheetProv = sheetXml(rowsMeta, [52, 17, 10, 12, 14, 46], ["A1:F1", "A2:F2"], null, tp);
+  // Автофильтр по колонке «Сумма, ₽» (индекс 1), от шапки до строки итога.
+  const af = { ref: `A${headerIdx + 1}:F${totalIdx + 1}`, col: 1 };
+  const sheetProv = sheetXml(rowsMeta, [52, 17, 10, 12, 14, 46], ["A1:F1", "A2:F2"], af);
 
-  const ctTables = tbls.map((_, i) => `<Override PartName="/xl/tables/table${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml"/>`).join("");
-  const files = [
-    { name: "[Content_Types].xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${ctTables}</Types>` },
+  return [
+    { name: "[Content_Types].xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>` },
     { name: "_rels/.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
     { name: "xl/workbook.xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Проверка" sheetId="1" r:id="rId1"/></sheets></workbook>` },
     { name: "xl/_rels/workbook.xml.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>` },
     { name: "xl/styles.xml", data: S.xml() },
     { name: "xl/worksheets/sheet1.xml", data: sheetProv },
   ];
-  if (tbls.length) {
-    files.push({ name: "xl/worksheets/_rels/sheet1.xml.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${tbls.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/table" Target="../tables/table${i + 1}.xml"/>`).join("")}</Relationships>` });
-    tableXmls.forEach((x, i) => files.push({ name: `xl/tables/table${i + 1}.xml`, data: x }));
-  }
-  return files;
 }
 
 // zip (store, без сжатия) в браузере — байты .xlsx.
@@ -2151,17 +2139,10 @@ function exportReconcileXlsx(r, rows) {
   // Колонки: Показатель | Сумма, ₽ | Доля | Кол-во, шт | За 1 шт, ₽ | Примечание
   const M = "M", P = "P", N = "N", M2 = "M2";
   const R = [];
-  let inTbl = false;                                        // строки внутри «умной таблицы» блока
-  const push = (c, k, z, lvl) => R.push({ c, k, z: z || [], lvl: lvl || 0, tbl: inTbl && k === "sub" });
+  const push = (c, k, z, lvl) => R.push({ c, k, z: z || [], lvl: lvl || 0 });
   const ind = (lvl, s) => "    ".repeat(lvl) + s;
   const nz = v => v || 0;                                   // −0 → 0
   const perUnit = b => b.count ? b.sum / b.count : "";
-  // «Умная таблица» на каждый блок: у блока своя стрелочка фильтра на его шапке,
-  // нулевые строки скрыты внутри своего блока и раскрываются его же стрелочкой.
-  const TCOLS = ["Статья", "Сумма, ₽", "Доля", "Кол-во, шт", "За 1 шт, ₽", "Примечание"];
-  const tables = [];
-  const beginTable = name => { push(TCOLS.slice(), "header"); inTbl = true; return { name, start: R.length - 1 }; };
-  const endTable = t => { inTbl = false; t.end = R.length - 1; if (t.end > t.start) tables.push(t); };
   // Корзины раздела как сгруппированные подстроки: сумма (со знаком), «шт», за 1 шт.
   const emitBuckets = (bk, sign, lvl, withUnit) => {
     bk.out.forEach(b => push([ind(lvl, b.label), nz(sign * round2(b.sum)), "", b.count || "", withUnit && b.count ? sign * perUnit(b) : "", ""], "sub", [null, M, null, N, withUnit ? M2 : null], lvl));
@@ -2169,7 +2150,7 @@ function exportReconcileXlsx(r, rows) {
   };
 
   push(["Проверка сверки недели — Wildberries"], "title");
-  push([`Сформировано ${new Date().toLocaleString("ru-RU")}. Пустые (нулевые) статьи скрыты в своём блоке — стрелочка ▼ на строке «Статья» блока → «Выделить всё» покажет их.`], "subtitle");
+  push([`Сформировано ${new Date().toLocaleString("ru-RU")}. Пустые (нулевые) статьи скрыты — нажми воронку ▼ в шапке «Сумма, ₽» и выбери «Выделить всё», чтобы показать их.`], "subtitle");
   push([""], "blank");
   push(["Показатель", "Сумма, ₽", "Доля", "Кол-во, шт", "За 1 шт, ₽", "Примечание"], "header");
 
@@ -2181,17 +2162,17 @@ function exportReconcileXlsx(r, rows) {
   push(["Эквайринг", -round2(r.acquiring), -share(r.acquiring), "", "", ""], "minus", [null, M, P]);
   push(["Комиссия с учётом компенсации СПП", -round2(r.commAfter), -share(r.commAfter), "", "", r.commAfter <= 0 ? "WB компенсирует СПП — комиссия в плюс" : ""], "minus", [null, M, P]);
   push(["Компенсации и доплаты, итого", round2(r.comp), share(r.comp), "", "", ""], "plus", [null, M, P]);
-  let T = beginTable("T_Comp"); emitBuckets(comp, 1, 1, false); endTable(T);
+  emitBuckets(comp, 1, 1, false);
   push(["К перечислению за товар", perTov, share(perTov), "", "", "до вычета логистики, хранения и удержаний"], "section", [null, M, P]);
 
   push(["Логистика, итого", -round2(r.logistics), -share(r.logistics), logiQty, logiQty ? r.logistics / logiQty : "", ""], "minus", [null, M, P, N, M2]);
-  T = beginTable("T_Logi"); emitBuckets(logi, -1, 1, true); endTable(T);
+  emitBuckets(logi, -1, 1, true);
 
   push(["Прочие статьи", -otherTot, -share(otherTot), "", "", "штраф + хранение + удержания"], "section", [null, M, P]);
   push([ind(1, "Хранение"), nz(-round2(hran)), nz(-share(hran)), "", "", ""], "sub", [null, M, P], 1);
   push([ind(1, "Приёмка"), nz(-round2(priemka)), nz(-share(priemka)), "", "", ""], "sub", [null, M, P], 1);
   push([ind(1, "Удержания, итого"), -round2(r.uderzh), -share(r.uderzh), "", "", "со знаком «−» — это доплата нам"], "subhead", [null, M, P], 1);
-  T = beginTable("T_Uder"); emitBuckets(uder, -1, 2, false); endTable(T);
+  emitBuckets(uder, -1, 2, false);
   push([ind(1, "Штрафы"), -round2(r.shtraf), -share(r.shtraf), "", "", "расшифровка ниже"], "subhead", [null, M, P], 1);
 
   push(["К перечислению (расчёт)", round2(r.finalPay), share(r.finalPay), "", "", ""], "total", [null, M, P]);
@@ -2207,7 +2188,7 @@ function exportReconcileXlsx(r, rows) {
 
   push([""], "blank");
   push(["Расшифровка штрафов", round2(r.shtraf), share(r.shtraf), "", "", ""], "section", [null, M, P]);
-  T = beginTable("T_Shtraf"); emitBuckets(shtr, 1, 1, false); endTable(T);
+  emitBuckets(shtr, 1, 1, false);
 
   const msg = document.getElementById("reconcile-export-msg");
   // В превью-рамке (артефакт Claude) скачивание браузер блокирует — направляем на сайт.
@@ -2215,7 +2196,7 @@ function exportReconcileXlsx(r, rows) {
     if (msg) msg.textContent = "⚠️ В этом превью скачать нельзя. Откройте сайт ridrid25.github.io/Test-claud-parametr и нажмите кнопку там.";
     return;
   }
-  const files = buildFiles({ rows: R, tables }, makeGen());
+  const files = buildFiles({ rows: R }, makeGen());
   const bytes = xlsxZipStore(files);
   const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const url = URL.createObjectURL(blob);
