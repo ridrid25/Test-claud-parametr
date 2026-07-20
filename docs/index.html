@@ -836,6 +836,13 @@ th.sorted-desc::after { content: " ↓"; }
         </div>
         <div id="audit-body"></div>
       </div>
+      <div class="card" id="commission-card" hidden>
+        <div class="card-header">
+          <h3>Проверка комиссии (WB)</h3>
+          <span class="muted">только доказанные тождества отчёта</span>
+        </div>
+        <div id="commission-body"></div>
+      </div>
     </section>
 
     <section class="tab-panel" data-panel="products" role="tabpanel" id="panel-products" aria-labelledby="tab-products" hidden>
@@ -913,7 +920,7 @@ const COLUMN_ALIASES = {
     "код товара", "артикул wb", "ozon sku id", "sku мп"],
   product_name: ["product_name", "товар", "название", "название товара", "наименование",
     "предмет", "subject_name", "наименование товара"],
-  category: ["category", "категория", "категория/предмет", "группа товаров"],
+  category: ["category", "категория", "категория/предмет", "предмет", "группа товаров"],
   brand: ["brand", "бренд", "торговая марка"],
   doc_type: ["doc_type", "тип документа", "обоснование для оплаты", "тип операции",
     "doc_type_name", "операция", "виды логистики, штрафов и корректировок",
@@ -1035,6 +1042,8 @@ const SUBSTR_EXCLUDE = {
   logistics: ["возмещен", "компенсац", "возврат", "дата"],
   period_date: ["доставк", "отгруз", "приёмк", "приемк"],
   realization: ["возврат"],
+  // «Количество возврата», «Количество доставок» — это счётчики, не суммы возвратов.
+  returns: ["количеств", "кол-во", "доставк"],
 };
 
 function normHeaderKey(h) {
@@ -1279,9 +1288,43 @@ function extractTable(fileName, buffer) {
   return { headers: table[0].map(h => String(h ?? "").trim()), rows: table.slice(1), fileFixes };
 }
 
+// Эталонные колонки еженедельного детализированного отчёта WB для проверки комиссии.
+// Захватываются автоматически по точному имени, помимо основного сопоставления, и
+// кладутся в row.data.wb — на них работают доказанные проверки 1a/1b/1c и сбор остатков.
+const WB_VERIFY_RAW = {
+  "Цена розничная": "cenaRozn",
+  "Цена розничная с учетом согласованной скидки": "cenaSkidka",
+  "Платформенные скидки, %": "platScidki",
+  "Размер кВВ без НДС, % Базовый": "kvvBase",
+  "Итоговый кВВ без НДС, %": "kvvItog",
+  "Размер снижения кВВ из-за рейтинга, %": "kvvReiting",
+  "Размер изменения кВВ из-за акции, %": "kvvAkcia",
+  "Компенсация платёжных услуг/Комиссия за интеграцию платёжных сервисов": "acqComp",
+  "Размер компенсации платёжных услуг/Комиссии за интеграцию платёжных сервисов, %": "acqPct",
+  "Вознаграждение с продаж до вычета услуг поверенного, без НДС": "voznProdazh",
+  "Вознаграждение Вайлдберриз (ВВ), без НДС": "vv",
+  "К перечислению Продавцу за реализованный Товар": "perechisl",
+  "Виды логистики, штрафов и корректировок ВВ": "logisticsType",
+  "Обоснование для оплаты": "obosnovanie",
+  "Тип документа": "docKind",
+  "Srid": "srid",
+};
+const WB_TEXT_VERIFY = new Set(["logisticsType", "obosnovanie", "docKind", "srid"]);
+const WB_VERIFY_BY_KEY = {};
+for (const [name, key] of Object.entries(WB_VERIFY_RAW)) WB_VERIFY_BY_KEY[normHeaderKey(name)] = key;
+const wbNum = v => { const n = Number(String(v ?? "").trim().replace(/[₽%\s ]/g, "").replace(",", ".")); return Number.isFinite(n) ? n : 0; };
+
+function wbVerifyIndex(headers) {
+  const idx = {};
+  headers.forEach((h, i) => { const k = WB_VERIFY_BY_KEY[normHeaderKey(h)]; if (k && !(k in idx)) idx[k] = i; });
+  return idx;
+}
+
 // Применяет заданное сопоставление { field: columnIndex } к строкам таблицы.
-function buildRows(formMarketplace, dataRows, idxByField) {
+function buildRows(formMarketplace, headers, dataRows, idxByField) {
   const computeCommission = !("commission" in idxByField); // нет колонки комиссии → считаем косвенно
+  const vIdx = wbVerifyIndex(headers);
+  const hasVerify = Object.keys(vIdx).length > 0;
   const rows = [];
   for (let i = 0; i < dataRows.length; i++) {
     const raw = dataRows[i];
@@ -1290,7 +1333,16 @@ function buildRows(formMarketplace, dataRows, idxByField) {
       if (idx == null || idx < 0) continue;
       fieldValues[field] = idx < raw.length ? raw[idx] : "";
     }
-    rows.push(normalizeRow(formMarketplace, i, fieldValues, { computeCommission }));
+    const row = normalizeRow(formMarketplace, i, fieldValues, { computeCommission });
+    if (hasVerify) {
+      const wb = {};
+      for (const [key, ci] of Object.entries(vIdx)) {
+        const val = ci < raw.length ? raw[ci] : "";
+        wb[key] = WB_TEXT_VERIFY.has(key) ? String(val ?? "").trim() : wbNum(val);
+      }
+      row.data.wb = wb;
+    }
+    rows.push(row);
   }
   return rows;
 }
@@ -1319,7 +1371,7 @@ function parseFile(formMarketplace, buffer, fileName = "") {
   validateMapping(idxByField);
   if ("marketplace" in idxByField) fileFixes.push("маркетплейс каждой строки взят из колонки файла");
   if (!("commission" in idxByField)) fileFixes.push("комиссия рассчитана косвенно (нет колонки комиссии)");
-  const rows = buildRows(formMarketplace, dataRows, idxByField);
+  const rows = buildRows(formMarketplace, headers, dataRows, idxByField);
   if (!rows.length) throw new Error("В файле есть заголовки, но нет ни одной строки с данными.");
   return { fileFixes, rows };
 }
@@ -1327,7 +1379,7 @@ function parseFile(formMarketplace, buffer, fileName = "") {
 /* ==== Состояние ==== */
 
 const state = { files: [], nextId: 1, openRowsFileId: null, costs: new Map(), costFileName: null,
-  rememberedMappings: new Map() };
+  rememberedMappings: new Map(), residuals: [], payoutActual: null };
 
 const costsLoaded = () => state.costs.size > 0;
 
@@ -1638,6 +1690,96 @@ function renderAudit(rows) {
       ${tile(res.counts.commission + " шт", AUDIT_TYPE_LABELS.commission)}
     </div>
     <a class="btn-primary audit-cta" href="https://t.me/Ridrid" target="_blank" rel="noopener noreferrer">Разобрать и вернуть — бесплатный аудит</a>`;
+}
+
+/* ==== Проверка комиссии WB (только доказанные тождества) ==== */
+// Принцип: флагуем ТОЛЬКО построчные равенства, доказанные на реальных отчётах.
+// Недоказанную формулу «ВВ = Пр × кВВ%» НЕ используем (даёт 100% ложных срабатываний).
+const wbIsSale = w => (w.docKind || "").toLowerCase() === "продажа";
+
+function commissionAudit(rows) {
+  const wbRows = rows.filter(r => r.wb);
+  if (!wbRows.length) return { show: false };
+  const sales = wbRows.filter(r => wbIsSale(r.wb));
+  let c1a = 0, c1b = 0, c1c = 0;
+  for (const r of sales) {
+    const w = r.wb;
+    // 1a: Итоговый кВВ% = Базовый − Платформенные + Рейтинг + Акция (допуск 0.05 п.п.)
+    if (w.kvvItog || w.kvvBase) {
+      const exp = w.kvvBase - w.platScidki + w.kvvReiting + w.kvvAkcia;
+      if (Math.abs(w.kvvItog - exp) > 0.05) c1a++;
+    }
+    // 1b: Эквайринг = Цена со скидкой × Размер комп.% / 100 (база — цена со скидкой, не Пр; допуск 1 ₽)
+    if (w.acqPct || w.acqComp) {
+      if (Math.abs(w.acqComp - w.cenaSkidka * w.acqPct / 100) > 1) c1b++;
+    }
+    // 1c: Пр = Цена розничная × (1 − Платформенные%/100) (допуск 1 ₽)
+    if (w.cenaRozn > 0) {
+      if (Math.abs(r.realization - w.cenaRozn * (1 - w.platScidki / 100)) > 1) c1c++;
+    }
+  }
+  // Дедуп по Srid + обоснование + сумма. Один Srid легитимно встречается на
+  // нескольких строках (продажа + логистика + хранение), поэтому сумма — это НЕТТО
+  // «К перечислению» и учитываем только ненулевые строки: тогда совпадение триплета
+  // означает настоящее задвоение платежа. Считаем лишние строки (n − 1).
+  const bySrid = new Map();
+  for (const r of wbRows) {
+    const amount = r.wb.perechisl;
+    if (!r.wb.srid || !amount) continue;
+    const key = `${r.wb.srid}|${r.wb.obosnovanie || ""}|${Math.round(amount)}`;
+    bySrid.set(key, (bySrid.get(key) || 0) + 1);
+  }
+  let sridDup = 0;
+  for (const n of bySrid.values()) if (n > 1) sridDup += n - 1;
+  const reportPayout = wbRows.reduce((s, r) => s + (r.wb.perechisl || 0), 0);
+  return { show: true, salesCount: sales.length, c1a, c1b, c1c, sridDup, reportPayout };
+}
+
+// Служебная таблица остатков ВВ − (Возн.с продаж + эквайринг) по всем отчётам —
+// собираем, НЕ флагуем; когда остаток объяснится стабильной формулой, переведём в проверки.
+function rebuildResiduals() {
+  state.residuals = [];
+  for (const f of state.files)
+    for (const r of f.rows) {
+      const w = r.data.wb;
+      if (w && wbIsSale(w))
+        state.residuals.push({ file: f.name, sku: r.data.sku, srid: w.srid,
+          residual: round2(w.vv - (w.voznProdazh + (w.acqComp || 0))) });
+    }
+}
+
+function renderCommissionAudit(rows) {
+  const card = document.getElementById("commission-card");
+  const res = commissionAudit(rows);
+  if (!res.show) { card.hidden = true; return; }
+  card.hidden = false;
+  const tile = (val, lbl, cls = "", valCls = "") => `<div class="audit-tile ${cls}"><div class="a-val ${valCls}">${val}</div><div class="a-lbl">${lbl}</div></div>`;
+  const actual = state.payoutActual;
+  const diff = actual != null ? round2(actual - res.reportPayout) : null;
+  document.getElementById("commission-body").innerHTML = `
+    <p class="hint" style="margin-top:0">Проверяем только <strong>доказанные тождества</strong> WB-отчёта — расхождение по строке продажи считаем кандидатом. Строк продаж: <strong>${res.salesCount}</strong>.</p>
+    <div class="audit-tiles row3">
+      ${tile(res.c1a + " шт", "1a · формула кВВ %", res.c1a ? "head" : "")}
+      ${tile(res.c1b + " шт", "1b · эквайринг", res.c1b ? "head" : "")}
+      ${tile(res.c1c + " шт", "1c · Пр = цена×(1−скидка)", res.c1c ? "head" : "")}
+    </div>
+    <div class="audit-tiles row3">
+      ${tile(res.sridDup + " шт", "Дубли по Srid", res.sridDup ? "head" : "")}
+      ${tile(state.residuals.length + " зап.", "Остатков собрано (для будущих формул)")}
+      ${tile(res.reportPayout ? fmtMoney(Math.round(res.reportPayout)) : "—", "К перечислению по отчёту", "", "txt")}
+    </div>
+    <div class="upload-form" style="margin-top:10px; align-items:flex-end">
+      <label class="field" style="max-width:260px"><span>Фактически поступило на счёт, ₽</span>
+        <input id="payout-actual" type="text" inputmode="decimal" placeholder="сумма выплаты из банка" value="${actual != null ? escapeHtml(String(actual)) : ""}" /></label>
+      <button id="payout-check" class="btn-small" type="button">Сверить с отчётом</button>
+      ${diff != null ? `<span class="hint" style="margin:0">Расхождение: <strong>${fmtMoney(Math.round(diff))}</strong>${Math.abs(diff) <= 1 ? " — сходится ✅" : " — проверьте ⚠️"}</span>` : ""}
+    </div>`;
+  const btn = document.getElementById("payout-check");
+  if (btn) btn.addEventListener("click", () => {
+    const v = document.getElementById("payout-actual").value.trim();
+    state.payoutActual = v === "" ? null : wbNum(v);
+    renderCommissionAudit(filteredRows());
+  });
 }
 
 function renderDynamics(rows) {
@@ -2496,6 +2638,7 @@ function refresh() {
   renderStatRow(rows);
   renderDeductions(rows);
   renderAudit(rows);
+  renderCommissionAudit(rows);
   renderDynamics(rows);
   const analysis = renderAnalysis(rows);
   const search = document.getElementById("f-search").value.trim().toLowerCase();
@@ -2698,8 +2841,8 @@ let pendingMapping = null;
 
 function headerSignature(headers) { return headers.map(normHeaderKey).join("␟"); }
 
-function loadWithMapping(file, sig, formMarketplace, dataRows, fileFixes, idxByField, manual) {
-  const rows = buildRows(formMarketplace, dataRows, idxByField);
+function loadWithMapping(file, sig, formMarketplace, headers, dataRows, fileFixes, idxByField, manual) {
+  const rows = buildRows(formMarketplace, headers, dataRows, idxByField);
   if (!rows.length) { uploadStats.failed++; showUploadStatus(`«${file.name}»: нет строк с данными.`, true); return; }
   clearDemoData(); // свой файл замещает демо — смешивать демо с реальными данными нельзя
   const ff = [...fileFixes];
@@ -2740,7 +2883,7 @@ async function processNextUpload() {
       enforceNumericTypes(idxByField, numericCols); // проверка типа обязательна и для запомненного маппинга
       try {
         validateMapping(idxByField);
-        loadWithMapping(file, sig, formMarketplace, dataRows, fileFixes, idxByField, true);
+        loadWithMapping(file, sig, formMarketplace, headers, dataRows, fileFixes, idxByField, true);
         processNextUpload();
         return;
       } catch { /* запомненный маппинг больше не подходит — показываем предпросмотр */ }
@@ -2757,6 +2900,7 @@ async function processNextUpload() {
 }
 
 function finishUploads() {
+  rebuildResiduals();
   renderUploadsList();
   refresh();
   const { loaded, failed, skipped } = uploadStats;
@@ -2840,7 +2984,7 @@ function setupUploads() {
     }
     try { validateMapping(idxByField); }
     catch (e) { const el = document.getElementById("mapping-error"); el.hidden = false; el.textContent = e.message; return; }
-    loadWithMapping(p.file, p.sig, p.formMarketplace, p.dataRows, p.fileFixes, idxByField, true);
+    loadWithMapping(p.file, p.sig, p.formMarketplace, p.headers, p.dataRows, p.fileFixes, idxByField, true);
     // Запоминаем маппинг для файлов с такими же заголовками в этой сессии.
     const remembered = {};
     for (const [field, idx] of Object.entries(idxByField)) remembered[field] = p.headers[idx];
