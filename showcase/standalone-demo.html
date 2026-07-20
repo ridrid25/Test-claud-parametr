@@ -581,7 +581,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v14 · 20.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v15 · 20.07</span>
 </div>
 
 <div class="layout">
@@ -2013,77 +2013,59 @@ function makeGen() {
 }
 
 function buildFiles(model, G) {
-  const { xe, Styles, sheetXml } = G;
+  const { Styles, sheetXml } = G;
   const S = new Styles();
-  const MONEY = S.numFmt('#,##0" ₽";[Red]-#,##0" ₽"'), INT = S.numFmt("#,##0");
-  const TEAL = "0A655E", GREY = "F1F1EF", DARK = "0B0B0B", MUTED = "8A8A85";
+  const MONEY = S.numFmt('#,##0" ₽";[Red]-#,##0" ₽"'), PCT = S.numFmt("0.0%"), INT = S.numFmt("#,##0"), MONEY2 = S.numFmt('#,##0.00" ₽"');
+  const TEAL = "0A655E", TEALLT = "DCEBE9", GREY = "F1F1EF", RED = "BF3E2E", GREEN = "057A55", MAG = "A01A6E", MAGLT = "F6E7F1", DARK = "0B0B0B", MUTED = "8A8A85";
   const thinB = S.border({ all: "thin" });
+  const totalB = S.border({ all: "thin", top: "medium", topColor: TEAL });
+  const sectB = S.border({ all: "thin", top: "medium", topColor: MAG });
 
-  // «Проверка» — единственный видимый лист, он же хост сводной. Заголовок в
-  // строках 1–2 (бирюзовый), сводная начинается с A3.
-  const titleXf = S.xf({ font: S.font({ b: 1, sz: 15, color: "FFFFFF" }), fill: S.fill(TEAL) });
-  const subXf = S.xf({ font: S.font({ i: 1, sz: 10, color: MUTED }) });
-  const hostRows = [
-    { cells: [{ v: "Проверка сверки недели — Wildberries", s: titleXf }, { v: "", s: titleXf }, { v: "", s: titleXf }], ht: 30 },
-    { cells: [{ v: "Жми ⊟ / ⊞ у названия раздела, чтобы свернуть или развернуть", s: subXf }] },
-  ];
-  const sheetHost = sheetXml(hostRows, [46, 16, 12], ["A1:C1"]);
-
-  // Бирюзовая тема — перекрашивает синюю сводную PivotStyleMedium9 в наш цвет.
-  const theme = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Проверка"><a:themeElements><a:clrScheme name="Проверка"><a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1><a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="0A655E"/></a:dk2><a:lt2><a:srgbClr val="DCEBE9"/></a:lt2><a:accent1><a:srgbClr val="0A655E"/></a:accent1><a:accent2><a:srgbClr val="0A655E"/></a:accent2><a:accent3><a:srgbClr val="0A655E"/></a:accent3><a:accent4><a:srgbClr val="0A655E"/></a:accent4><a:accent5><a:srgbClr val="0A655E"/></a:accent5><a:accent6><a:srgbClr val="0A655E"/></a:accent6><a:hlink><a:srgbClr val="0A655E"/></a:hlink><a:folHlink><a:srgbClr val="8A8A85"/></a:folHlink></a:clrScheme><a:fontScheme name="Проверка"><a:majorFont><a:latin typeface="Calibri Light"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="Проверка"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:schemeClr val="phClr"><a:lumMod val="110000"/><a:satMod val="105000"/><a:tint val="67000"/></a:schemeClr></a:gs><a:gs pos="50000"><a:schemeClr val="phClr"><a:lumMod val="105000"/><a:satMod val="103000"/><a:tint val="73000"/></a:schemeClr></a:gs><a:gs pos="100000"><a:schemeClr val="phClr"><a:lumMod val="105000"/><a:satMod val="109000"/><a:tint val="81000"/></a:schemeClr></a:gs></a:gsLst><a:lin ang="5400000" scaled="0"/></a:gradFill><a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:schemeClr val="phClr"><a:satMod val="103000"/><a:lumMod val="102000"/><a:tint val="94000"/></a:schemeClr></a:gs><a:gs pos="50000"><a:schemeClr val="phClr"><a:satMod val="110000"/><a:lumMod val="100000"/><a:shade val="100000"/></a:schemeClr></a:gs><a:gs pos="100000"><a:schemeClr val="phClr"><a:lumMod val="99000"/><a:satMod val="120000"/><a:shade val="78000"/></a:schemeClr></a:gs></a:gsLst><a:lin ang="5400000" scaled="0"/></a:gradFill></a:fillStyleLst><a:lnStyleLst><a:ln w="6350" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/><a:miter lim="800000"/></a:ln><a:ln w="12700" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/><a:miter lim="800000"/></a:ln><a:ln w="19050" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/><a:miter lim="800000"/></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst><a:outerShdw blurRad="57150" dist="19050" dir="5400000" rotWithShape="0"><a:srgbClr val="000000"><a:alpha val="63000"/></a:srgbClr></a:outerShdw></a:effectLst></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"><a:tint val="95000"/><a:satMod val="170000"/></a:schemeClr></a:solidFill><a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:schemeClr val="phClr"><a:tint val="93000"/><a:satMod val="150000"/><a:shade val="98000"/><a:lumMod val="102000"/></a:schemeClr></a:gs><a:gs pos="50000"><a:schemeClr val="phClr"><a:tint val="98000"/><a:satMod val="130000"/><a:shade val="90000"/><a:lumMod val="103000"/></a:schemeClr></a:gs><a:gs pos="100000"><a:schemeClr val="phClr"><a:shade val="63000"/><a:satMod val="120000"/></a:schemeClr></a:gs></a:gsLst><a:lin ang="5400000" scaled="0"/></a:gradFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements><a:objectDefaults/><a:extraClrSchemeLst/></a:theme>`;
-
-  // Данные (источник сводной, скрытый лист): Раздел | Статья | Сумма | Кол-во
-  const hdrFont = S.font({ b: 1, sz: 11, color: DARK });
-  const hdrXf = S.xf({ font: hdrFont, fill: S.fill(GREY), border: thinB, h: "left" });
-  const hdrXfR = S.xf({ font: hdrFont, fill: S.fill(GREY), border: thinB, h: "right" });
-  const txtXf = S.xf({ font: S.font({ sz: 11, color: DARK }), h: "left" });
-  const numXf = S.xf({ font: S.font({ sz: 11, color: DARK }), numFmt: MONEY, h: "right" });
-  const intXf = S.xf({ font: S.font({ sz: 11, color: DARK }), numFmt: INT, h: "right" });
-  const dataRowsMeta = [{ cells: [{ v: "Раздел", s: hdrXf }, { v: "Статья", s: hdrXf }, { v: "Сумма", s: hdrXfR }, { v: "Кол-во", s: hdrXfR }] }];
-  model.data.forEach(d => dataRowsMeta.push({ cells: [{ v: d[0], s: txtXf }, { v: d[1], s: txtXf }, { v: d[2], s: numXf, num: true }, { v: d[3] === "" ? "" : d[3], s: intXf, num: d[3] !== "" }] }));
-  const sheetData = sheetXml(dataRowsMeta, [26, 46, 15, 11]);
-
-  // ---- сводная из model.data (Раздел -> Статья), значения Сумма + Кол-во ----
-  const secNames = []; const seen = {};
-  model.data.forEach(d => { if (!seen[d[0]]) { seen[d[0]] = 1; secNames.push(d[0]); } });
-  const itemNames = [...new Set(model.data.map(d => d[1]))];
-  const nRows = model.data.length;
-  const sharedS = arr => arr.map(v => `<s v="${xe(v)}"/>`).join("");
-  const cacheDef = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<pivotCacheDefinition xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rId1" refreshOnLoad="1" refreshedBy="dashboard" createdVersion="6" refreshedVersion="6" minRefreshableVersion="3" recordCount="${nRows}"><cacheSource type="worksheet"><worksheetSource sheet="Данные" ref="A1:D${nRows + 1}"/></cacheSource><cacheFields count="4"><cacheField name="Раздел" numFmtId="0"><sharedItems count="${secNames.length}">${sharedS(secNames)}</sharedItems></cacheField><cacheField name="Статья" numFmtId="0"><sharedItems count="${itemNames.length}">${sharedS(itemNames)}</sharedItems></cacheField><cacheField name="Сумма" numFmtId="0"><sharedItems containsSemiMixedTypes="0" containsString="0" containsNumber="1"/></cacheField><cacheField name="Кол-во" numFmtId="0"><sharedItems containsSemiMixedTypes="0" containsString="0" containsNumber="1" containsInteger="1"/></cacheField></cacheFields></pivotCacheDefinition>`;
-  const recs = model.data.map(d => `<r><x v="${secNames.indexOf(d[0])}"/><x v="${itemNames.indexOf(d[1])}"/><n v="${d[2]}"/>${d[3] === "" ? "<m/>" : `<n v="${d[3]}"/>`}</r>`).join("");
-  const cacheRecs = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<pivotCacheRecords xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" count="${nRows}">${recs}</pivotCacheRecords>`;
-  const bySec = secNames.map(s => model.data.filter(d => d[0] === s));
-  const sectItems = secNames.map((_, i) => `<item x="${i}"/>`).join("") + `<item t="default"/>`;
-  const itemItems = itemNames.map((_, i) => `<item x="${i}"/>`).join("") + `<item t="default"/>`;
-  let rowItems = "", cnt = 0;
-  secNames.forEach((s, si) => {
-    rowItems += `<i><x v="${si}"/></i>`; cnt++;
-    bySec[si].forEach(d => { rowItems += `<i r="1"><x v="${itemNames.indexOf(d[1])}"/></i>`; cnt++; });
-    rowItems += `<i t="default" r="1"/>`; cnt++;
+  // Единственный лист «Проверка» — оформленный каскад. Без группировки и кнопок слева.
+  const R = model.rows;
+  const rowsMeta = R.map(row => {
+    const k = row.k, z = row.z || [];
+    const cells = new Array(6).fill(null);
+    const strong = k === "strong", isTotal = k === "total", isSection = k === "section", isSubhead = k === "subhead", isSub = k === "sub";
+    const fillRgb = isTotal ? TEALLT : isSection ? MAGLT : k === "header" ? GREY : null;
+    const fillId = fillRgb ? S.fill(fillRgb) : 0;
+    const bord = isTotal ? totalB : isSection ? sectB : k === "header" ? thinB : 0;
+    const ht = k === "title" ? 30 : isTotal ? 22 : isSection ? 20 : 0;
+    if (k === "title") { cells[0] = { v: row.c[0], s: S.xf({ font: S.font({ b: 1, sz: 15, color: "FFFFFF" }), fill: S.fill(TEAL) }) }; for (let c = 1; c < 6; c++) cells[c] = { v: "", s: S.xf({ fill: S.fill(TEAL) }) }; return { cells, ht }; }
+    if (k === "subtitle") { cells[0] = { v: row.c[0], s: S.xf({ font: S.font({ i: 1, sz: 10, color: MUTED }) }) }; return { cells, ht }; }
+    if (k === "blank") return { cells, ht };
+    if (k === "capsion") { cells[0] = { v: row.c[0], s: S.xf({ font: S.font({ b: 1, sz: 11, color: MUTED }) }) }; return { cells, ht }; }
+    const labelColor = isSection ? MAG : (isTotal || strong) ? TEAL : (isSub || isSubhead) ? MUTED : k === "ref" ? MUTED : DARK;
+    const labelBold = isSection || isTotal || strong || isSubhead || k === "header";
+    const sz = isTotal ? 13 : isSection ? 12 : (isSub || isSubhead) ? 10 : k === "ref" ? 10 : 11;
+    const labFont = S.font({ b: labelBold ? 1 : 0, i: k === "ref" ? 1 : 0, sz, color: k === "header" ? DARK : labelColor });
+    for (let c = 0; c < 6; c++) {
+      const v = row.c[c];
+      if (v === undefined) continue;
+      if (c === 0) { cells[0] = { v, s: S.xf({ font: labFont, fill: fillId, border: bord, h: "left" }) }; continue; }
+      const isNum = typeof v === "number";
+      let color = DARK;
+      if (isSection) color = MAG; else if (isTotal || strong) color = TEAL;
+      else if (k === "minus") color = RED; else if (k === "plus") color = GREEN;
+      else if (isSub || isSubhead) color = isNum ? (v < 0 ? RED : v > 0 ? GREEN : MUTED) : MUTED;
+      else if (k === "ref") color = MUTED;
+      const vBold = isTotal || isSection || strong || isSubhead || k === "header";
+      const vsz = isTotal ? 13 : isSection ? 12 : (isSub || isSubhead) ? 10 : k === "ref" ? 10 : 11;
+      const font = c === 5 ? S.font({ i: 1, sz: 9, color: MUTED }) : S.font({ b: vBold ? 1 : 0, i: k === "ref" ? 1 : 0, sz: vsz, color });
+      const nf = z[c] === "M" ? MONEY : z[c] === "P" ? PCT : z[c] === "N" ? INT : z[c] === "M2" ? MONEY2 : 0;
+      cells[c] = { v, s: S.xf({ font, fill: fillId, border: bord, numFmt: isNum ? nf : 0, h: c === 5 ? "left" : "right", wrap: c === 5 }), num: isNum };
+    }
+    return { cells, ht };
   });
-  rowItems += `<i t="grand"><x/></i>`; cnt++;
-  const lastRow = 3 + cnt;
-  const pivotTable = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<pivotTableDefinition xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" name="Проверка" cacheId="1" applyNumberFormats="0" applyBorderFormats="0" applyFontFormats="0" applyPatternFormats="0" applyAlignmentFormats="0" applyWidthHeightFormats="1" dataCaption="Значения" updatedVersion="6" minRefreshableVersion="3" useAutoFormatting="1" itemPrintTitles="1" createdVersion="6" indent="0" outline="1" outlineData="1" compact="1" compactData="1" multipleFieldFilters="0"><location ref="A3:C${lastRow}" firstHeaderRow="1" firstDataRow="2" firstDataCol="1"/><pivotFields count="4"><pivotField axis="axisRow" compact="1" outline="1" subtotalTop="1" showAll="0"><items count="${secNames.length + 1}">${sectItems}</items></pivotField><pivotField axis="axisRow" compact="1" outline="1" showAll="0"><items count="${itemNames.length + 1}">${itemItems}</items></pivotField><pivotField dataField="1" showAll="0"/><pivotField dataField="1" showAll="0"/></pivotFields><rowFields count="2"><field x="0"/><field x="1"/></rowFields><rowItems count="${cnt}">${rowItems}</rowItems><colFields count="1"><field x="-2"/></colFields><colItems count="2"><i/><i i="1"><x v="1"/></i></colItems><dataFields count="2"><dataField name="Сумма, ₽" fld="2" baseField="0" baseItem="0" numFmtId="${MONEY}"/><dataField name="Кол-во" fld="3" baseField="0" baseItem="0" numFmtId="${INT}"/></dataFields><pivotTableStyleInfo name="PivotStyleMedium9" showRowHeaders="1" showColHeaders="1" showRowStripes="1" showColStripes="0" showLastColumn="1"/></pivotTableDefinition>`;
+  const sheetProv = sheetXml(rowsMeta, [46, 15, 9, 11, 12, 40], ["A1:F1", "A2:F2"]);
 
   return [
-    { name: "[Content_Types].xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/xl/pivotTables/pivotTable1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.pivotTable+xml"/><Override PartName="/xl/pivotCache/pivotCacheDefinition1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.pivotCacheDefinition+xml"/><Override PartName="/xl/pivotCache/pivotCacheRecords1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.pivotCacheRecords+xml"/></Types>` },
+    { name: "[Content_Types].xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>` },
     { name: "_rels/.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
-    { name: "xl/workbook.xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Проверка" sheetId="1" r:id="rId1"/><sheet name="Данные" sheetId="2" state="hidden" r:id="rId2"/></sheets><pivotCaches><pivotCache cacheId="1" r:id="rId5"/></pivotCaches></workbook>` },
-    { name: "xl/_rels/workbook.xml.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/><Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/pivotCacheDefinition" Target="pivotCache/pivotCacheDefinition1.xml"/></Relationships>` },
+    { name: "xl/workbook.xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Проверка" sheetId="1" r:id="rId1"/></sheets></workbook>` },
+    { name: "xl/_rels/workbook.xml.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>` },
     { name: "xl/styles.xml", data: S.xml() },
-    { name: "xl/theme/theme1.xml", data: theme },
-    { name: "xl/worksheets/sheet1.xml", data: sheetHost },
-    { name: "xl/worksheets/sheet2.xml", data: sheetData },
-    { name: "xl/worksheets/_rels/sheet1.xml.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/pivotTable" Target="../pivotTables/pivotTable1.xml"/></Relationships>` },
-    { name: "xl/pivotTables/pivotTable1.xml", data: pivotTable },
-    { name: "xl/pivotTables/_rels/pivotTable1.xml.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/pivotCacheDefinition" Target="../pivotCache/pivotCacheDefinition1.xml"/></Relationships>` },
-    { name: "xl/pivotCache/pivotCacheDefinition1.xml", data: cacheDef },
-    { name: "xl/pivotCache/_rels/pivotCacheDefinition1.xml.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/pivotCacheRecords" Target="pivotCacheRecords1.xml"/></Relationships>` },
-    { name: "xl/pivotCache/pivotCacheRecords1.xml", data: cacheRecs },
+    { name: "xl/worksheets/sheet1.xml", data: sheetProv },
   ];
 }
 
@@ -2182,30 +2164,13 @@ function exportReconcileXlsx(r, rows) {
   push(["Расшифровка штрафов", round2(r.shtraf), share(r.shtraf), "", "", ""], "section", [null, M, P]);
   emitBuckets(shtr, 1, 1, false);
 
-  // Данные для сводной «Свод»: вклады в «К перечислению» со знаком.
-  // Сумма всех строк = К перечислению (расчёт), поэтому итог пивота сходится.
-  const pdata = [];
-  pdata.push(["Реализация", "Нетто реализация (Пр)", round2(r.netto), ""]);
-  pdata.push(["Комиссия", "Комиссия ВБ (после СПП)", -round2(r.commAfter), ""]);
-  pdata.push(["Эквайринг", "Эквайринг", -round2(r.acquiring), ""]);
-  comp.out.forEach(b => { if (round2(b.sum)) pdata.push(["Компенсации", b.label, round2(b.sum), b.count || ""]); });
-  if (comp.other.count) pdata.push(["Компенсации", comp.other.label, round2(comp.other.sum), comp.other.count]);
-  logi.out.forEach(b => { if (round2(b.sum)) pdata.push(["Логистика", b.label, -round2(b.sum), b.count || ""]); });
-  if (logi.other.count) pdata.push(["Логистика", logi.other.label, -round2(logi.other.sum), logi.other.count]);
-  if (round2(hran)) pdata.push(["Хранение", "Хранение", -round2(hran), ""]);
-  if (round2(priemka)) pdata.push(["Приёмка", "Приёмка", -round2(priemka), ""]);
-  uder.out.forEach(b => { if (round2(b.sum)) pdata.push(["Удержания", b.label, -round2(b.sum), b.count || ""]); });
-  if (uder.other.count) pdata.push(["Удержания", uder.other.label, -round2(uder.other.sum), uder.other.count]);
-  shtr.out.forEach(b => { if (round2(b.sum)) pdata.push(["Штрафы", b.label, -round2(b.sum), b.count || ""]); });
-  if (shtr.other.count) pdata.push(["Штрафы", shtr.other.label, -round2(shtr.other.sum), shtr.other.count]);
-
   const msg = document.getElementById("reconcile-export-msg");
   // В превью-рамке (артефакт Claude) скачивание браузер блокирует — направляем на сайт.
   if (window.self !== window.top) {
     if (msg) msg.textContent = "⚠️ В этом превью скачать нельзя. Откройте сайт ridrid25.github.io/Test-claud-parametr и нажмите кнопку там.";
     return;
   }
-  const files = buildFiles({ rows: R, data: pdata }, makeGen());
+  const files = buildFiles({ rows: R }, makeGen());
   const bytes = xlsxZipStore(files);
   const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const url = URL.createObjectURL(blob);
@@ -2215,7 +2180,7 @@ function exportReconcileXlsx(r, rows) {
   link.style.display = "none";
   document.body.appendChild(link);          // некоторые браузеры требуют якорь в DOM
   link.click();
-  if (msg) msg.textContent = "✓ Файл «Сверка_недели_WB.xlsx» — в папке «Загрузки». Лист «Свод» — со сворачиваемыми разделами.";
+  if (msg) msg.textContent = "✓ Файл «Сверка_недели_WB.xlsx» — в папке «Загрузки».";
   setTimeout(() => { document.body.removeChild(link); URL.revokeObjectURL(url); }, 2000);
 }
 
