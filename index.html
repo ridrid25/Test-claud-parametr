@@ -592,7 +592,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v5 · 20.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v6 · 20.07</span>
 </div>
 
 <div class="layout">
@@ -1878,6 +1878,7 @@ function renderReconcile(rows) {
       ${line("К перечислению (расчёт)", "<strong>" + m(r.finalPay) + "</strong>", "rec-total")}
     </tbody></table>
     <p class="hint" style="margin-top:6px">Справочно: комиссия фактическая (до компенсации СПП) — <strong>${m(r.commBefore)}</strong>. «Вознаграждение ВВ» в расчёт комиссии не берётся.</p>
+    <div style="margin-top:8px"><button id="reconcile-export" class="btn-small" type="button">⬇ Скачать в Excel</button></div>
     <div class="upload-form" style="margin-top:8px; align-items:flex-end">
       <label class="field" style="max-width:260px"><span>Фактически поступило на счёт, ₽</span>
         <input id="reconcile-actual" type="text" inputmode="decimal" placeholder="сумма выплаты из банка" value="${actual != null ? escapeHtml(String(actual)) : ""}" /></label>
@@ -1890,6 +1891,47 @@ function renderReconcile(rows) {
     state.payoutActual = v === "" ? null : wbNum(v);
     renderReconcile(filteredRows());
   });
+  const exp = document.getElementById("reconcile-export");
+  if (exp) exp.addEventListener("click", () => exportReconcileXlsx(commissionReconcile(filteredRows())));
+}
+
+// Выгрузка каскада «Сверка недели» в настоящий .xlsx (SheetJS уже встроен).
+function exportReconcileXlsx(r) {
+  if (!r || !r.show || typeof XLSX === "undefined") return;
+  const pct = (r.sppPct * 100).toFixed(0);
+  const actual = state.payoutActual;
+  const rows = [
+    ["Сверка недели (WB)"],
+    ["Сформировано", new Date().toLocaleString("ru-RU")],
+    [],
+    ["Показатель", "Сумма, ₽"],
+    ["Валовая розница (до СПП)", round2(r.gross)],
+    [`СПП (${pct}%)`, -round2(r.sppRub)],
+    ["Нетто реализация (Пр)", round2(r.netto)],
+    ["Комиссия ВБ (после компенсации СПП)", -round2(r.commAfter)],
+    ["Эквайринг", -round2(r.acquiring)],
+    ...(r.comp ? [["Компенсации и доплаты", round2(r.comp)]] : []),
+    ["Логистика", -round2(r.logistics)],
+    ["Хранение и приёмка", -round2(r.storage)],
+    ["Удержания", -round2(r.uderzh)],
+    ...(r.shtraf ? [["Штрафы", -round2(r.shtraf)]] : []),
+    ["К перечислению (расчёт)", round2(r.finalPay)],
+    [],
+    ["Справочно: комиссия фактическая (до компенсации СПП)", round2(r.commBefore)],
+    ...(actual != null ? [["Фактически поступило на счёт", round2(actual)],
+      ["Расхождение с расчётом", round2(actual - r.finalPay)]] : []),
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"] = [{ wch: 46 }, { wch: 16 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Сверка недели");
+  const out = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+  const blob = new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "Сверка_недели_WB.xlsx";
+  link.click();
+  URL.revokeObjectURL(link.href);
 }
 
 function renderDynamics(rows) {
