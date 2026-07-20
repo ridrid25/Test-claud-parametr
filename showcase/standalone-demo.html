@@ -576,7 +576,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v3 · 20.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v4 · 20.07</span>
 </div>
 
 <div class="layout">
@@ -2728,18 +2728,19 @@ function renderReturns(products, allRows) {
 }
 
 function refresh() {
-  // Защита от «застрявшего» демо: как только есть хоть один реальный файл — выкидываем
-  // демо-файл (чтобы данные не смешивались), выключаем режим демо и прячем плашку.
-  if (state.files.some(f => !f.isDemo)) {
-    if (state.files.some(f => f.isDemo)) {
-      state.files = state.files.filter(f => !f.isDemo);
-      renderUploadsList();
-    }
-    state.isDemo = false;
+  // Защита от «застрявшего» демо: как только загружен реальный файл — выкидываем
+  // демо-файл ДО расчёта (чтобы данные не смешивались), выключаем режим демо.
+  if (state.files.some(f => !f.isDemo) && state.files.some(f => f.isDemo)) {
+    state.files = state.files.filter(f => !f.isDemo);
+    renderUploadsList();
   }
-  const demoBanner = document.getElementById("demo-banner");
-  if (demoBanner) demoBanner.hidden = !state.isDemo;
   const rows = filteredRows();
+  // Плашку «Показан пример» гасим по ДАННЫМ (реальный файл или любая WB-операция),
+  // а не только по флагу — так она не может «застрять».
+  const hasReal = state.files.some(f => !f.isDemo) || rows.some(r => r.wb);
+  if (hasReal) state.isDemo = false;
+  const demoBanner = document.getElementById("demo-banner");
+  if (demoBanner) demoBanner.hidden = hasReal || !state.isDemo;
   renderStatRow(rows);
   renderReconcile(rows);
   renderDeductions(rows);
@@ -3225,11 +3226,12 @@ const DEMO_COSTS_CSV = "SKU;Полная себестоимость за шт\nW
 function bufFromString(s) { return new TextEncoder().encode(s).buffer; }
 
 function clearDemoData() {
-  if (!state.isDemo) return;
-  state.files = [];
-  state.costs = new Map();
-  state.costFileName = null;
+  // Удаляем ТОЛЬКО демо-файлы — реальные загруженные данные не трогаем (чтобы
+  // «Убрать демо» никогда не стёр цифры пользователя).
+  const hadDemo = state.files.some(f => f.isDemo);
+  state.files = state.files.filter(f => !f.isDemo);
   state.isDemo = false;
+  if (hadDemo) { state.costs = new Map(); state.costFileName = null; }
   const banner = document.getElementById("demo-banner");
   if (banner) banner.hidden = true;
   renderUploadsList();
