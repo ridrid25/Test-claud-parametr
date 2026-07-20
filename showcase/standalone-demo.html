@@ -581,7 +581,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v11 · 20.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v12 · 20.07</span>
 </div>
 
 <div class="layout">
@@ -1974,7 +1974,7 @@ function exportReconcileXlsx(r, rows) {
   push(["Комиссия ВБ (до СПП)", -round2(r.commBefore), -share(r.commBefore), "", "", "сверить со ставкой на карточках"], "minus", [null, M, P]);
   push(["Эквайринг", -round2(r.acquiring), -share(r.acquiring), "", "", ""], "minus", [null, M, P]);
   push(["Комиссия с учётом компенсации СПП", -round2(r.commAfter), -share(r.commAfter), "", "", r.commAfter <= 0 ? "WB компенсирует СПП — комиссия в плюс" : ""], "minus", [null, M, P]);
-  push(["Компенсации и доплаты, итого", round2(r.comp), share(r.comp), "", "", "разверни ▸ для расшифровки"], "plus", [null, M, P]);
+  push(["Компенсации и доплаты, итого", round2(r.comp), share(r.comp), "", "", ""], "plus", [null, M, P]);
   emitBuckets(comp, 1, 1, false);
   push(["К перечислению за товар", perTov, share(perTov), "", "", "до вычета логистики, хранения и удержаний"], "section", [null, M, P]);
 
@@ -2010,9 +2010,6 @@ function exportReconcileXlsx(r, rows) {
     { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
     { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } },
   ];
-  // Итоги-разделы стоят НАД своими подстроками — кнопка сворачивания [-]/[+]
-  // должна быть у верхней строки, поэтому summaryBelow отключаем.
-  ws["!outline"] = { above: true, left: false };
   const TEAL = "0A655E", TEALLT = "DCEBE9", GREY = "F1F1EF", RED = "BF3E2E", GREEN = "057A55",
     MAG = "A01A6E", MAGLT = "F6E7F1", BRD = "D8D8D2", DARK = "0B0B0B", MUTED = "8A8A85";
   const thin = { style: "thin", color: { rgb: BRD } };
@@ -2056,12 +2053,7 @@ function exportReconcileXlsx(r, rows) {
       cl.s = st;
     }
   });
-  ws["!rows"] = rowMeta.map(mt => {
-    const o = {};
-    if (mt && mt.hpt) o.hpt = mt.hpt;
-    if (mt && mt.lvl) o.level = mt.lvl;   // сворачиваемая группа (аутлайн Excel)
-    return o;
-  });
+  ws["!rows"] = rowMeta.map(mt => (mt && mt.hpt ? { hpt: mt.hpt } : {}));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Проверка");
   const msg = document.getElementById("reconcile-export-msg");
