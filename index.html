@@ -592,7 +592,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v12 · 20.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v13 · 20.07</span>
 </div>
 
 <div class="layout">
@@ -1942,8 +1942,212 @@ function wbBuckets(wbRows, defs, textFn, valFn) {
   return { out, other };
 }
 
+// ---- Ручной генератор .xlsx (лист «Проверка» + сводная «Свод» + «Данные») ----
+// Пишем xlsx как zip вручную: это единственный способ добавить настоящую сводную
+// таблицу (Pivot) со сворачиванием разделов «плюсиком» у названия — встроенный
+// xlsx-js-style сводные не умеет. Стили — свой реестр, оформление как у ручной «Проверки».
+function makeGen() {
+  const xe = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const colName = c => { let s = ""; c++; while (c) { s = String.fromCharCode(65 + (c - 1) % 26) + s; c = Math.floor((c - 1) / 26); } return s; };
+  function Styles() {
+    this.numFmts = [];
+    this.fonts = ['<font><sz val="11"/><color rgb="FF0B0B0B"/><name val="Calibri"/></font>'];
+    this.fills = ['<fill><patternFill patternType="none"/></fill>', '<fill><patternFill patternType="gray125"/></fill>'];
+    this.borders = ['<border><left/><right/><top/><bottom/><diagonal/></border>'];
+    this.xfs = [];
+    this._nf = {}; this._fn = {}; this._fl = {}; this._bd = {}; this._xf = {};
+  }
+  Styles.prototype.numFmt = function (code) {
+    if (!code) return 0;
+    if (this._nf[code] != null) return this._nf[code];
+    const id = 164 + this.numFmts.length; this.numFmts.push({ id, code }); this._nf[code] = id; return id;
+  };
+  Styles.prototype.font = function (o) {
+    const key = JSON.stringify(o);
+    if (this._fn[key] != null) return this._fn[key];
+    let x = "<font>";
+    if (o.b) x += "<b/>"; if (o.i) x += "<i/>";
+    x += `<sz val="${o.sz || 11}"/><color rgb="FF${o.color || "0B0B0B"}"/><name val="Calibri"/></font>`;
+    this.fonts.push(x); const idx = this.fonts.length - 1; this._fn[key] = idx; return idx;
+  };
+  Styles.prototype.fill = function (rgb) {
+    if (!rgb) return 0;
+    if (this._fl[rgb] != null) return this._fl[rgb];
+    this.fills.push(`<fill><patternFill patternType="solid"><fgColor rgb="FF${rgb}"/><bgColor indexed="64"/></patternFill></fill>`);
+    const idx = this.fills.length - 1; this._fl[rgb] = idx; return idx;
+  };
+  Styles.prototype.border = function (o) {
+    const key = JSON.stringify(o);
+    if (this._bd[key] != null) return this._bd[key];
+    const edge = (name, st, col) => st ? `<${name} style="${st}"><color rgb="FF${col || 'D8D8D2'}"/></${name}>` : `<${name}/>`;
+    const x = `<border>` + edge("left", o.all, o.allColor) + edge("right", o.all, o.allColor) +
+      edge("top", o.top || o.all, o.topColor || o.allColor) + edge("bottom", o.bottom || o.all, o.bottomColor || o.allColor) + `<diagonal/></border>`;
+    this.borders.push(x); const idx = this.borders.length - 1; this._bd[key] = idx; return idx;
+  };
+  Styles.prototype.xf = function (o) {
+    const fontId = o.font || 0, fillId = o.fill || 0, borderId = o.border || 0, numFmtId = o.numFmt || 0;
+    const key = [fontId, fillId, borderId, numFmtId, o.h || "", o.wrap ? 1 : 0].join("|");
+    if (this._xf[key] != null) return this._xf[key];
+    const applyAlign = o.h || o.wrap ? 1 : 0;
+    const align = applyAlign ? `<alignment${o.h ? ` horizontal="${o.h}"` : ""} vertical="center"${o.wrap ? ` wrapText="1"` : ""}/>` : "";
+    const xf = `<xf numFmtId="${numFmtId}" fontId="${fontId}" fillId="${fillId}" borderId="${borderId}" xfId="0"` +
+      `${numFmtId ? ' applyNumberFormat="1"' : ''}${fillId ? ' applyFill="1"' : ''}${borderId ? ' applyBorder="1"' : ''} applyFont="1"${applyAlign ? ' applyAlignment="1"' : ''}>${align}</xf>`;
+    this.xfs.push(xf); const idx = this.xfs.length - 1; this._xf[key] = idx; return idx;
+  };
+  Styles.prototype.xml = function () {
+    const nf = this.numFmts.length ? `<numFmts count="${this.numFmts.length}">${this.numFmts.map(n => `<numFmt numFmtId="${n.id}" formatCode="${xe(n.code)}"/>`).join("")}</numFmts>` : "";
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${nf}<fonts count="${this.fonts.length}">${this.fonts.join("")}</fonts><fills count="${this.fills.length}">${this.fills.join("")}</fills><borders count="${this.borders.length}">${this.borders.join("")}</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${this.xfs.length + 1}"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>${this.xfs.join("")}</cellXfs></styleSheet>`;
+  };
+  function sheetXml(rowsMeta, cols, merges) {
+    let sd = "";
+    rowsMeta.forEach((row, i) => {
+      const r = i + 1;
+      let cs = "";
+      (row.cells || []).forEach((cell, c) => {
+        if (cell == null) return;
+        const ref = colName(c) + r;
+        const s = cell.s ? ` s="${cell.s}"` : "";
+        if (cell.num) cs += `<c r="${ref}"${s}><v>${cell.v}</v></c>`;
+        else if (cell.v === "" || cell.v == null) cs += `<c r="${ref}"${s}/>`;
+        else cs += `<c r="${ref}"${s} t="inlineStr"><is><t xml:space="preserve">${xe(cell.v)}</t></is></c>`;
+      });
+      sd += `<row r="${r}"${row.ht ? ` ht="${row.ht}" customHeight="1"` : ""}>${cs}</row>`;
+    });
+    const colsX = cols ? `<cols>${cols.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join("")}</cols>` : "";
+    const mg = merges && merges.length ? `<mergeCells count="${merges.length}">${merges.map(m => `<mergeCell ref="${m}"/>`).join("")}</mergeCells>` : "";
+    const dim = `A1:${colName((cols ? cols.length : 6) - 1)}${rowsMeta.length}`;
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="${dim}"/><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/>${colsX}<sheetData>${sd}</sheetData>${mg}</worksheet>`;
+  }
+  return { xe, colName, Styles, sheetXml };
+}
+
+function buildFiles(model, G) {
+  const { xe, Styles, sheetXml } = G;
+  const S = new Styles();
+  const MONEY = S.numFmt('#,##0" ₽";[Red]-#,##0" ₽"'), PCT = S.numFmt("0.0%"), INT = S.numFmt("#,##0"), MONEY2 = S.numFmt('#,##0.00" ₽"');
+  const TEAL = "0A655E", TEALLT = "DCEBE9", GREY = "F1F1EF", RED = "BF3E2E", GREEN = "057A55", MAG = "A01A6E", MAGLT = "F6E7F1", DARK = "0B0B0B", MUTED = "8A8A85";
+  const thinB = S.border({ all: "thin" });
+  const totalB = S.border({ all: "thin", top: "medium", topColor: TEAL });
+  const sectB = S.border({ all: "thin", top: "medium", topColor: MAG });
+  const R = model.rows;
+  const rowsMeta = R.map(row => {
+    const k = row.k, z = row.z || [];
+    const cells = new Array(6).fill(null);
+    const strong = k === "strong", isTotal = k === "total", isSection = k === "section", isSubhead = k === "subhead", isSub = k === "sub";
+    const fillRgb = isTotal ? TEALLT : isSection ? MAGLT : k === "header" ? GREY : null;
+    const fillId = fillRgb ? S.fill(fillRgb) : 0;
+    const bord = isTotal ? totalB : isSection ? sectB : k === "header" ? thinB : 0;
+    const ht = k === "title" ? 30 : isTotal ? 22 : isSection ? 20 : 0;
+    if (k === "title") { cells[0] = { v: row.c[0], s: S.xf({ font: S.font({ b: 1, sz: 15, color: "FFFFFF" }), fill: S.fill(TEAL) }) }; for (let c = 1; c < 6; c++) cells[c] = { v: "", s: S.xf({ fill: S.fill(TEAL) }) }; return { cells, ht }; }
+    if (k === "subtitle") { cells[0] = { v: row.c[0], s: S.xf({ font: S.font({ i: 1, sz: 10, color: MUTED }) }) }; return { cells, ht }; }
+    if (k === "blank") return { cells, ht };
+    if (k === "capsion") { cells[0] = { v: row.c[0], s: S.xf({ font: S.font({ b: 1, sz: 11, color: MUTED }) }) }; return { cells, ht }; }
+    const labelColor = isSection ? MAG : (isTotal || strong) ? TEAL : (isSub || isSubhead) ? MUTED : k === "ref" ? MUTED : DARK;
+    const labelBold = isSection || isTotal || strong || isSubhead || k === "header";
+    const sz = isTotal ? 13 : isSection ? 12 : (isSub || isSubhead) ? 10 : k === "ref" ? 10 : 11;
+    const labFont = S.font({ b: labelBold ? 1 : 0, i: k === "ref" ? 1 : 0, sz, color: k === "header" ? DARK : labelColor });
+    for (let c = 0; c < 6; c++) {
+      const v = row.c[c];
+      if (v === undefined) continue;
+      if (c === 0) { cells[0] = { v, s: S.xf({ font: labFont, fill: fillId, border: bord, h: "left" }) }; continue; }
+      const isNum = typeof v === "number";
+      let color = DARK;
+      if (isSection) color = MAG; else if (isTotal || strong) color = TEAL;
+      else if (k === "minus") color = RED; else if (k === "plus") color = GREEN;
+      else if (isSub || isSubhead) color = isNum ? (v < 0 ? RED : v > 0 ? GREEN : MUTED) : MUTED;
+      else if (k === "ref") color = MUTED;
+      const vBold = isTotal || isSection || strong || isSubhead || k === "header";
+      const vsz = isTotal ? 13 : isSection ? 12 : (isSub || isSubhead) ? 10 : k === "ref" ? 10 : 11;
+      const font = c === 5 ? S.font({ i: 1, sz: 9, color: MUTED }) : S.font({ b: vBold ? 1 : 0, i: k === "ref" ? 1 : 0, sz: vsz, color });
+      const nf = z[c] === "M" ? MONEY : z[c] === "P" ? PCT : z[c] === "N" ? INT : z[c] === "M2" ? MONEY2 : 0;
+      cells[c] = { v, s: S.xf({ font, fill: fillId, border: bord, numFmt: isNum ? nf : 0, h: c === 5 ? "left" : "right", wrap: c === 5 }), num: isNum };
+    }
+    return { cells, ht };
+  });
+  const sheetProv = sheetXml(rowsMeta, [46, 15, 9, 11, 12, 40], ["A1:F1", "A2:F2"]);
+
+  const hdrFont = S.font({ b: 1, sz: 11, color: DARK });
+  const hdrXf = S.xf({ font: hdrFont, fill: S.fill(GREY), border: thinB, h: "left" });
+  const hdrXfR = S.xf({ font: hdrFont, fill: S.fill(GREY), border: thinB, h: "right" });
+  const txtXf = S.xf({ font: S.font({ sz: 11, color: DARK }), h: "left" });
+  const numXf = S.xf({ font: S.font({ sz: 11, color: DARK }), numFmt: MONEY, h: "right" });
+  const intXf = S.xf({ font: S.font({ sz: 11, color: DARK }), numFmt: INT, h: "right" });
+  const dataRowsMeta = [{ cells: [{ v: "Раздел", s: hdrXf }, { v: "Статья", s: hdrXf }, { v: "Сумма", s: hdrXfR }, { v: "Кол-во", s: hdrXfR }] }];
+  model.data.forEach(d => dataRowsMeta.push({ cells: [{ v: d[0], s: txtXf }, { v: d[1], s: txtXf }, { v: d[2], s: numXf, num: true }, { v: d[3] === "" ? "" : d[3], s: intXf, num: d[3] !== "" }] }));
+  const sheetData = sheetXml(dataRowsMeta, [26, 46, 15, 11]);
+
+  const sheetSvod = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="A1"/><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols><col min="1" max="1" width="46" customWidth="1"/><col min="2" max="3" width="15" customWidth="1"/></cols><sheetData/></worksheet>`;
+
+  const secNames = []; const seen = {};
+  model.data.forEach(d => { if (!seen[d[0]]) { seen[d[0]] = 1; secNames.push(d[0]); } });
+  const itemNames = [...new Set(model.data.map(d => d[1]))];
+  const nRows = model.data.length;
+  const sharedS = arr => arr.map(v => `<s v="${xe(v)}"/>`).join("");
+  const cacheDef = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<pivotCacheDefinition xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rId1" refreshOnLoad="1" refreshedBy="dashboard" createdVersion="6" refreshedVersion="6" minRefreshableVersion="3" recordCount="${nRows}"><cacheSource type="worksheet"><worksheetSource sheet="Данные" ref="A1:D${nRows + 1}"/></cacheSource><cacheFields count="4"><cacheField name="Раздел" numFmtId="0"><sharedItems count="${secNames.length}">${sharedS(secNames)}</sharedItems></cacheField><cacheField name="Статья" numFmtId="0"><sharedItems count="${itemNames.length}">${sharedS(itemNames)}</sharedItems></cacheField><cacheField name="Сумма" numFmtId="0"><sharedItems containsSemiMixedTypes="0" containsString="0" containsNumber="1"/></cacheField><cacheField name="Кол-во" numFmtId="0"><sharedItems containsSemiMixedTypes="0" containsString="0" containsNumber="1" containsInteger="1"/></cacheField></cacheFields></pivotCacheDefinition>`;
+  const recs = model.data.map(d => `<r><x v="${secNames.indexOf(d[0])}"/><x v="${itemNames.indexOf(d[1])}"/><n v="${d[2]}"/>${d[3] === "" ? "<m/>" : `<n v="${d[3]}"/>`}</r>`).join("");
+  const cacheRecs = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<pivotCacheRecords xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" count="${nRows}">${recs}</pivotCacheRecords>`;
+  const bySec = secNames.map(s => model.data.filter(d => d[0] === s));
+  const sectItems = secNames.map((_, i) => `<item x="${i}"/>`).join("") + `<item t="default"/>`;
+  const itemItems = itemNames.map((_, i) => `<item x="${i}"/>`).join("") + `<item t="default"/>`;
+  let rowItems = "", cnt = 0;
+  secNames.forEach((s, si) => {
+    rowItems += `<i><x v="${si}"/></i>`; cnt++;
+    bySec[si].forEach(d => { rowItems += `<i r="1"><x v="${itemNames.indexOf(d[1])}"/></i>`; cnt++; });
+    rowItems += `<i t="default" r="1"/>`; cnt++;
+  });
+  rowItems += `<i t="grand"><x/></i>`; cnt++;
+  const lastRow = 3 + cnt;
+  const pivotTable = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<pivotTableDefinition xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" name="Свод недели" cacheId="1" applyNumberFormats="0" applyBorderFormats="0" applyFontFormats="0" applyPatternFormats="0" applyAlignmentFormats="0" applyWidthHeightFormats="1" dataCaption="Значения" updatedVersion="6" minRefreshableVersion="3" useAutoFormatting="1" itemPrintTitles="1" createdVersion="6" indent="0" outline="1" outlineData="1" compact="1" compactData="1" multipleFieldFilters="0"><location ref="A3:C${lastRow}" firstHeaderRow="1" firstDataRow="2" firstDataCol="1"/><pivotFields count="4"><pivotField axis="axisRow" compact="1" outline="1" subtotalTop="1" showAll="0"><items count="${secNames.length + 1}">${sectItems}</items></pivotField><pivotField axis="axisRow" compact="1" outline="1" showAll="0"><items count="${itemNames.length + 1}">${itemItems}</items></pivotField><pivotField dataField="1" showAll="0"/><pivotField dataField="1" showAll="0"/></pivotFields><rowFields count="2"><field x="0"/><field x="1"/></rowFields><rowItems count="${cnt}">${rowItems}</rowItems><colFields count="1"><field x="-2"/></colFields><colItems count="2"><i/><i i="1"><x v="1"/></i></colItems><dataFields count="2"><dataField name="Сумма, ₽" fld="2" baseField="0" baseItem="0" numFmtId="${MONEY}"/><dataField name="Кол-во" fld="3" baseField="0" baseItem="0" numFmtId="${INT}"/></dataFields><pivotTableStyleInfo name="PivotStyleMedium9" showRowHeaders="1" showColHeaders="1" showRowStripes="1" showColStripes="0" showLastColumn="1"/></pivotTableDefinition>`;
+
+  return [
+    { name: "[Content_Types].xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/pivotTables/pivotTable1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.pivotTable+xml"/><Override PartName="/xl/pivotCache/pivotCacheDefinition1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.pivotCacheDefinition+xml"/><Override PartName="/xl/pivotCache/pivotCacheRecords1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.pivotCacheRecords+xml"/></Types>` },
+    { name: "_rels/.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
+    { name: "xl/workbook.xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Проверка" sheetId="1" r:id="rId1"/><sheet name="Свод" sheetId="2" r:id="rId2"/><sheet name="Данные" sheetId="3" r:id="rId3"/></sheets><pivotCaches><pivotCache cacheId="1" r:id="rId5"/></pivotCaches></workbook>` },
+    { name: "xl/_rels/workbook.xml.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/><Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/pivotCacheDefinition" Target="pivotCache/pivotCacheDefinition1.xml"/></Relationships>` },
+    { name: "xl/styles.xml", data: S.xml() },
+    { name: "xl/worksheets/sheet1.xml", data: sheetProv },
+    { name: "xl/worksheets/sheet2.xml", data: sheetSvod },
+    { name: "xl/worksheets/sheet3.xml", data: sheetData },
+    { name: "xl/worksheets/_rels/sheet2.xml.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/pivotTable" Target="../pivotTables/pivotTable1.xml"/></Relationships>` },
+    { name: "xl/pivotTables/pivotTable1.xml", data: pivotTable },
+    { name: "xl/pivotTables/_rels/pivotTable1.xml.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/pivotCacheDefinition" Target="../pivotCache/pivotCacheDefinition1.xml"/></Relationships>` },
+    { name: "xl/pivotCache/pivotCacheDefinition1.xml", data: cacheDef },
+    { name: "xl/pivotCache/_rels/pivotCacheDefinition1.xml.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/pivotCacheRecords" Target="pivotCacheRecords1.xml"/></Relationships>` },
+    { name: "xl/pivotCache/pivotCacheRecords1.xml", data: cacheRecs },
+  ];
+}
+
+// zip (store, без сжатия) в браузере — байты .xlsx.
+function xlsxZipStore(files) {
+  const TE = new TextEncoder();
+  const CRC = xlsxZipStore._crc || (xlsxZipStore._crc = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })());
+  const crc32 = u8 => { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  const parts = [], central = []; let offset = 0;
+  for (const f of files) {
+    const name = TE.encode(f.name), data = typeof f.data === "string" ? TE.encode(f.data) : f.data, crc = crc32(data);
+    const lh = new Uint8Array(30), dv = new DataView(lh.buffer);
+    dv.setUint32(0, 0x04034b50, true); dv.setUint16(4, 20, true); dv.setUint16(6, 0x0800, true); dv.setUint32(14, crc, true); dv.setUint32(18, data.length, true); dv.setUint32(22, data.length, true); dv.setUint16(26, name.length, true);
+    parts.push(lh, name, data);
+    const ch = new Uint8Array(46), cv = new DataView(ch.buffer);
+    cv.setUint32(0, 0x02014b50, true); cv.setUint16(4, 20, true); cv.setUint16(6, 20, true); cv.setUint16(8, 0x0800, true); cv.setUint32(16, crc, true); cv.setUint32(20, data.length, true); cv.setUint32(24, data.length, true); cv.setUint16(28, name.length, true); cv.setUint32(42, offset, true);
+    central.push(ch, name); offset += 30 + name.length + data.length;
+  }
+  let clen = 0; for (const c of central) clen += c.length;
+  const end = new Uint8Array(22), ev = new DataView(end.buffer);
+  ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, files.length, true); ev.setUint16(10, files.length, true); ev.setUint32(12, clen, true); ev.setUint32(16, offset, true);
+  const all = [...parts, ...central, end]; let total = 0; for (const a of all) total += a.length;
+  const out = new Uint8Array(total); let p = 0; for (const a of all) { out.set(a, p); p += a.length; }
+  return out;
+}
+
 function exportReconcileXlsx(r, rows) {
-  if (!r || !r.show || typeof XLSX === "undefined") return;
+  if (!r || !r.show) return;
   const wbRows = (rows || []).filter(x => x.wb);
   const actual = state.payoutActual;
   const g = r.gross || 0;
@@ -1959,9 +2163,9 @@ function exportReconcileXlsx(r, rows) {
   const perTov = round2(r.finalPay + r.logistics + r.storage + r.uderzh + r.shtraf); // К перечислению за товар
   const otherTot = round2(r.storage + r.uderzh + r.shtraf);  // Прочие статьи (magenta)
 
-  // Модель строк: {c:[cells], k:kind, z:[форматы], lvl:уровень группировки}
+  // Модель строк: {c:[cells], k:kind, z:[токены формата по колонкам]}
   // Колонки: Показатель | Сумма, ₽ | Доля | Кол-во, шт | За 1 шт, ₽ | Примечание
-  const M = "#,##0 ₽", P = "0.0%", N = "#,##0", M2 = "#,##0.00 ₽";
+  const M = "M", P = "P", N = "N", M2 = "M2";
   const R = [];
   const push = (c, k, z, lvl) => R.push({ c, k, z: z || [], lvl: lvl || 0 });
   const ind = (lvl, s) => "    ".repeat(lvl) + s;
@@ -2014,68 +2218,32 @@ function exportReconcileXlsx(r, rows) {
   push(["Расшифровка штрафов", round2(r.shtraf), share(r.shtraf), "", "", ""], "section", [null, M, P]);
   emitBuckets(shtr, 1, 1, false);
 
-  const aoa = R.map(row => row.c);
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = [{ wch: 46 }, { wch: 15 }, { wch: 9 }, { wch: 11 }, { wch: 12 }, { wch: 40 }];
-  ws["!merges"] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
-    { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } },
-  ];
-  const TEAL = "0A655E", TEALLT = "DCEBE9", GREY = "F1F1EF", RED = "BF3E2E", GREEN = "057A55",
-    MAG = "A01A6E", MAGLT = "F6E7F1", BRD = "D8D8D2", DARK = "0B0B0B", MUTED = "8A8A85";
-  const thin = { style: "thin", color: { rgb: BRD } };
-  const box = { top: thin, bottom: thin, left: thin, right: thin };
-  const cell = (rr, c) => { const a = XLSX.utils.encode_cell({ r: rr, c }); if (!ws[a]) ws[a] = { t: "s", v: "" }; return ws[a]; };
-  const rowMeta = [];
-  R.forEach((row, rr) => {
-    rowMeta[rr] = { lvl: row.lvl || 0 };
-    const k = row.k, z = row.z, ncol = 6;
-    let base, fillRgb, top = thin;
-    if (k === "title") { rowMeta[rr].hpt = 28; base = { font: { bold: true, sz: 15, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: TEAL } }, alignment: { vertical: "center" } }; for (let c = 0; c < ncol; c++) Object.assign(cell(rr, c), { s: base }); return; }
-    if (k === "subtitle") { base = { font: { sz: 10, italic: true, color: { rgb: MUTED } } }; for (let c = 0; c < ncol; c++) Object.assign(cell(rr, c), { s: base }); return; }
-    if (k === "blank") { return; }
-    if (k === "capsion") { Object.assign(cell(rr, 0), { s: { font: { bold: true, sz: 11, color: { rgb: MUTED } } } }); return; }
-    if (k === "header") { fillRgb = GREY; }
-    const strong = k === "strong", isTotal = k === "total", isSection = k === "section";
-    const isSubhead = k === "subhead", isSub = k === "sub";
-    if (isTotal) { rowMeta[rr].hpt = 22; fillRgb = TEALLT; top = { style: "medium", color: { rgb: TEAL } }; }
-    if (isSection) { rowMeta[rr].hpt = 20; fillRgb = MAGLT; top = { style: "medium", color: { rgb: MAG } }; }
-    const labelColor = isSection ? MAG : (isTotal || strong) ? TEAL : (isSub || isSubhead) ? MUTED : DARK;
-    const labelBold = isSection || isTotal || strong || isSubhead;
-    const sz = isTotal ? 13 : isSection ? 12 : (isSub || isSubhead) ? 10 : 11;
-    const valColor = v => {
-      if (isSection) return MAG;
-      if (isTotal || strong) return TEAL;
-      if (k === "minus") return RED;
-      if (k === "plus") return GREEN;
-      if (isSub || isSubhead) return typeof v === "number" ? (v < 0 ? RED : v > 0 ? GREEN : MUTED) : MUTED;
-      return DARK;
-    };
-    for (let c = 0; c < ncol; c++) {
-      const cl = cell(rr, c);
-      const st = {
-        font: { bold: c === 0 ? labelBold : (isTotal || isSection || strong || isSubhead), sz, color: { rgb: c === 0 ? labelColor : valColor(row.c[c]) } },
-        alignment: { horizontal: c === 0 ? "left" : "right", vertical: "center" },
-      };
-      if (fillRgb) st.fill = { fgColor: { rgb: fillRgb } };
-      if (k === "header" || isTotal || isSection) st.border = { top, bottom: thin, left: thin, right: thin };
-      if (z[c]) cl.z = z[c];
-      if (c === 5 && typeof row.c[5] === "string" && row.c[5]) st.font = { sz: 9, italic: true, color: { rgb: MUTED } };
-      cl.s = st;
-    }
-  });
-  ws["!rows"] = rowMeta.map(mt => (mt && mt.hpt ? { hpt: mt.hpt } : {}));
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Проверка");
+  // Данные для сводной «Свод»: вклады в «К перечислению» со знаком.
+  // Сумма всех строк = К перечислению (расчёт), поэтому итог пивота сходится.
+  const pdata = [];
+  pdata.push(["Реализация", "Нетто реализация (Пр)", round2(r.netto), ""]);
+  pdata.push(["Комиссия", "Комиссия ВБ (после СПП)", -round2(r.commAfter), ""]);
+  pdata.push(["Эквайринг", "Эквайринг", -round2(r.acquiring), ""]);
+  comp.out.forEach(b => { if (round2(b.sum)) pdata.push(["Компенсации", b.label, round2(b.sum), b.count || ""]); });
+  if (comp.other.count) pdata.push(["Компенсации", comp.other.label, round2(comp.other.sum), comp.other.count]);
+  logi.out.forEach(b => { if (round2(b.sum)) pdata.push(["Логистика", b.label, -round2(b.sum), b.count || ""]); });
+  if (logi.other.count) pdata.push(["Логистика", logi.other.label, -round2(logi.other.sum), logi.other.count]);
+  if (round2(hran)) pdata.push(["Хранение", "Хранение", -round2(hran), ""]);
+  if (round2(priemka)) pdata.push(["Приёмка", "Приёмка", -round2(priemka), ""]);
+  uder.out.forEach(b => { if (round2(b.sum)) pdata.push(["Удержания", b.label, -round2(b.sum), b.count || ""]); });
+  if (uder.other.count) pdata.push(["Удержания", uder.other.label, -round2(uder.other.sum), uder.other.count]);
+  shtr.out.forEach(b => { if (round2(b.sum)) pdata.push(["Штрафы", b.label, -round2(b.sum), b.count || ""]); });
+  if (shtr.other.count) pdata.push(["Штрафы", shtr.other.label, -round2(shtr.other.sum), shtr.other.count]);
+
   const msg = document.getElementById("reconcile-export-msg");
-  // В превью-рамке (артефакт Claude) скачивание браузер блокирует — там кнопка
-  // бессмысленна. Определяем это и честно направляем на сайт.
+  // В превью-рамке (артефакт Claude) скачивание браузер блокирует — направляем на сайт.
   if (window.self !== window.top) {
     if (msg) msg.textContent = "⚠️ В этом превью скачать нельзя. Откройте сайт ridrid25.github.io/Test-claud-parametr и нажмите кнопку там.";
     return;
   }
-  const out = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-  const blob = new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const files = buildFiles({ rows: R, data: pdata }, makeGen());
+  const bytes = xlsxZipStore(files);
+  const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -2083,7 +2251,7 @@ function exportReconcileXlsx(r, rows) {
   link.style.display = "none";
   document.body.appendChild(link);          // некоторые браузеры требуют якорь в DOM
   link.click();
-  if (msg) msg.textContent = "✓ Файл «Сверка_недели_WB.xlsx» — в папке «Загрузки».";
+  if (msg) msg.textContent = "✓ Файл «Сверка_недели_WB.xlsx» — в папке «Загрузки». Лист «Свод» — со сворачиваемыми разделами.";
   setTimeout(() => { document.body.removeChild(link); URL.revokeObjectURL(url); }, 2000);
 }
 
