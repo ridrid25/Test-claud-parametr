@@ -923,6 +923,8 @@ const COLUMN_ALIASES = {
     "вайлдберриз реализовал товар (пр)", "цена реализации", "accruals_for_sale", "сумма реализации"],
   returns: ["returns", "возврат", "возвраты", "сумма возврата"],
   commission: ["commission", "комиссия", "комиссия мп", "вознаграждение вайлдберриз",
+    "вознаграждение вайлдберриз (вв), без ндс",
+    "вознаграждение с продаж до вычета услуг поверенного, без ндс",
     "sale_commission", "ppvz_sales_commission", "комиссия за продажу"],
   logistics: ["logistics", "логистика", "доставка", "услуги по доставке",
     "услуги по доставке товара покупателю",
@@ -1018,7 +1020,7 @@ const HEADER_SUBSTRINGS = {
   quantity: ["кол-во", "количество", "продан"],
   realization: ["реализац", "продаж", "выручк"],
   returns: ["возврат"],
-  commission: ["комисси"],
+  commission: ["комисси", "вознаграждени"],
   logistics: ["логистик", "доставк"],
   storage: ["хранени"],
   promotion: ["продвижен", "реклам"],
@@ -1158,7 +1160,9 @@ function parseDateStr(value) {
   throw new Error(`не дата: ${value}`);
 }
 
-function normalizeRow(marketplace, rowIndex, fieldValues) {
+const fieldLabel = f => (typeof FIELD_LABELS !== "undefined" && FIELD_LABELS[f]) || f;
+
+function normalizeRow(marketplace, rowIndex, fieldValues, opts = {}) {
   const fixes = [], errors = [];
   const data = {
     marketplace, period_date: "", sku: "", product_name: "", category: "", brand: "",
@@ -1207,14 +1211,14 @@ function normalizeRow(marketplace, rowIndex, fieldValues) {
     let total = 0, failed = false;
     for (const item of values) {
       try { total += parseNumber(item); }
-      catch { errors.push(`Не удалось разобрать число в колонке '${field}': '${item}'`); failed = true; break; }
+      catch { errors.push(`Не удалось разобрать число в колонке «${fieldLabel(field)}»: '${item}'`); failed = true; break; }
     }
     if (failed) continue;
-    if (values.length > 1) fixes.push(`${field}: ${values.map(v => String(v).trim()).join(" + ")} → ${round2(total)}`);
+    if (values.length > 1) fixes.push(`${fieldLabel(field)}: ${values.map(v => String(v).trim()).join(" + ")} → ${round2(total)}`);
     else {
       const src = String(values[0]).trim();
       if (src && src !== String(total) && (NUM_CLEAN_RE.test(src) || src.includes(","))) {
-        fixes.push(`${field}: '${values[0]}' → ${round2(total)}`);
+        fixes.push(`${fieldLabel(field)}: '${values[0]}' → ${round2(total)}`);
       }
       NUM_CLEAN_RE.lastIndex = 0;
     }
@@ -1232,6 +1236,15 @@ function normalizeRow(marketplace, rowIndex, fieldValues) {
   if (data.returns < 0) {
     data.returns = Math.abs(data.returns);
     fixes.push("возврат с минусом приведён к положительному значению");
+  }
+  // Комиссия — необязательное поле. Если колонки комиссии в файле нет, считаем её
+  // косвенно для строк продаж: Реализация − К выплате − Логистика − Хранение − Штрафы − Прочие.
+  if (opts.computeCommission && !data.service && data.realization > 0 && !data.commission) {
+    const implied = round2(data.realization - data.payout - data.logistics - data.storage - data.penalty - data.other_deduction);
+    if (implied > 0) {
+      data.commission = implied;
+      fixes.push("комиссия рассчитана косвенно");
+    }
   }
   return { status: fixes.length ? "fixed" : "ok", fixes, error: null, data, rowIndex };
 }
@@ -1268,6 +1281,7 @@ function extractTable(fileName, buffer) {
 
 // Применяет заданное сопоставление { field: columnIndex } к строкам таблицы.
 function buildRows(formMarketplace, dataRows, idxByField) {
+  const computeCommission = !("commission" in idxByField); // нет колонки комиссии → считаем косвенно
   const rows = [];
   for (let i = 0; i < dataRows.length; i++) {
     const raw = dataRows[i];
@@ -1276,9 +1290,26 @@ function buildRows(formMarketplace, dataRows, idxByField) {
       if (idx == null || idx < 0) continue;
       fieldValues[field] = idx < raw.length ? raw[idx] : "";
     }
-    rows.push(normalizeRow(formMarketplace, i, fieldValues));
+    rows.push(normalizeRow(formMarketplace, i, fieldValues, { computeCommission }));
   }
   return rows;
+}
+
+// Индексы колонок, прошедших проверку типа для КАЖДОГО поля (числовые поля —
+// только числовые колонки). Используется во всех путях сопоставления.
+function columnTypeMask(headers, dataRows) {
+  return headers.map((_, i) => isNumericColumn(dataRows, i));
+}
+// Убирает из готового маппинга числовые поля, ошибочно указывающие на текстовую колонку.
+function enforceNumericTypes(idxByField, numericCols) {
+  const dropped = [];
+  for (const field of Object.keys(idxByField)) {
+    if (NUMERIC_MAP_FIELDS.has(field) && !numericCols[idxByField[field]]) {
+      dropped.push(field);
+      delete idxByField[field];
+    }
+  }
+  return dropped;
 }
 
 // Автоматический разбор (для демо и запомненных маппингов, без предпросмотра).
@@ -1287,6 +1318,7 @@ function parseFile(formMarketplace, buffer, fileName = "") {
   const idxByField = autoIndexByField(autoMapping(headers, dataRows));
   validateMapping(idxByField);
   if ("marketplace" in idxByField) fileFixes.push("маркетплейс каждой строки взят из колонки файла");
+  if (!("commission" in idxByField)) fileFixes.push("комиссия рассчитана косвенно (нет колонки комиссии)");
   const rows = buildRows(formMarketplace, dataRows, idxByField);
   if (!rows.length) throw new Error("В файле есть заголовки, но нет ни одной строки с данными.");
   return { fileFixes, rows };
@@ -2673,6 +2705,7 @@ function loadWithMapping(file, sig, formMarketplace, dataRows, fileFixes, idxByF
   const ff = [...fileFixes];
   if (manual) ff.push("сопоставление колонок задано вручную");
   if ("marketplace" in idxByField) ff.push("маркетплейс берётся из колонки файла");
+  if (!("commission" in idxByField)) ff.push("комиссия рассчитана косвенно (нет колонки комиссии)");
   state.files.push({ id: state.nextId++, name: file.name, marketplace: formMarketplace, fileFixes: ff, rows, sig });
   uploadStats.loaded++;
 }
@@ -2699,10 +2732,12 @@ async function processNextUpload() {
       uploadStats.skipped++; processNextUpload(); return;
     }
     const { headers, rows: dataRows, fileFixes } = extractTable(file.name, buffer);
+    const numericCols = columnTypeMask(headers, dataRows);
     const sigHdr = headerSignature(headers);
     const remembered = state.rememberedMappings.get(sigHdr);
     if (remembered) {
       const idxByField = resolveRemembered(remembered, headers);
+      enforceNumericTypes(idxByField, numericCols); // проверка типа обязательна и для запомненного маппинга
       try {
         validateMapping(idxByField);
         loadWithMapping(file, sig, formMarketplace, dataRows, fileFixes, idxByField, true);
@@ -2712,7 +2747,7 @@ async function processNextUpload() {
     }
     // Незнакомый файл — показываем предпросмотр сопоставления.
     const autoMap = autoMapping(headers, dataRows);
-    pendingMapping = { file, sig, formMarketplace, headers, dataRows, fileFixes, autoMap, sigHdr };
+    pendingMapping = { file, sig, formMarketplace, headers, dataRows, fileFixes, autoMap, sigHdr, numericCols };
     renderMappingPreview();
   } catch (err) {
     uploadStats.failed++;
@@ -2744,10 +2779,16 @@ function renderMappingPreview() {
   document.getElementById("mapping-error").hidden = true;
   document.getElementById("mapping-file").textContent = `файл: ${p.file.name}`;
   document.getElementById("mapping-note").textContent =
-    "Проверьте, какая колонка файла назначена на каждое поле. Красным помечено «не найдено» — выберите вручную." +
+    "Проверьте, какая колонка файла назначена на каждое поле. Красным помечено «не найдено» — выберите вручную. " +
+    "Для числовых полей текстовые колонки недоступны. Комиссию можно не назначать — она посчитается косвенно." +
     (p.fileFixes.length ? " (" + p.fileFixes.join("; ") + ")" : "");
-  const opts = sel => `<option value="">— не загружать —</option>` +
-    p.headers.map((h, i) => `<option value="${i}"${i === sel ? " selected" : ""}>${escapeHtml(h || ("колонка " + (i + 1)))}</option>`).join("");
+  // Для числовых полей текстовые колонки недоступны (помечены «текстовая»).
+  const opts = (sel, numericOnly) => `<option value="">— не загружать —</option>` +
+    p.headers.map((h, i) => {
+      const isText = numericOnly && !p.numericCols[i];
+      return `<option value="${i}"${i === sel ? " selected" : ""}${isText ? " disabled" : ""}>` +
+        `${escapeHtml(h || ("колонка " + (i + 1)))}${isText ? " (текстовая)" : ""}</option>`;
+    }).join("");
   const badge = (st, field) => {
     if (st === "exact") return `<span class="map-badge ok">найдено</span>`;
     if (st === "substring") return `<span class="map-badge guess">по совпадению</span>`;
@@ -2761,7 +2802,7 @@ function renderMappingPreview() {
     const cls = r.status === "conflict" ? "map-conflict"
       : (r.status === "none" && REQUIRED_PREVIEW_FIELDS.has(field)) ? "map-miss" : "";
     return `<tr class="${cls}"><td>${FIELD_LABELS[field]}</td>
-      <td><select id="map-sel-${field}">${opts(r.index)}</select></td>
+      <td><select id="map-sel-${field}">${opts(r.index, NUMERIC_MAP_FIELDS.has(field))}</select></td>
       <td>${badge(r.status, field)}</td></tr>`;
   }).join("");
   document.getElementById("mapping-table").innerHTML =
@@ -2788,6 +2829,14 @@ function setupUploads() {
     for (const field of MAPPABLE_FIELDS) {
       const v = document.getElementById(`map-sel-${field}`).value;
       if (v !== "") idxByField[field] = Number(v);
+    }
+    // Проверка типа обязательна и здесь: числовое поле не должно указывать на текстовую колонку.
+    const dropped = enforceNumericTypes(idxByField, p.numericCols);
+    if (dropped.length) {
+      const el = document.getElementById("mapping-error"); el.hidden = false;
+      el.textContent = "Текстовая колонка не может быть числовым полем: " +
+        dropped.map(fieldLabel).join(", ") + ". Выберите числовую колонку или «не загружать».";
+      return;
     }
     try { validateMapping(idxByField); }
     catch (e) { const el = document.getElementById("mapping-error"); el.hidden = false; el.textContent = e.message; return; }
