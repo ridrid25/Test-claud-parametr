@@ -2715,6 +2715,17 @@ function renderReturns(products, allRows) {
 }
 
 function refresh() {
+  // Защита от «застрявшего» демо: как только есть хоть один реальный файл — выкидываем
+  // демо-файл (чтобы данные не смешивались), выключаем режим демо и прячем плашку.
+  if (state.files.some(f => !f.isDemo)) {
+    if (state.files.some(f => f.isDemo)) {
+      state.files = state.files.filter(f => !f.isDemo);
+      renderUploadsList();
+    }
+    state.isDemo = false;
+  }
+  const demoBanner = document.getElementById("demo-banner");
+  if (demoBanner) demoBanner.hidden = !state.isDemo;
   const rows = filteredRows();
   renderStatRow(rows);
   renderReconcile(rows);
@@ -3224,7 +3235,7 @@ function initDemo() {
   if (state.files.length) return; // the visitor already loaded their own data
   try {
     const { fileFixes, rows } = parseFile("wb", bufFromString(DEMO_SALES_CSV));
-    state.files.push({ id: state.nextId++, name: "Демо-данные (пример).csv", marketplace: "wb", fileFixes, rows });
+    state.files.push({ id: state.nextId++, name: "Демо-данные (пример).csv", marketplace: "wb", fileFixes, rows, isDemo: true });
     const { costs } = parseCostsFile(bufFromString(DEMO_COSTS_CSV));
     state.costs = costs;
     state.costFileName = "Демо-себестоимость (пример).csv";
