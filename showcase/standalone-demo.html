@@ -581,7 +581,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v19 · 20.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v20 · 20.07</span>
 </div>
 
 <div class="layout">
@@ -1861,7 +1861,7 @@ function renderReconcile(rows) {
       ${line("К перечислению (расчёт)", "<strong>" + m(r.finalPay) + "</strong>", "rec-total")}
     </tbody></table>
     <p class="hint" style="margin-top:6px">Справочно: комиссия фактическая (до компенсации СПП) — <strong>${m(r.commBefore)}</strong>. «Вознаграждение ВВ» в расчёт комиссии не берётся.</p>
-    <div style="margin-top:8px"><button id="reconcile-export" class="btn-small" type="button">⬇ Скачать в Excel</button><span id="reconcile-export-msg" class="hint" style="margin-left:8px"></span></div>
+    <div style="margin-top:8px"><button id="reconcile-export" class="btn-primary" type="button" style="background:#a01a6e; border-color:#a01a6e">⬇ Скачать в Excel</button><span id="reconcile-export-msg" class="hint" style="margin-left:8px"></span></div>
     <div class="upload-form" style="margin-top:8px; align-items:flex-end">
       <label class="field" style="max-width:260px"><span>Фактически поступило на счёт, ₽</span>
         <input id="reconcile-actual" type="text" inputmode="decimal" placeholder="сумма выплаты из банка" value="${actual != null ? escapeHtml(String(actual)) : ""}" /></label>
@@ -1940,7 +1940,7 @@ function makeGen() {
   const colName = c => { let s = ""; c++; while (c) { s = String.fromCharCode(65 + (c - 1) % 26) + s; c = Math.floor((c - 1) / 26); } return s; };
   function Styles() {
     this.numFmts = [];
-    this.fonts = ['<font><sz val="11"/><color rgb="FF0B0B0B"/><name val="Calibri"/></font>'];
+    this.fonts = ['<font><sz val="12"/><color rgb="FF0B0B0B"/><name val="Times New Roman"/></font>'];
     this.fills = ['<fill><patternFill patternType="none"/></fill>', '<fill><patternFill patternType="gray125"/></fill>'];
     this.borders = ['<border><left/><right/><top/><bottom/><diagonal/></border>'];
     this.xfs = [];
@@ -1956,7 +1956,7 @@ function makeGen() {
     if (this._fn[key] != null) return this._fn[key];
     let x = "<font>";
     if (o.b) x += "<b/>"; if (o.i) x += "<i/>";
-    x += `<sz val="${o.sz || 11}"/><color rgb="FF${o.color || "0B0B0B"}"/><name val="Calibri"/></font>`;
+    x += `<sz val="${o.sz || 12}"/><color rgb="FF${o.color || "0B0B0B"}"/><name val="Times New Roman"/></font>`;
     this.fonts.push(x); const idx = this.fonts.length - 1; this._fn[key] = idx; return idx;
   };
   Styles.prototype.fill = function (rgb) {
@@ -2040,15 +2040,15 @@ function buildFiles(model, G) {
     const fillId = fillRgb ? S.fill(fillRgb) : 0;
     const bord = isTotal ? totalB : isSection ? sectB : k === "header" ? thinB : 0;
     const ht = k === "title" ? 30 : isTotal ? 22 : isSection ? 20 : 0;
-    if (k === "title") { cells[0] = { v: row.c[0], s: S.xf({ font: S.font({ b: 1, sz: 15, color: "FFFFFF" }), fill: S.fill(TEAL) }) }; for (let c = 1; c < 6; c++) cells[c] = { v: "", s: S.xf({ fill: S.fill(TEAL) }) }; return { cells, ht }; }
-    if (k === "subtitle") { cells[0] = { v: row.c[0], s: S.xf({ font: S.font({ i: 1, sz: 10, color: DARK }) }) }; return { cells, ht }; }
+    if (k === "title") { cells[0] = { v: row.c[0], s: S.xf({ font: S.font({ b: 1, sz: 16, color: "FFFFFF" }), fill: S.fill(TEAL) }) }; for (let c = 1; c < 6; c++) cells[c] = { v: "", s: S.xf({ fill: S.fill(TEAL) }) }; return { cells, ht }; }
+    if (k === "subtitle") { cells[0] = { v: row.c[0], s: S.xf({ font: S.font({ i: 1, sz: 12, color: DARK }) }) }; return { cells, ht }; }
     if (k === "blank") return { cells, ht };
-    if (k === "capsion") { cells[0] = { v: row.c[0], s: S.xf({ font: S.font({ b: 1, sz: 11, color: DARK }) }) }; return { cells, ht }; }
+    if (k === "capsion") { cells[0] = { v: row.c[0], s: S.xf({ font: S.font({ b: 1, sz: 12, color: DARK }) }) }; return { cells, ht }; }
     // Цвета как раньше (бирюзовые итоги, пурпурные разделы, красный минус,
     // зелёный плюс); всё, что было серым, — теперь чёрное.
     const labelColor = isSection ? MAG : (isTotal || strong) ? TEAL : DARK;
     const labelBold = isSection || isTotal || strong || isSubhead || k === "header";
-    const sz = isTotal ? 13 : isSection ? 12 : (isSub || isSubhead) ? 10 : k === "ref" ? 10 : 11;
+    const sz = isTotal ? 14 : isSection ? 13 : 12;   // минимум 12 — читаемость
     const labFont = S.font({ b: labelBold ? 1 : 0, i: k === "ref" ? 1 : 0, sz, color: k === "header" ? DARK : labelColor });
     for (let c = 0; c < 6; c++) {
       const v = row.c[c];
@@ -2060,8 +2060,8 @@ function buildFiles(model, G) {
       else if (k === "minus") color = RED; else if (k === "plus") color = GREEN;
       else if (isSub || isSubhead) color = isNum ? (v < 0 ? RED : v > 0 ? GREEN : DARK) : DARK;
       const vBold = isTotal || isSection || strong || isSubhead || k === "header";
-      const vsz = isTotal ? 13 : isSection ? 12 : (isSub || isSubhead) ? 10 : k === "ref" ? 10 : 11;
-      const font = c === 5 ? S.font({ i: 1, sz: 9, color: DARK }) : S.font({ b: vBold ? 1 : 0, i: k === "ref" ? 1 : 0, sz: vsz, color });
+      const vsz = isTotal ? 14 : isSection ? 13 : 12;
+      const font = c === 5 ? S.font({ i: 1, sz: 12, color: DARK }) : S.font({ b: vBold ? 1 : 0, i: k === "ref" ? 1 : 0, sz: vsz, color });
       const nf = z[c] === "M" ? MONEY : z[c] === "P" ? PCT : z[c] === "N" ? INT : z[c] === "M2" ? MONEY2 : 0;
       cells[c] = { v, s: S.xf({ font, fill: fillId, border: bord, numFmt: isNum ? nf : 0, h: c === 5 ? "left" : "right", wrap: c === 5 }), num: isNum };
     }
@@ -2072,7 +2072,7 @@ function buildFiles(model, G) {
   });
   // Автофильтр по колонке «Сумма, ₽» (индекс 1), от шапки до строки итога.
   const af = { ref: `A${headerIdx + 1}:F${totalIdx + 1}`, col: 1 };
-  const sheetProv = sheetXml(rowsMeta, [46, 15, 9, 11, 12, 40], ["A1:F1", "A2:F2"], af);
+  const sheetProv = sheetXml(rowsMeta, [52, 17, 10, 12, 14, 46], ["A1:F1", "A2:F2"], af);
 
   return [
     { name: "[Content_Types].xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>` },
@@ -2139,7 +2139,7 @@ function exportReconcileXlsx(r, rows) {
   };
 
   push(["Проверка сверки недели — Wildberries"], "title");
-  push([`Сформировано ${new Date().toLocaleString("ru-RU")}`], "subtitle");
+  push([`Сформировано ${new Date().toLocaleString("ru-RU")}. Пустые (нулевые) статьи скрыты — нажми воронку ▼ в шапке «Сумма, ₽» и выбери «Выделить всё», чтобы показать их.`], "subtitle");
   push([""], "blank");
   push(["Показатель", "Сумма, ₽", "Доля", "Кол-во, шт", "За 1 шт, ₽", "Примечание"], "header");
 
