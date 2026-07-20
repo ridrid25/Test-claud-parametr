@@ -592,7 +592,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v10 · 20.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v11 · 20.07</span>
 </div>
 
 <div class="layout">
@@ -1890,17 +1890,56 @@ function renderReconcile(rows) {
 }
 
 // Выгрузка каскада «Сверка недели» в оформленный .xlsx (xlsx-js-style встроен).
-// Группировка WB-строк по текстовой подписи: сумма + количество строк («шт»).
-function wbGroup(wbRows, keyFn, valFn) {
-  const map = new Map();
+// Канонические статьи отчёта WB. Строки всегда присутствуют (даже с 0),
+// а новую, ещё не встречавшуюся формулировку ловит строка «Прочее», поэтому
+// смена состава колонок в следующем месяце ничего не ломает.
+const WB_COMP_DEFS = [
+  { label: "Компенсация брака", re: /брак/i },
+  { label: "Компенсация потерянного товара", re: /потерянн/i },
+  { label: "Компенсация ущерба", re: /ущерб/i },
+  { label: "Компенсация подменённого товара", re: /подмен/i },
+  { label: "Добровольная компенсация при возврате", re: /добровольн/i },
+  { label: "Авансовая оплата за товар без движения", re: /аванс/i },
+  { label: "Коррекция продаж", re: /коррекц.*продаж/i },
+  { label: "Корректировка эквайринга", re: /корректировк.*эквайринг/i },
+  { label: "Возмещение издержек по эквайрингу", re: /возмещен.*эквайринг|издерж/i },
+];
+const WB_LOGI_DEFS = [
+  { label: "Возврат брака (К продавцу)", re: /брак/i },
+  { label: "Коррекция логистики", re: /коррекц/i },
+  { label: "Возвраты (обратная логистика)", re: /от\s*клиент/i },
+  { label: "Заказы (доставки)", re: /к\s*клиент|к\s*продавц|продаж|отмен/i },
+];
+const WB_UDER_DEFS = [
+  { label: "Оказание услуг «WB Продвижение»", re: /продвижени/i },
+  { label: "WB Медиа", re: /медиа/i },
+  { label: "Списание за отзыв", re: /отзыв/i },
+  { label: "Джем", re: /джем/i },
+  { label: "Утилизация", re: /утилизац/i },
+  { label: "Перенос карточек", re: /перенос/i },
+  { label: "Транзит", re: /транзит/i },
+  { label: "Возврат неиспользованного остатка аванса", re: /остатк.*аванс|неиспользованн/i },
+];
+const WB_SHTRAF_DEFS = [
+  { label: "Платное хранение возвратов на ПВЗ более 3 дней", re: /платное хранение возвратов|пвз/i },
+  { label: "Самовыкупы", re: /самовыкуп/i },
+  { label: "Подмена товара", re: /подмен/i },
+  { label: "Брак / несоответствие", re: /брак|не соответ/i },
+];
+
+// Раскладывает строки по фиксированному списку статей; всё, что не подошло, —
+// в «Прочее». Итог по корзинам всегда равен контрольной сумме раздела.
+function wbBuckets(wbRows, defs, textFn, valFn) {
+  const out = defs.map(d => ({ label: d.label, sum: 0, count: 0 }));
+  const other = { label: "Прочее (не классифицировано)", sum: 0, count: 0 };
   for (const r of wbRows) {
-    const v = valFn(r.wb);
-    if (!v) continue;
-    const k = (keyFn(r.wb) || "").trim() || "Прочее";
-    if (!map.has(k)) map.set(k, { label: k, sum: 0, count: 0 });
-    const g = map.get(k); g.sum += v; g.count += 1;
+    const v = valFn(r.wb); if (!v) continue;
+    const t = textFn(r.wb) || "";
+    const i = defs.findIndex(d => d.re.test(t));
+    const g = i >= 0 ? out[i] : other;
+    g.sum += v; g.count += 1;
   }
-  return [...map.values()].sort((a, b) => Math.abs(b.sum) - Math.abs(a.sum));
+  return { out, other };
 }
 
 function exportReconcileXlsx(r, rows) {
@@ -1909,23 +1948,30 @@ function exportReconcileXlsx(r, rows) {
   const actual = state.payoutActual;
   const g = r.gross || 0;
   const share = v => (g ? v / g : 0);                       // доля от валовой розницы
-  // Разбивки по реальным строкам отчёта.
-  const compGroups = wbGroup(wbRows, w => w.obosnovanie, w => WB_COMP_RE.test(w.obosnovanie || "") ? w.perechisl : 0);
-  const logiGroups = wbGroup(wbRows, w => w.logisticsType || w.obosnovanie, w => (WB_STORNO_RE.test(w.obosnovanie || "") ? -1 : 1) * (w.dostavka || 0));
+  // Разбивки по фиксированным статьям (строки всегда есть, 0 — если статья пуста).
+  const comp = wbBuckets(wbRows, WB_COMP_DEFS, w => w.obosnovanie, w => WB_COMP_RE.test(w.obosnovanie || "") ? w.perechisl : 0);
+  const logi = wbBuckets(wbRows, WB_LOGI_DEFS, w => w.logisticsType || w.obosnovanie, w => (WB_STORNO_RE.test(w.obosnovanie || "") ? -1 : 1) * (w.dostavka || 0));
+  const uder = wbBuckets(wbRows, WB_UDER_DEFS, w => w.obosnovanie, w => w.uderzh || 0);
+  const shtr = wbBuckets(wbRows, WB_SHTRAF_DEFS, w => w.logisticsType || w.obosnovanie, w => w.shtraf || 0);
   const logiQty = wbRows.reduce((s, x) => s + (x.wb.dostavka ? 1 : 0), 0);
-  const uderGroups = wbGroup(wbRows, w => w.obosnovanie, w => w.uderzh || 0);
-  const shtrGroups = wbGroup(wbRows, w => w.logisticsType || w.obosnovanie, w => w.shtraf || 0);
   const hran = wbRows.reduce((s, x) => s + (x.wb.hran || 0), 0);
   const priemka = wbRows.reduce((s, x) => s + (x.wb.priemka || 0), 0);
   const perTov = round2(r.finalPay + r.logistics + r.storage + r.uderzh + r.shtraf); // К перечислению за товар
-  const other = round2(r.storage + r.uderzh + r.shtraf);    // Прочие статьи (magenta)
+  const otherTot = round2(r.storage + r.uderzh + r.shtraf);  // Прочие статьи (magenta)
 
-  // Модель строк: {c:[cells], k:kind, z:[форматы по колонкам], note}
+  // Модель строк: {c:[cells], k:kind, z:[форматы], lvl:уровень группировки}
   // Колонки: Показатель | Сумма, ₽ | Доля | Кол-во, шт | За 1 шт, ₽ | Примечание
   const M = "#,##0 ₽", P = "0.0%", N = "#,##0", M2 = "#,##0.00 ₽";
   const R = [];
-  const push = (c, k, z, note) => R.push({ c, k, z: z || [], note: note || "" });
-  const perUnit = (gr) => gr.count ? gr.sum / gr.count : 0;
+  const push = (c, k, z, lvl) => R.push({ c, k, z: z || [], lvl: lvl || 0 });
+  const ind = (lvl, s) => "    ".repeat(lvl) + s;
+  const nz = v => v || 0;                                   // −0 → 0
+  const perUnit = b => b.count ? b.sum / b.count : "";
+  // Корзины раздела как сгруппированные подстроки: сумма (со знаком), «шт», за 1 шт.
+  const emitBuckets = (bk, sign, lvl, withUnit) => {
+    bk.out.forEach(b => push([ind(lvl, b.label), nz(sign * round2(b.sum)), "", b.count || "", withUnit && b.count ? sign * perUnit(b) : "", ""], "sub", [null, M, null, N, withUnit ? M2 : null], lvl));
+    if (bk.other.count) push([ind(lvl, bk.other.label), nz(sign * round2(bk.other.sum)), "", bk.other.count, withUnit ? sign * perUnit(bk.other) : "", "новая статья — проверить"], "sub", [null, M, null, N, withUnit ? M2 : null], lvl);
+  };
 
   push(["Проверка сверки недели — Wildberries"], "title");
   push([`Сформировано ${new Date().toLocaleString("ru-RU")}`], "subtitle");
@@ -1939,23 +1985,19 @@ function exportReconcileXlsx(r, rows) {
   push(["Комиссия ВБ (до СПП)", -round2(r.commBefore), -share(r.commBefore), "", "", "сверить со ставкой на карточках"], "minus", [null, M, P]);
   push(["Эквайринг", -round2(r.acquiring), -share(r.acquiring), "", "", ""], "minus", [null, M, P]);
   push(["Комиссия с учётом компенсации СПП", -round2(r.commAfter), -share(r.commAfter), "", "", r.commAfter <= 0 ? "WB компенсирует СПП — комиссия в плюс" : ""], "minus", [null, M, P]);
-  if (compGroups.length) {
-    push(["Компенсации и доплаты, итого", round2(r.comp), share(r.comp), "", "", ""], "plus", [null, M, P]);
-    compGroups.forEach(gr => push(["    " + gr.label, round2(gr.sum), "", gr.count, "", ""], "sub", [null, M, null, N]));
-  }
+  push(["Компенсации и доплаты, итого", round2(r.comp), share(r.comp), "", "", "разверни ▸ для расшифровки"], "plus", [null, M, P]);
+  emitBuckets(comp, 1, 1, false);
   push(["К перечислению за товар", perTov, share(perTov), "", "", "до вычета логистики, хранения и удержаний"], "section", [null, M, P]);
 
   push(["Логистика, итого", -round2(r.logistics), -share(r.logistics), logiQty, logiQty ? r.logistics / logiQty : "", ""], "minus", [null, M, P, N, M2]);
-  logiGroups.forEach(gr => push(["    " + gr.label, -round2(gr.sum), "", gr.count, perUnit(gr), ""], "sub", [null, M, null, N, M2]));
+  emitBuckets(logi, -1, 1, true);
 
-  push(["Прочие статьи", -other, -share(other), "", "", "штраф + хранение + удержания"], "section", [null, M, P]);
-  push(["    Хранение", -round2(hran), -share(hran), "", "", ""], "sub", [null, M, P]);
-  if (priemka) push(["    Приёмка", -round2(priemka), -share(priemka), "", "", ""], "sub", [null, M, P]);
-  if (uderGroups.length) {
-    push(["    Удержания, итого", -round2(r.uderzh), -share(r.uderzh), "", "", ""], "subminus", [null, M, P]);
-    uderGroups.forEach(gr => push(["        " + gr.label, -round2(gr.sum), -share(gr.sum), gr.count, "", ""], "sub", [null, M, P, N]));
-  }
-  if (r.shtraf) push(["    Штрафы", -round2(r.shtraf), -share(r.shtraf), "", "", ""], "subminus", [null, M, P]);
+  push(["Прочие статьи", -otherTot, -share(otherTot), "", "", "штраф + хранение + удержания"], "section", [null, M, P]);
+  push([ind(1, "Хранение"), nz(-round2(hran)), nz(-share(hran)), "", "", ""], "sub", [null, M, P], 1);
+  push([ind(1, "Приёмка"), nz(-round2(priemka)), nz(-share(priemka)), "", "", ""], "sub", [null, M, P], 1);
+  push([ind(1, "Удержания, итого"), -round2(r.uderzh), -share(r.uderzh), "", "", "со знаком «−» — это доплата нам"], "subhead", [null, M, P], 1);
+  emitBuckets(uder, -1, 2, false);
+  push([ind(1, "Штрафы"), -round2(r.shtraf), -share(r.shtraf), "", "", "расшифровка ниже"], "subhead", [null, M, P], 1);
 
   push(["К перечислению (расчёт)", round2(r.finalPay), share(r.finalPay), "", "", ""], "total", [null, M, P]);
 
@@ -1968,11 +2010,9 @@ function exportReconcileXlsx(r, rows) {
     push(["Расхождение с расчётом", d, "", "", "", Math.abs(d) <= 1 ? "сходится ✅" : "проверить ⚠️"], "ref", [null, M]);
   }
 
-  if (shtrGroups.length) {
-    push([""], "blank");
-    push(["Расшифровка штрафов", round2(r.shtraf), "", "", "", ""], "section", [null, M]);
-    shtrGroups.forEach(gr => push(["    " + gr.label, round2(gr.sum), "", gr.count, "", ""], "sub", [null, M, null, N]));
-  }
+  push([""], "blank");
+  push(["Расшифровка штрафов", round2(r.shtraf), share(r.shtraf), "", "", ""], "section", [null, M, P]);
+  emitBuckets(shtr, 1, 1, false);
 
   const aoa = R.map(row => row.c);
   const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -1981,41 +2021,43 @@ function exportReconcileXlsx(r, rows) {
     { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
     { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } },
   ];
+  // Итоги-разделы стоят НАД своими подстроками — кнопка сворачивания [-]/[+]
+  // должна быть у верхней строки, поэтому summaryBelow отключаем.
+  ws["!outline"] = { above: true, left: false };
   const TEAL = "0A655E", TEALLT = "DCEBE9", GREY = "F1F1EF", RED = "BF3E2E", GREEN = "057A55",
     MAG = "A01A6E", MAGLT = "F6E7F1", BRD = "D8D8D2", DARK = "0B0B0B", MUTED = "8A8A85";
   const thin = { style: "thin", color: { rgb: BRD } };
   const box = { top: thin, bottom: thin, left: thin, right: thin };
   const cell = (rr, c) => { const a = XLSX.utils.encode_cell({ r: rr, c }); if (!ws[a]) ws[a] = { t: "s", v: "" }; return ws[a]; };
-  const rowHpt = [];
+  const rowMeta = [];
   R.forEach((row, rr) => {
+    rowMeta[rr] = { lvl: row.lvl || 0 };
     const k = row.k, z = row.z, ncol = 6;
-    let base, fillRgb, borderEach = false, top = thin;
-    if (k === "title") { rowHpt[rr] = 28; base = { font: { bold: true, sz: 15, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: TEAL } }, alignment: { vertical: "center" } }; for (let c = 0; c < ncol; c++) Object.assign(cell(rr, c), { s: base }); return; }
+    let base, fillRgb, top = thin;
+    if (k === "title") { rowMeta[rr].hpt = 28; base = { font: { bold: true, sz: 15, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: TEAL } }, alignment: { vertical: "center" } }; for (let c = 0; c < ncol; c++) Object.assign(cell(rr, c), { s: base }); return; }
     if (k === "subtitle") { base = { font: { sz: 10, italic: true, color: { rgb: MUTED } } }; for (let c = 0; c < ncol; c++) Object.assign(cell(rr, c), { s: base }); return; }
     if (k === "blank") { return; }
     if (k === "capsion") { Object.assign(cell(rr, 0), { s: { font: { bold: true, sz: 11, color: { rgb: MUTED } } } }); return; }
-    if (k === "header") { base = { font: { bold: true, color: { rgb: DARK } }, fill: { fgColor: { rgb: GREY } }, border: box }; borderEach = true; fillRgb = GREY; }
+    if (k === "header") { fillRgb = GREY; }
     const strong = k === "strong", isTotal = k === "total", isSection = k === "section";
-    if (isTotal) { rowHpt[rr] = 22; fillRgb = TEALLT; top = { style: "medium", color: { rgb: TEAL } }; }
-    if (isSection) { rowHpt[rr] = 20; fillRgb = MAGLT; top = { style: "medium", color: { rgb: MAG } }; }
-    const isSub = k === "sub" || k === "subminus";
-    const labelColor = isSection ? MAG : isTotal ? TEAL : strong ? TEAL : isSub ? MUTED : DARK;
-    const labelBold = isSection || isTotal || strong || k === "subminus";
-    const sz = isTotal ? 13 : isSection ? 12 : isSub ? 10 : 11;
-    const valColor = c1 => {
-      const v = row.c[c1];
+    const isSubhead = k === "subhead", isSub = k === "sub";
+    if (isTotal) { rowMeta[rr].hpt = 22; fillRgb = TEALLT; top = { style: "medium", color: { rgb: TEAL } }; }
+    if (isSection) { rowMeta[rr].hpt = 20; fillRgb = MAGLT; top = { style: "medium", color: { rgb: MAG } }; }
+    const labelColor = isSection ? MAG : (isTotal || strong) ? TEAL : (isSub || isSubhead) ? MUTED : DARK;
+    const labelBold = isSection || isTotal || strong || isSubhead;
+    const sz = isTotal ? 13 : isSection ? 12 : (isSub || isSubhead) ? 10 : 11;
+    const valColor = v => {
       if (isSection) return MAG;
       if (isTotal || strong) return TEAL;
-      if (typeof v === "number" && v < 0) return RED;
+      if (k === "minus") return RED;
       if (k === "plus") return GREEN;
-      if (typeof v === "number" && v > 0 && (k === "plus")) return GREEN;
-      return isSub ? MUTED : DARK;
+      if (isSub || isSubhead) return typeof v === "number" ? (v < 0 ? RED : v > 0 ? GREEN : MUTED) : MUTED;
+      return DARK;
     };
     for (let c = 0; c < ncol; c++) {
       const cl = cell(rr, c);
-      const numeric = typeof row.c[c] === "number";
       const st = {
-        font: { bold: c === 0 ? labelBold : (isTotal || isSection || strong), sz, color: { rgb: c === 0 ? labelColor : valColor(c) } },
+        font: { bold: c === 0 ? labelBold : (isTotal || isSection || strong || isSubhead), sz, color: { rgb: c === 0 ? labelColor : valColor(row.c[c]) } },
         alignment: { horizontal: c === 0 ? "left" : "right", vertical: "center" },
       };
       if (fillRgb) st.fill = { fgColor: { rgb: fillRgb } };
@@ -2023,10 +2065,14 @@ function exportReconcileXlsx(r, rows) {
       if (z[c]) cl.z = z[c];
       if (c === 5 && typeof row.c[5] === "string" && row.c[5]) st.font = { sz: 9, italic: true, color: { rgb: MUTED } };
       cl.s = st;
-      void numeric;
     }
   });
-  if (rowHpt.length) ws["!rows"] = rowHpt.map(h => (h ? { hpt: h } : {}));
+  ws["!rows"] = rowMeta.map(mt => {
+    const o = {};
+    if (mt && mt.hpt) o.hpt = mt.hpt;
+    if (mt && mt.lvl) o.level = mt.lvl;   // сворачиваемая группа (аутлайн Excel)
+    return o;
+  });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Проверка");
   const msg = document.getElementById("reconcile-export-msg");
