@@ -1670,6 +1670,10 @@ function auditDeductions(rows) {
 
 function renderAudit(rows) {
   const card = document.getElementById("audit-card");
+  // На WB-отчётах (есть Srid и колонки проверки) эвристический аудит даёт ложные
+  // срабатывания — детализация идёт построчно. Прячем его в пользу доказанной
+  // «Проверки комиссии (WB)»; для простых CSV без Srid карточка остаётся.
+  if (rows.some(r => r.wb)) { card.hidden = true; return; }
   const res = auditDeductions(rows);
   if (!res.show) { card.hidden = true; return; }
   card.hidden = false;
