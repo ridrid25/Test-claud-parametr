@@ -592,7 +592,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v15 · 20.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v16 · 20.07</span>
 </div>
 
 <div class="layout">
@@ -2012,7 +2012,7 @@ function makeGen() {
         else if (cell.v === "" || cell.v == null) cs += `<c r="${ref}"${s}/>`;
         else cs += `<c r="${ref}"${s} t="inlineStr"><is><t xml:space="preserve">${xe(cell.v)}</t></is></c>`;
       });
-      sd += `<row r="${r}"${row.ht ? ` ht="${row.ht}" customHeight="1"` : ""}>${cs}</row>`;
+      sd += `<row r="${r}"${row.ht ? ` ht="${row.ht}" customHeight="1"` : ""}${row.hidden ? ` hidden="1"` : ""}>${cs}</row>`;
     });
     const colsX = cols ? `<cols>${cols.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join("")}</cols>` : "";
     const mg = merges && merges.length ? `<mergeCells count="${merges.length}">${merges.map(m => `<mergeCell ref="${m}"/>`).join("")}</mergeCells>` : "";
@@ -2066,7 +2066,9 @@ function buildFiles(model, G) {
       const nf = z[c] === "M" ? MONEY : z[c] === "P" ? PCT : z[c] === "N" ? INT : z[c] === "M2" ? MONEY2 : 0;
       cells[c] = { v, s: S.xf({ font, fill: fillId, border: bord, numFmt: isNum ? nf : 0, h: c === 5 ? "left" : "right", wrap: c === 5 }), num: isNum };
     }
-    return { cells, ht };
+    // Пустые (нулевые) подстроки-статьи прячем (строка остаётся в файле).
+    const hidden = isSub && typeof row.c[1] === "number" && Math.abs(row.c[1]) < 0.005;
+    return { cells, ht, hidden };
   });
   const sheetProv = sheetXml(rowsMeta, [46, 15, 9, 11, 12, 40], ["A1:F1", "A2:F2"]);
 
