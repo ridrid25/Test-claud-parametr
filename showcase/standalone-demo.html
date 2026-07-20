@@ -581,7 +581,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v18 · 20.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v19 · 20.07</span>
 </div>
 
 <div class="layout">
@@ -2021,8 +2021,7 @@ function makeGen() {
 function buildFiles(model, G) {
   const { Styles, sheetXml } = G;
   const S = new Styles();
-  // Правило: все цифры и буквы — чёрные (без [Red] и серых оттенков).
-  const MONEY = S.numFmt('#,##0" ₽";-#,##0" ₽"'), PCT = S.numFmt("0.0%"), INT = S.numFmt("#,##0"), MONEY2 = S.numFmt('#,##0.00" ₽"');
+  const MONEY = S.numFmt('#,##0" ₽";[Red]-#,##0" ₽"'), PCT = S.numFmt("0.0%"), INT = S.numFmt("#,##0"), MONEY2 = S.numFmt('#,##0.00" ₽"');
   const TEAL = "0A655E", TEALLT = "DCEBE9", GREY = "F1F1EF", RED = "BF3E2E", GREEN = "057A55", MAG = "A01A6E", MAGLT = "F6E7F1", DARK = "0B0B0B", MUTED = "8A8A85";
   const thinB = S.border({ all: "thin" });
   const totalB = S.border({ all: "thin", top: "medium", topColor: TEAL });
@@ -2045,18 +2044,24 @@ function buildFiles(model, G) {
     if (k === "subtitle") { cells[0] = { v: row.c[0], s: S.xf({ font: S.font({ i: 1, sz: 10, color: DARK }) }) }; return { cells, ht }; }
     if (k === "blank") return { cells, ht };
     if (k === "capsion") { cells[0] = { v: row.c[0], s: S.xf({ font: S.font({ b: 1, sz: 11, color: DARK }) }) }; return { cells, ht }; }
-    // Весь текст — чёрный. Акценты передаём жирностью, заливкой и рамками.
+    // Цвета как раньше (бирюзовые итоги, пурпурные разделы, красный минус,
+    // зелёный плюс); всё, что было серым, — теперь чёрное.
+    const labelColor = isSection ? MAG : (isTotal || strong) ? TEAL : DARK;
     const labelBold = isSection || isTotal || strong || isSubhead || k === "header";
     const sz = isTotal ? 13 : isSection ? 12 : (isSub || isSubhead) ? 10 : k === "ref" ? 10 : 11;
-    const labFont = S.font({ b: labelBold ? 1 : 0, i: k === "ref" ? 1 : 0, sz, color: DARK });
+    const labFont = S.font({ b: labelBold ? 1 : 0, i: k === "ref" ? 1 : 0, sz, color: k === "header" ? DARK : labelColor });
     for (let c = 0; c < 6; c++) {
       const v = row.c[c];
       if (v === undefined) continue;
       if (c === 0) { cells[0] = { v, s: S.xf({ font: labFont, fill: fillId, border: bord, h: "left" }) }; continue; }
       const isNum = typeof v === "number";
+      let color = DARK;
+      if (isSection) color = MAG; else if (isTotal || strong) color = TEAL;
+      else if (k === "minus") color = RED; else if (k === "plus") color = GREEN;
+      else if (isSub || isSubhead) color = isNum ? (v < 0 ? RED : v > 0 ? GREEN : DARK) : DARK;
       const vBold = isTotal || isSection || strong || isSubhead || k === "header";
       const vsz = isTotal ? 13 : isSection ? 12 : (isSub || isSubhead) ? 10 : k === "ref" ? 10 : 11;
-      const font = c === 5 ? S.font({ i: 1, sz: 9, color: DARK }) : S.font({ b: vBold ? 1 : 0, i: k === "ref" ? 1 : 0, sz: vsz, color: DARK });
+      const font = c === 5 ? S.font({ i: 1, sz: 9, color: DARK }) : S.font({ b: vBold ? 1 : 0, i: k === "ref" ? 1 : 0, sz: vsz, color });
       const nf = z[c] === "M" ? MONEY : z[c] === "P" ? PCT : z[c] === "N" ? INT : z[c] === "M2" ? MONEY2 : 0;
       cells[c] = { v, s: S.xf({ font, fill: fillId, border: bord, numFmt: isNum ? nf : 0, h: c === 5 ? "left" : "right", wrap: c === 5 }), num: isNum };
     }
