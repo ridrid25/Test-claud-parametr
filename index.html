@@ -299,6 +299,14 @@ tr.map-miss td, tr.map-conflict td { background: color-mix(in srgb, var(--status
 .map-badge.warn { color: var(--status-serious); background: color-mix(in srgb, var(--status-serious) 15%, transparent); }
 .map-badge.miss { color: var(--status-critical); background: color-mix(in srgb, var(--status-critical) 13%, transparent); }
 .map-badge.none { color: var(--text-muted); background: var(--surface-2); }
+/* Каскад «Сверка недели». */
+.rec-table { width: 100%; border-collapse: collapse; }
+.rec-table td { padding: 8px 6px; border-bottom: 1px solid var(--border); }
+.rec-table td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rec-table tr.rec-strong td { border-top: 1px solid var(--border-strong); font-weight: 600; }
+.rec-table tr.rec-total td { border-top: 2px solid var(--accent); border-bottom: none; font-size: 17px; font-weight: 700; color: var(--accent-strong); padding-top: 11px; }
+.rec-minus { color: var(--status-serious); }
+.rec-plus { color: var(--success); }
 .mp-badge { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; white-space: nowrap; }
 .mp-dot { width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 9.5px; font-weight: 700; letter-spacing: 0.02em; color: #fff; }
 .mp-wb { color: var(--wb); } .mp-wb .mp-dot { background: var(--wb); }
@@ -815,6 +823,13 @@ th.sorted-desc::after { content: " ↓"; }
     </section>
 
     <section class="tab-panel" data-panel="overview" role="tabpanel" id="panel-overview" aria-labelledby="tab-overview" hidden>
+      <div class="card" id="reconcile-card" hidden>
+        <div class="card-header">
+          <h3>Сверка недели (WB)</h3>
+          <span class="muted">каскад от валовой розницы до выплаты — сходится с кабинетом до рубля</span>
+        </div>
+        <div id="reconcile-body"></div>
+      </div>
       <div class="card">
         <div class="card-header">
           <h3>Динамика по месяцам</h3>
@@ -1270,8 +1285,12 @@ function extractTable(fileName, buffer) {
   if (XLSX_EXT_RE.test(fileName || "")) {
     if (typeof XLSX === "undefined") throw new Error("Не удалось прочитать Excel — библиотека чтения не загрузилась.");
     const wb = XLSX.read(new Uint8Array(buffer), { type: "array", cellDates: true });
-    const sheetName = wb.SheetNames[0];
-    if (!sheetName) throw new Error("В Excel-файле нет ни одного листа.");
+    if (!wb.SheetNames.length) throw new Error("В Excel-файле нет ни одного листа.");
+    // Лист с данными: сперва «Детализация…», иначе — самый большой (не сводка).
+    let sheetName = wb.SheetNames.find(n => /детализ|detail/i.test(n));
+    if (!sheetName) sheetName = wb.SheetNames
+      .map(n => ({ n, len: XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, blankrows: false }).length }))
+      .sort((a, b) => b.len - a.len)[0].n;
     const aoa = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, raw: true, defval: "", blankrows: false });
     const ext = (fileName.split(".").pop() || "xlsx").toLowerCase();
     fileFixes.push(`формат Excel (.${ext}), лист «${sheetName}»`);
@@ -1304,12 +1323,21 @@ const WB_VERIFY_RAW = {
   "Вознаграждение с продаж до вычета услуг поверенного, без НДС": "voznProdazh",
   "Вознаграждение Вайлдберриз (ВВ), без НДС": "vv",
   "К перечислению Продавцу за реализованный Товар": "perechisl",
+  "Вайлдберриз реализовал Товар (Пр)": "pr",
   "Виды логистики, штрафов и корректировок ВВ": "logisticsType",
   "Обоснование для оплаты": "obosnovanie",
   "Тип документа": "docKind",
   "Srid": "srid",
+  "Хранение": "hran",
+  "Удержания": "uderzh",
+  "Общая сумма штрафов": "shtraf",
+  "Операции на приемке": "priemka",
+  "Услуги по доставке товара покупателю": "dostavka",
 };
 const WB_TEXT_VERIFY = new Set(["logisticsType", "obosnovanie", "docKind", "srid"]);
+// Колонки-признаки настоящего детального отчёта WB. Общие имена (Хранение, Удержания,
+// Услуги по доставке) встречаются и в простых CSV — по ним WB-режим НЕ включаем.
+const WB_SIGNATURE_KEYS = ["srid", "obosnovanie", "cenaSkidka", "kvvItog", "kvvBase", "vv", "acqComp", "acqPct", "voznProdazh", "docKind"];
 const WB_VERIFY_BY_KEY = {};
 for (const [name, key] of Object.entries(WB_VERIFY_RAW)) WB_VERIFY_BY_KEY[normHeaderKey(name)] = key;
 const wbNum = v => { const n = Number(String(v ?? "").trim().replace(/[₽%\s ]/g, "").replace(",", ".")); return Number.isFinite(n) ? n : 0; };
@@ -1324,7 +1352,7 @@ function wbVerifyIndex(headers) {
 function buildRows(formMarketplace, headers, dataRows, idxByField) {
   const computeCommission = !("commission" in idxByField); // нет колонки комиссии → считаем косвенно
   const vIdx = wbVerifyIndex(headers);
-  const hasVerify = Object.keys(vIdx).length > 0;
+  const hasVerify = WB_SIGNATURE_KEYS.some(k => k in vIdx); // только настоящий WB-отчёт
   const rows = [];
   for (let i = 0; i < dataRows.length; i++) {
     const raw = dataRows[i];
@@ -1758,8 +1786,6 @@ function renderCommissionAudit(rows) {
   if (!res.show) { card.hidden = true; return; }
   card.hidden = false;
   const tile = (val, lbl, cls = "", valCls = "") => `<div class="audit-tile ${cls}"><div class="a-val ${valCls}">${val}</div><div class="a-lbl">${lbl}</div></div>`;
-  const actual = state.payoutActual;
-  const diff = actual != null ? round2(actual - res.reportPayout) : null;
   document.getElementById("commission-body").innerHTML = `
     <p class="hint" style="margin-top:0">Проверяем только <strong>доказанные тождества</strong> WB-отчёта — расхождение по строке продажи считаем кандидатом. Строк продаж: <strong>${res.salesCount}</strong>.</p>
     <div class="audit-tiles row3">
@@ -1771,18 +1797,77 @@ function renderCommissionAudit(rows) {
       ${tile(res.sridDup + " шт", "Дубли по Srid", res.sridDup ? "head" : "")}
       ${tile(state.residuals.length + " зап.", "Остатков собрано (для будущих формул)")}
       ${tile(res.reportPayout ? fmtMoney(Math.round(res.reportPayout)) : "—", "К перечислению по отчёту", "", "txt")}
-    </div>
-    <div class="upload-form" style="margin-top:10px; align-items:flex-end">
-      <label class="field" style="max-width:260px"><span>Фактически поступило на счёт, ₽</span>
-        <input id="payout-actual" type="text" inputmode="decimal" placeholder="сумма выплаты из банка" value="${actual != null ? escapeHtml(String(actual)) : ""}" /></label>
-      <button id="payout-check" class="btn-small" type="button">Сверить с отчётом</button>
-      ${diff != null ? `<span class="hint" style="margin:0">Расхождение: <strong>${fmtMoney(Math.round(diff))}</strong>${Math.abs(diff) <= 1 ? " — сходится ✅" : " — проверьте ⚠️"}</span>` : ""}
     </div>`;
-  const btn = document.getElementById("payout-check");
+}
+
+/* ==== Каноническая сверка недели WB (модель финдиректора) ==== */
+// Тождества доказаны на реальном отчёте: каждая строка сходится с кабинетом до 1 ₽.
+// Возвраты в отчёте положительные — их ВЫЧИТАЕМ. «Вознаграждение ВВ» в расчёт комиссии
+// не берём (только справочно). Комиссию показываем двумя: до и после компенсации СПП.
+const WB_COMP_RE = /добровольная компенсац|компенсац.*(брак|потерянн|ущерб|подмен)|коррекц.*продаж|корректировк.*эквайринг|возмещение издержек по эквайрингу|авансовая оплата за товар без движения/i;
+const WB_STORNO_RE = /сторно/i;
+
+function commissionReconcile(rows) {
+  const wbRows = rows.filter(r => r.wb);
+  if (!wbRows.length) return { show: false };
+  const isSale = r => (r.wb.docKind || "").toLowerCase() === "продажа";
+  const isRet = r => (r.wb.docKind || "").toLowerCase() === "возврат";
+  const netByDoc = pick => wbRows.reduce((s, r) => s + (isSale(r) ? pick(r) : isRet(r) ? -pick(r) : 0), 0);
+  const sumAll = pick => wbRows.reduce((s, r) => s + pick(r), 0);
+
+  const gross = netByDoc(r => r.wb.cenaSkidka);            // валовая розница (Продажа − Возврат)
+  const netto = netByDoc(r => r.wb.pr);                   // нетто Пр (Продажа − Возврат), сырой Пр
+  const sppRub = gross - netto, sppPct = gross ? 1 - netto / gross : 0;
+  const acquiring = netByDoc(r => r.wb.acqComp);          // эквайринг (Продажа − Возврат)
+  const perechNet = netByDoc(r => r.wb.perechisl);        // К перечислению по продажам (нетто)
+  const comp = sumAll(r => WB_COMP_RE.test(r.wb.obosnovanie || "") ? r.wb.perechisl : 0);
+  const base = perechNet - comp;
+  const commBefore = gross - base - acquiring;            // комиссия до компенсации СПП (справочно)
+  const commAfter = netto - base - acquiring;             // комиссия после компенсации СПП (в каскад)
+  const logistics = sumAll(r => (WB_STORNO_RE.test(r.wb.obosnovanie || "") ? -1 : 1) * (r.wb.dostavka || 0));
+  const storage = sumAll(r => (r.wb.hran || 0) + (r.wb.priemka || 0));
+  const uderzh = sumAll(r => r.wb.uderzh || 0);
+  const shtraf = sumAll(r => r.wb.shtraf || 0);
+  const finalPay = perechNet - logistics - storage - uderzh - shtraf;
+  return { show: true, gross, sppRub, sppPct, netto, commBefore, commAfter, acquiring, comp, logistics, storage, uderzh, shtraf, finalPay };
+}
+
+function renderReconcile(rows) {
+  const card = document.getElementById("reconcile-card");
+  const r = commissionReconcile(rows);
+  if (!r.show) { card.hidden = true; return; }
+  card.hidden = false;
+  const m = v => fmtMoney(Math.round(v));
+  const minus = v => `<span class="rec-minus">− ${m(v)}</span>`;
+  const line = (label, val, cls = "") => `<tr class="${cls}"><td>${label}</td><td class="num">${val}</td></tr>`;
+  const actual = state.payoutActual;
+  const diff = actual != null ? round2(actual - r.finalPay) : null;
+  document.getElementById("reconcile-body").innerHTML = `
+    <table class="rec-table"><tbody>
+      ${line("Валовая розница (до СПП)", m(r.gross))}
+      ${line(`СПП (${(r.sppPct * 100).toFixed(0)}%)`, minus(r.sppRub))}
+      ${line("Нетто реализация (Пр)", "<strong>" + m(r.netto) + "</strong>", "rec-strong")}
+      ${line("Комиссия ВБ (после компенсации СПП)" + (r.commAfter <= 0 ? " — ВБ компенсирует СПП" : ""), minus(r.commAfter))}
+      ${line("Эквайринг", minus(r.acquiring))}
+      ${r.comp ? line("Компенсации и доплаты", `<span class="rec-plus">+ ${m(r.comp)}</span>`) : ""}
+      ${line("Логистика", minus(r.logistics))}
+      ${line("Хранение и приёмка", minus(r.storage))}
+      ${line("Удержания", minus(r.uderzh))}
+      ${r.shtraf ? line("Штрафы", minus(r.shtraf)) : ""}
+      ${line("К перечислению (расчёт)", "<strong>" + m(r.finalPay) + "</strong>", "rec-total")}
+    </tbody></table>
+    <p class="hint" style="margin-top:6px">Справочно: комиссия фактическая (до компенсации СПП) — <strong>${m(r.commBefore)}</strong>. «Вознаграждение ВВ» в расчёт комиссии не берётся.</p>
+    <div class="upload-form" style="margin-top:8px; align-items:flex-end">
+      <label class="field" style="max-width:260px"><span>Фактически поступило на счёт, ₽</span>
+        <input id="reconcile-actual" type="text" inputmode="decimal" placeholder="сумма выплаты из банка" value="${actual != null ? escapeHtml(String(actual)) : ""}" /></label>
+      <button id="reconcile-check" class="btn-primary" type="button">Сверить</button>
+      ${diff != null ? `<span class="hint" style="margin:0; font-size:14px">${Math.abs(diff) <= 1 ? "<strong>Сошлось ✅</strong>" : `Расхождение: <strong>${m(diff)}</strong> ⚠️`}</span>` : ""}
+    </div>`;
+  const btn = document.getElementById("reconcile-check");
   if (btn) btn.addEventListener("click", () => {
-    const v = document.getElementById("payout-actual").value.trim();
+    const v = document.getElementById("reconcile-actual").value.trim();
     state.payoutActual = v === "" ? null : wbNum(v);
-    renderCommissionAudit(filteredRows());
+    renderReconcile(filteredRows());
   });
 }
 
@@ -2640,6 +2725,7 @@ function renderReturns(products, allRows) {
 function refresh() {
   const rows = filteredRows();
   renderStatRow(rows);
+  renderReconcile(rows);
   renderDeductions(rows);
   renderAudit(rows);
   renderCommissionAudit(rows);
