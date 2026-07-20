@@ -1525,7 +1525,7 @@ function renderStatRow(rows) {
   const tiles = rec.show
     ? [
         { label: "Валовая розница", value: rec.gross, tone: "in" },
-        { label: "СПП", value: rec.sppRub, tone: "out" },
+        { label: `СПП ${Math.round(rec.sppPct * 100)}%`, value: rec.sppRub, tone: "out" },
         { label: "Нетто реализация", value: rec.netto, signed: true },
         { label: "Расходы МП", value: rec.netto - rec.finalPay, tone: "out" },
         { label: "К выплате", value: rec.finalPay, signed: true, hero: true },
