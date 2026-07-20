@@ -592,7 +592,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v9 · 20.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v10 · 20.07</span>
 </div>
 
 <div class="layout">
@@ -1886,68 +1886,149 @@ function renderReconcile(rows) {
     renderReconcile(filteredRows());
   });
   const exp = document.getElementById("reconcile-export");
-  if (exp) exp.addEventListener("click", () => exportReconcileXlsx(commissionReconcile(filteredRows())));
+  if (exp) exp.addEventListener("click", () => { const fr = filteredRows(); exportReconcileXlsx(commissionReconcile(fr), fr); });
 }
 
 // Выгрузка каскада «Сверка недели» в оформленный .xlsx (xlsx-js-style встроен).
-function exportReconcileXlsx(r) {
-  if (!r || !r.show || typeof XLSX === "undefined") return;
-  const pct = (r.sppPct * 100).toFixed(0);
-  const actual = state.payoutActual;
-  // Строки каскада: [подпись, сумма, тип] — тип задаёт оформление.
-  const lines = [
-    ["Валовая розница (до СПП)", round2(r.gross), "gross"],
-    [`СПП (${pct}%)`, -round2(r.sppRub), "minus"],
-    ["Нетто реализация (Пр)", round2(r.netto), "net"],
-    ["Комиссия ВБ (после компенсации СПП)", -round2(r.commAfter), "minus"],
-    ["Эквайринг", -round2(r.acquiring), "minus"],
-    ...(r.comp ? [["Компенсации и доплаты", round2(r.comp), "plus"]] : []),
-    ["Логистика", -round2(r.logistics), "minus"],
-    ["Хранение и приёмка", -round2(r.storage), "minus"],
-    ["Удержания", -round2(r.uderzh), "minus"],
-    ...(r.shtraf ? [["Штрафы", -round2(r.shtraf), "minus"]] : []),
-    ["К перечислению (расчёт)", round2(r.finalPay), "total"],
-  ];
-  const refs = [["Справочно: комиссия фактическая (до компенсации СПП)", round2(r.commBefore)]];
-  if (actual != null) {
-    refs.push(["Фактически поступило на счёт", round2(actual)]);
-    refs.push(["Расхождение с расчётом", round2(actual - r.finalPay)]);
+// Группировка WB-строк по текстовой подписи: сумма + количество строк («шт»).
+function wbGroup(wbRows, keyFn, valFn) {
+  const map = new Map();
+  for (const r of wbRows) {
+    const v = valFn(r.wb);
+    if (!v) continue;
+    const k = (keyFn(r.wb) || "").trim() || "Прочее";
+    if (!map.has(k)) map.set(k, { label: k, sum: 0, count: 0 });
+    const g = map.get(k); g.sum += v; g.count += 1;
   }
-  const aoa = [["Сверка недели (WB)", ""], [`Сформировано ${new Date().toLocaleString("ru-RU")}`, ""], ["", ""], ["Показатель", "Сумма, ₽"]];
-  const firstData = aoa.length;
-  lines.forEach(([l, v]) => aoa.push([l, v]));
-  aoa.push(["", ""]);
-  const firstRef = aoa.length;
-  refs.forEach(([l, v]) => aoa.push([l, v]));
+  return [...map.values()].sort((a, b) => Math.abs(b.sum) - Math.abs(a.sum));
+}
 
+function exportReconcileXlsx(r, rows) {
+  if (!r || !r.show || typeof XLSX === "undefined") return;
+  const wbRows = (rows || []).filter(x => x.wb);
+  const actual = state.payoutActual;
+  const g = r.gross || 0;
+  const share = v => (g ? v / g : 0);                       // доля от валовой розницы
+  // Разбивки по реальным строкам отчёта.
+  const compGroups = wbGroup(wbRows, w => w.obosnovanie, w => WB_COMP_RE.test(w.obosnovanie || "") ? w.perechisl : 0);
+  const logiGroups = wbGroup(wbRows, w => w.logisticsType || w.obosnovanie, w => (WB_STORNO_RE.test(w.obosnovanie || "") ? -1 : 1) * (w.dostavka || 0));
+  const logiQty = wbRows.reduce((s, x) => s + (x.wb.dostavka ? 1 : 0), 0);
+  const uderGroups = wbGroup(wbRows, w => w.obosnovanie, w => w.uderzh || 0);
+  const shtrGroups = wbGroup(wbRows, w => w.logisticsType || w.obosnovanie, w => w.shtraf || 0);
+  const hran = wbRows.reduce((s, x) => s + (x.wb.hran || 0), 0);
+  const priemka = wbRows.reduce((s, x) => s + (x.wb.priemka || 0), 0);
+  const perTov = round2(r.finalPay + r.logistics + r.storage + r.uderzh + r.shtraf); // К перечислению за товар
+  const other = round2(r.storage + r.uderzh + r.shtraf);    // Прочие статьи (magenta)
+
+  // Модель строк: {c:[cells], k:kind, z:[форматы по колонкам], note}
+  // Колонки: Показатель | Сумма, ₽ | Доля | Кол-во, шт | За 1 шт, ₽ | Примечание
+  const M = "#,##0 ₽", P = "0.0%", N = "#,##0", M2 = "#,##0.00 ₽";
+  const R = [];
+  const push = (c, k, z, note) => R.push({ c, k, z: z || [], note: note || "" });
+  const perUnit = (gr) => gr.count ? gr.sum / gr.count : 0;
+
+  push(["Проверка сверки недели — Wildberries"], "title");
+  push([`Сформировано ${new Date().toLocaleString("ru-RU")}`], "subtitle");
+  push([""], "blank");
+  push(["Показатель", "Сумма, ₽", "Доля", "Кол-во, шт", "За 1 шт, ₽", "Примечание"], "header");
+
+  push(["Валовая розница (до СПП)", g, 1, "", "", ""], "line", [null, M, P]);
+  push([`СПП (${(r.sppPct * 100).toFixed(0)}%)`, -round2(r.sppRub), -share(r.sppRub), "", "", "скидка за счёт WB"], "minus", [null, M, P]);
+  push(["Нетто реализация (Пр)", round2(r.netto), share(r.netto), "", "", ""], "strong", [null, M, P]);
+
+  push(["Комиссия ВБ (до СПП)", -round2(r.commBefore), -share(r.commBefore), "", "", "сверить со ставкой на карточках"], "minus", [null, M, P]);
+  push(["Эквайринг", -round2(r.acquiring), -share(r.acquiring), "", "", ""], "minus", [null, M, P]);
+  push(["Комиссия с учётом компенсации СПП", -round2(r.commAfter), -share(r.commAfter), "", "", r.commAfter <= 0 ? "WB компенсирует СПП — комиссия в плюс" : ""], "minus", [null, M, P]);
+  if (compGroups.length) {
+    push(["Компенсации и доплаты, итого", round2(r.comp), share(r.comp), "", "", ""], "plus", [null, M, P]);
+    compGroups.forEach(gr => push(["    " + gr.label, round2(gr.sum), "", gr.count, "", ""], "sub", [null, M, null, N]));
+  }
+  push(["К перечислению за товар", perTov, share(perTov), "", "", "до вычета логистики, хранения и удержаний"], "section", [null, M, P]);
+
+  push(["Логистика, итого", -round2(r.logistics), -share(r.logistics), logiQty, logiQty ? r.logistics / logiQty : "", ""], "minus", [null, M, P, N, M2]);
+  logiGroups.forEach(gr => push(["    " + gr.label, -round2(gr.sum), "", gr.count, perUnit(gr), ""], "sub", [null, M, null, N, M2]));
+
+  push(["Прочие статьи", -other, -share(other), "", "", "штраф + хранение + удержания"], "section", [null, M, P]);
+  push(["    Хранение", -round2(hran), -share(hran), "", "", ""], "sub", [null, M, P]);
+  if (priemka) push(["    Приёмка", -round2(priemka), -share(priemka), "", "", ""], "sub", [null, M, P]);
+  if (uderGroups.length) {
+    push(["    Удержания, итого", -round2(r.uderzh), -share(r.uderzh), "", "", ""], "subminus", [null, M, P]);
+    uderGroups.forEach(gr => push(["        " + gr.label, -round2(gr.sum), -share(gr.sum), gr.count, "", ""], "sub", [null, M, P, N]));
+  }
+  if (r.shtraf) push(["    Штрафы", -round2(r.shtraf), -share(r.shtraf), "", "", ""], "subminus", [null, M, P]);
+
+  push(["К перечислению (расчёт)", round2(r.finalPay), share(r.finalPay), "", "", ""], "total", [null, M, P]);
+
+  push([""], "blank");
+  push(["Справочно"], "capsion");
+  push(["Комиссия фактическая (до компенсации СПП)", round2(r.commBefore), "", "", "", "«Вознаграждение ВВ» в расчёт не берётся"], "ref", [null, M]);
+  if (actual != null) {
+    push(["Фактически поступило на счёт", round2(actual), "", "", "", "введено вручную"], "ref", [null, M]);
+    const d = round2(actual - r.finalPay);
+    push(["Расхождение с расчётом", d, "", "", "", Math.abs(d) <= 1 ? "сходится ✅" : "проверить ⚠️"], "ref", [null, M]);
+  }
+
+  if (shtrGroups.length) {
+    push([""], "blank");
+    push(["Расшифровка штрафов", round2(r.shtraf), "", "", "", ""], "section", [null, M]);
+    shtrGroups.forEach(gr => push(["    " + gr.label, round2(gr.sum), "", gr.count, "", ""], "sub", [null, M, null, N]));
+  }
+
+  const aoa = R.map(row => row.c);
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = [{ wch: 48 }, { wch: 18 }];
-  ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 1 } }];
-  ws["!rows"] = [{ hpt: 26 }, { hpt: 16 }];
-  const TEAL = "0A655E", TEALLT = "DCEBE9", GREY = "F1F1EF", RED = "BF3E2E", GREEN = "057A55", BRD = "D8D8D2", DARK = "0B0B0B", MUTED = "8A8A85", MONEY = "#,##0 ₽";
+  ws["!cols"] = [{ wch: 46 }, { wch: 15 }, { wch: 9 }, { wch: 11 }, { wch: 12 }, { wch: 40 }];
+  ws["!merges"] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } },
+  ];
+  const TEAL = "0A655E", TEALLT = "DCEBE9", GREY = "F1F1EF", RED = "BF3E2E", GREEN = "057A55",
+    MAG = "A01A6E", MAGLT = "F6E7F1", BRD = "D8D8D2", DARK = "0B0B0B", MUTED = "8A8A85";
   const thin = { style: "thin", color: { rgb: BRD } };
   const box = { top: thin, bottom: thin, left: thin, right: thin };
-  const set = (rr, c, st, z) => { const a = XLSX.utils.encode_cell({ r: rr, c }); if (!ws[a]) ws[a] = { t: "s", v: "" }; ws[a].s = st; if (z) ws[a].z = z; };
-  set(0, 0, { font: { bold: true, sz: 15, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: TEAL } }, alignment: { vertical: "center" } });
-  set(0, 1, { fill: { fgColor: { rgb: TEAL } } });
-  set(1, 0, { font: { sz: 10, italic: true, color: { rgb: MUTED } } });
-  set(3, 0, { font: { bold: true, color: { rgb: DARK } }, fill: { fgColor: { rgb: GREY } }, border: box });
-  set(3, 1, { font: { bold: true, color: { rgb: DARK } }, fill: { fgColor: { rgb: GREY } }, border: box, alignment: { horizontal: "right" } });
-  lines.forEach(([, , kind], i) => {
-    const rr = firstData + i, isTotal = kind === "total", strong = isTotal || kind === "net";
-    const vColor = kind === "minus" ? RED : kind === "plus" ? GREEN : strong ? TEAL : DARK;
-    const fill = isTotal ? { fgColor: { rgb: TEALLT } } : undefined;
-    const topB = isTotal ? { style: "medium", color: { rgb: TEAL } } : thin;
-    set(rr, 0, { font: { bold: strong, sz: isTotal ? 12 : 11, color: { rgb: DARK } }, fill, border: { top: topB, bottom: thin, left: thin, right: thin }, alignment: { vertical: "center" } });
-    set(rr, 1, { font: { bold: strong, sz: isTotal ? 12 : 11, color: { rgb: vColor } }, fill, border: { top: topB, bottom: thin, left: thin, right: thin }, alignment: { horizontal: "right", vertical: "center" } }, MONEY);
+  const cell = (rr, c) => { const a = XLSX.utils.encode_cell({ r: rr, c }); if (!ws[a]) ws[a] = { t: "s", v: "" }; return ws[a]; };
+  const rowHpt = [];
+  R.forEach((row, rr) => {
+    const k = row.k, z = row.z, ncol = 6;
+    let base, fillRgb, borderEach = false, top = thin;
+    if (k === "title") { rowHpt[rr] = 28; base = { font: { bold: true, sz: 15, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: TEAL } }, alignment: { vertical: "center" } }; for (let c = 0; c < ncol; c++) Object.assign(cell(rr, c), { s: base }); return; }
+    if (k === "subtitle") { base = { font: { sz: 10, italic: true, color: { rgb: MUTED } } }; for (let c = 0; c < ncol; c++) Object.assign(cell(rr, c), { s: base }); return; }
+    if (k === "blank") { return; }
+    if (k === "capsion") { Object.assign(cell(rr, 0), { s: { font: { bold: true, sz: 11, color: { rgb: MUTED } } } }); return; }
+    if (k === "header") { base = { font: { bold: true, color: { rgb: DARK } }, fill: { fgColor: { rgb: GREY } }, border: box }; borderEach = true; fillRgb = GREY; }
+    const strong = k === "strong", isTotal = k === "total", isSection = k === "section";
+    if (isTotal) { rowHpt[rr] = 22; fillRgb = TEALLT; top = { style: "medium", color: { rgb: TEAL } }; }
+    if (isSection) { rowHpt[rr] = 20; fillRgb = MAGLT; top = { style: "medium", color: { rgb: MAG } }; }
+    const isSub = k === "sub" || k === "subminus";
+    const labelColor = isSection ? MAG : isTotal ? TEAL : strong ? TEAL : isSub ? MUTED : DARK;
+    const labelBold = isSection || isTotal || strong || k === "subminus";
+    const sz = isTotal ? 13 : isSection ? 12 : isSub ? 10 : 11;
+    const valColor = c1 => {
+      const v = row.c[c1];
+      if (isSection) return MAG;
+      if (isTotal || strong) return TEAL;
+      if (typeof v === "number" && v < 0) return RED;
+      if (k === "plus") return GREEN;
+      if (typeof v === "number" && v > 0 && (k === "plus")) return GREEN;
+      return isSub ? MUTED : DARK;
+    };
+    for (let c = 0; c < ncol; c++) {
+      const cl = cell(rr, c);
+      const numeric = typeof row.c[c] === "number";
+      const st = {
+        font: { bold: c === 0 ? labelBold : (isTotal || isSection || strong), sz, color: { rgb: c === 0 ? labelColor : valColor(c) } },
+        alignment: { horizontal: c === 0 ? "left" : "right", vertical: "center" },
+      };
+      if (fillRgb) st.fill = { fgColor: { rgb: fillRgb } };
+      if (k === "header" || isTotal || isSection) st.border = { top, bottom: thin, left: thin, right: thin };
+      if (z[c]) cl.z = z[c];
+      if (c === 5 && typeof row.c[5] === "string" && row.c[5]) st.font = { sz: 9, italic: true, color: { rgb: MUTED } };
+      cl.s = st;
+      void numeric;
+    }
   });
-  refs.forEach((_, i) => {
-    const rr = firstRef + i;
-    set(rr, 0, { font: { sz: 10, italic: true, color: { rgb: MUTED } } });
-    set(rr, 1, { font: { sz: 10, italic: true, color: { rgb: MUTED } }, alignment: { horizontal: "right" } }, MONEY);
-  });
+  if (rowHpt.length) ws["!rows"] = rowHpt.map(h => (h ? { hpt: h } : {}));
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Сверка недели");
+  XLSX.utils.book_append_sheet(wb, ws, "Проверка");
   const msg = document.getElementById("reconcile-export-msg");
   // В превью-рамке (артефакт Claude) скачивание браузер блокирует — там кнопка
   // бессмысленна. Определяем это и честно направляем на сайт.
@@ -3371,6 +3452,5 @@ renderUploadsList();
 refresh();
 initDemo();
 </script>
-
 </body>
 </html>
