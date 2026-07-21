@@ -589,6 +589,7 @@ th.sorted-desc::after { content: " ↓"; }
 .mp-split { font-size: 11px; margin-top: 2px; white-space: nowrap; }
 .mp-split .w { color: #a01a6e; font-weight: 700; }
 .mp-split .o { color: #005bff; font-weight: 700; }
+.field[hidden] { display: none !important; }
 #ozon-card { box-shadow: inset 4px 0 0 #005bff; }
 .mp-compare-th-wb { color:#a01a6e !important; }
 .mp-compare-th-oz { color:#005bff !important; }
@@ -598,7 +599,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v34 · 21.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v35 · 21.07</span>
 </div>
 
 <div class="layout">
@@ -671,7 +672,7 @@ th.sorted-desc::after { content: " ↓"; }
           <span class="muted">CSV или Excel (.xlsx) из кабинетов ВБ/Ozon; кодировка, разделители, числа и даты исправляются автоматически, а колонки можно проверить перед загрузкой</span>
         </div>
         <div class="upload-form">
-          <label class="field" hidden>
+          <label class="field" hidden style="display:none !important">
             <span>Маркетплейс файла</span>
             <select id="upload-marketplace">
               <option value="wb">Wildberries</option>
