@@ -598,7 +598,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v33 · 21.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v34 · 21.07</span>
 </div>
 
 <div class="layout">
@@ -2553,16 +2553,21 @@ function renderMpCompare(rows) {
   document.getElementById("mp-compare-body").innerHTML = `
     <table class="rec-table"><thead><tr><th>Показатель</th><th class="num mp-compare-th-wb">WB</th><th class="num mp-compare-th-oz">Ozon</th><th class="num">Вместе</th></tr></thead><tbody>
       ${row("Нетто реализация", wb.net, oz.net, m, "rec-strong")}
+      ${row("— продано штук", wb.qty, oz.qty, v => v + " шт")}
       ${row("Комиссия и эквайринг", wb.comm, oz.comm)}
       ${row("Логистика", wb.logi, oz.logi)}
       ${row("Хранение и приёмка", wb.stor, oz.stor)}
       ${row("Продвижение (реклама)", wb.promo, oz.promo)}
       ${row("Прочие удержания и штрафы", wb.other, oz.other)}
       ${row("К выплате", wb.pay, oz.pay, m, "rec-total")}
-      ${row("Штук продано", wb.qty, oz.qty, v => v + " шт")}
-      <tr><td>Расходы, % от нетто</td><td class="num">${pct(wb.net - wb.pay, wb.net)}</td><td class="num">${pct(oz.net - oz.pay, oz.net)}</td><td class="num"><strong>${pct(wb.net + oz.net - wb.pay - oz.pay, wb.net + oz.net)}</strong></td></tr>
     </tbody></table>
-    <p class="hint" style="margin-top:6px">ДРР: WB ${pct(wb.promo, wb.net)} · Ozon ${pct(oz.promo, oz.net)}. Сверьте, какой кабинет «съедает» больше на рубль выручки.</p>`;
+    <p class="hint" style="margin-top:8px"><strong>Справочно — эффективность кабинетов.</strong><br />
+    Расходы на 1 ₽ нетто-выручки (сколько копеек с рубля продаж забирает площадка):
+    <b style="color:#a01a6e">WB ${pct(wb.net - wb.pay, wb.net)}</b> ·
+    <b style="color:#005bff">Ozon ${pct(oz.net - oz.pay, oz.net)}</b> ·
+    вместе <strong>${pct(wb.net + oz.net - wb.pay - oz.pay, wb.net + oz.net)}</strong>.<br />
+    ДРР — реклама от нетто-выручки: <b style="color:#a01a6e">WB ${pct(wb.promo, wb.net)}</b> ·
+    <b style="color:#005bff">Ozon ${pct(oz.promo, oz.net)}</b>. Чем выше эти проценты, тем дороже кабинет обходится.</p>`;
 }
 
 function renderDynamics(rows) {
