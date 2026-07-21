@@ -578,13 +578,18 @@ th.sorted-desc::after { content: " ↓"; }
 .mp-chip { display:inline-block; margin-left:6px; padding:0 6px; border-radius:8px; font-size:10px; font-weight:700; vertical-align:1px; color:#fff; letter-spacing:.02em; }
 .mp-chip.wb { background:#a01a6e; }
 .mp-chip.ozon { background:#005bff; }
+.stat-tile { position: relative; }
+.mp-stripe { position: absolute; top: 10px; bottom: 10px; right: 8px; width: 6px; border-radius: 3px; overflow: hidden; display: flex; flex-direction: column; }
+.mp-stripe span { display: block; width: 100%; }
+.mp-stripe .wb { background: #a01a6e; }
+.mp-stripe .oz { background: #005bff; }
 </style>
 
 <div id="app-viewport">
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v29 · 21.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v30 · 21.07</span>
 </div>
 
 <div class="layout">
@@ -1618,6 +1623,14 @@ function renderStatRow(rows) {
     if (unit != null) s.cogs += unit * (r.quantity || 0);
   }
   const net = s.realization - s.returns;
+  // Вклад кабинетов для полосок на плашках (пурпурный WB / синий Ozon).
+  const sMp = { wb: { real: 0, ret: 0, exp: 0, pay: 0, cogs: 0 }, oz: { real: 0, ret: 0, exp: 0, pay: 0, cogs: 0 } };
+  for (const r of rows) {
+    const t = /ozon/i.test(r.marketplace || "") ? sMp.oz : sMp.wb;
+    t.real += r.realization; t.ret += r.returns; t.exp += expenses(r); t.pay += r.payout;
+    const u = state.costs.get(r.sku);
+    if (u != null) t.cogs += u * (r.quantity || 0);
+  }
   // The KPI row is a funnel that must END on the real bottom line. With
   // costs loaded that's чистая прибыль (the hero); without, it's к выплате.
   // tone: «in» — приходит (реализация), «out» — уходит (возвраты/расходы/
@@ -1641,33 +1654,46 @@ function renderStatRow(rows) {
   const mixed = rec.show && (oth.net !== 0 || oth.payout !== 0);
   const tiles = rec.show
     ? [
-        { label: "Валовая розница", value: rec.gross + oth.gross, tone: "in" },
-        { label: `СПП ${Math.round(rec.sppPct * 100)}%${mixed ? " (WB)" : ""}`, value: rec.sppRub, tone: "out" },
-        { label: "Нетто реализация", value: rec.netto + oth.net, signed: true },
-        { label: "Расходы МП", value: rec.netto - rec.finalPay + oth.exp, tone: "out" },
-        { label: "К выплате", value: rec.finalPay + oth.payout, signed: true, hero: true },
+        { label: "Валовая розница", value: rec.gross + oth.gross, tone: "in", parts: [rec.gross, oth.gross] },
+        { label: `СПП ${Math.round(rec.sppPct * 100)}%${mixed ? " (WB)" : ""}`, value: rec.sppRub, tone: "out", parts: [rec.sppRub, 0] },
+        { label: "Нетто реализация", value: rec.netto + oth.net, signed: true, parts: [rec.netto, oth.net] },
+        { label: "Расходы МП", value: rec.netto - rec.finalPay + oth.exp, tone: "out", parts: [rec.netto - rec.finalPay, oth.exp] },
+        { label: "К выплате", value: rec.finalPay + oth.payout, signed: true, hero: true, parts: [rec.finalPay, oth.payout] },
       ]
     : costsLoaded()
     ? [
-        { label: "Реализация", value: s.realization, tone: "in" },
-        { label: "Возвраты", value: s.returns, tone: "out" },
-        { label: "Расходы МП", value: s.mp_expenses, tone: "out" },
-        { label: "Себестоимость", value: s.cogs, tone: "out" },
-        { label: "Чистая прибыль", value: s.payout - s.cogs, signed: true, hero: true },
+        { label: "Реализация", value: s.realization, tone: "in", parts: [sMp.wb.real, sMp.oz.real] },
+        { label: "Возвраты", value: s.returns, tone: "out", parts: [sMp.wb.ret, sMp.oz.ret] },
+        { label: "Расходы МП", value: s.mp_expenses, tone: "out", parts: [sMp.wb.exp, sMp.oz.exp] },
+        { label: "Себестоимость", value: s.cogs, tone: "out", parts: [sMp.wb.cogs, sMp.oz.cogs] },
+        { label: "Чистая прибыль", value: s.payout - s.cogs, signed: true, hero: true, parts: [sMp.wb.pay - sMp.wb.cogs, sMp.oz.pay - sMp.oz.cogs] },
       ]
     : [
-        { label: "Реализация", value: s.realization, tone: "in" },
-        { label: "Возвраты", value: s.returns, tone: "out" },
-        { label: "Чистая выручка", value: net, signed: true },
-        { label: "Расходы МП", value: s.mp_expenses, tone: "out" },
-        { label: "К выплате", value: s.payout, signed: true, hero: true },
+        { label: "Реализация", value: s.realization, tone: "in", parts: [sMp.wb.real, sMp.oz.real] },
+        { label: "Возвраты", value: s.returns, tone: "out", parts: [sMp.wb.ret, sMp.oz.ret] },
+        { label: "Чистая выручка", value: net, signed: true, parts: [sMp.wb.real - sMp.wb.ret, sMp.oz.real - sMp.oz.ret] },
+        { label: "Расходы МП", value: s.mp_expenses, tone: "out", parts: [sMp.wb.exp, sMp.oz.exp] },
+        { label: "К выплате", value: s.payout, signed: true, hero: true, parts: [sMp.wb.pay, sMp.oz.pay] },
       ];
+  // Вертикальная полоска долей: видно, чей вклад в плашке — WB или Ozon.
+  const stripe = t => {
+    if (!t.parts) return "";
+    const [w, o] = t.parts;
+    const aw = Math.abs(w), ao = Math.abs(o);
+    if (!aw || !ao) return "";                       // один кабинет — полоска не нужна
+    const pw = Math.max(6, Math.min(94, Math.round(100 * aw / (aw + ao))));
+    return `<div class="mp-stripe"><span class="wb" style="height:${pw}%"></span><span class="oz" style="height:${100 - pw}%"></span></div>`;
+  };
+  const tipOf = t => t.parts && Math.abs(t.parts[0]) && Math.abs(t.parts[1])
+    ? `${t.label}: ${fmtMoney(t.value)} — WB ${fmtMoney(t.parts[0])} · Ozon ${fmtMoney(t.parts[1])}`
+    : `${t.label}: ${fmtMoney(t.value)}`;
   document.getElementById("stat-row").innerHTML = tiles.map(t => {
     const valueClass = t.signed ? (t.value >= 0 ? "positive" : "negative") : (t.tone === "out" ? "spend" : "");
     return `
-    <div class="stat-tile ${t.hero ? "stat-tile-hero" : ""} ${t.tone ? "tone-" + t.tone : ""}" title="${t.label}: ${fmtMoney(t.value)}">
+    <div class="stat-tile ${t.hero ? "stat-tile-hero" : ""} ${t.tone ? "tone-" + t.tone : ""}" title="${tipOf(t)}">
       <div class="label">${t.label}</div>
       <div class="value ${valueClass}">${fmtMoneyCompact(t.value)}</div>
+      ${stripe(t)}
     </div>`;
   }).join("");
 }
