@@ -581,7 +581,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v25 · 21.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v26 · 21.07</span>
 </div>
 
 <div class="layout">
@@ -3375,6 +3375,62 @@ function resolveRemembered(remembered, headers) {
   return idx;
 }
 
+// «Длинный» отчёт Ozon «Начисления» (2026): одна колонка «Сумма итого, руб.»,
+// смысл суммы задаёт пара «Группа услуг» / «Тип начисления» — одна продажа
+// разложена на 5–7 строк. Колонок сумм по статьям нет, поэтому предпросмотр
+// сопоставления не поможет: раскладываем по статьям сами.
+function isOzonLong(headers) {
+  const keys = headers.map(h => String(h || "").toLowerCase());
+  const has = s => keys.some(k => k.includes(s));
+  return has("группа услуг") && has("тип начислени") && has("сумма итого");
+}
+
+function buildOzonLongRows(headers, dataRows) {
+  const keys = headers.map(h => String(h || "").toLowerCase());
+  const col = s => keys.findIndex(k => k.includes(s));
+  const iDate = col("дата начислени"), iGroup = col("группа услуг"), iType = col("тип начислени"),
+    iArt = col("артикул"), iName = col("название товара"), iQty = col("количество"), iSum = col("сумма итого");
+  const rows = [];
+  dataRows.forEach((raw, i) => {
+    const amount = wbNum(raw[iSum]);
+    const group = String(raw[iGroup] ?? "").trim(), type = String(raw[iType] ?? "").trim();
+    const f = {
+      period_date: raw[iDate],
+      sku: iArt >= 0 ? raw[iArt] : "",
+      product_name: iName >= 0 ? raw[iName] : "",
+      doc_type: group && type ? `${group} / ${type}` : (group || type),
+    };
+    const g = group.toLowerCase(), t = type.toLowerCase();
+    if (g.includes("продаж")) {              // Выручка, Баллы за скидки, Программы партнёров
+      if (amount >= 0) f.realization = amount; else f.returns = -amount;
+      // Штуки — только по строкам «Выручка», иначе одна продажа посчитается 5-7 раз.
+      if (t.includes("выручка") && amount >= 0 && iQty >= 0) f.quantity = raw[iQty];
+    } else if (g.includes("вознаграждени") || t.includes("эквайринг")) {
+      f.commission = -amount;
+    } else if (g.includes("доставк") || t.includes("доставк") || t.includes("логистик") || t.includes("возврат")) {
+      f.logistics = -amount;
+    } else if (g.includes("fbo") || t.includes("размещени") || t.includes("хранени")) {
+      f.storage = -amount;
+    } else if (g.includes("продвижени") || g.includes("реклам")) {
+      f.promotion = -amount;
+    } else {                                  // страхование, взаимозачёт, незнакомые статьи
+      f.other_deduction = -amount;
+    }
+    f.payout = amount;                        // «Сумма итого» со знаком — К выплате
+    rows.push(normalizeRow("ozon", i, f, { computeCommission: false }));
+  });
+  return rows;
+}
+
+function loadOzonLong(file, sig, headers, dataRows, fileFixes) {
+  const rows = buildOzonLongRows(headers, dataRows);
+  if (!rows.length) { uploadStats.failed++; showUploadStatus(`«${file.name}»: нет строк с данными.`, true); return; }
+  clearDemoData(); // свой файл замещает демо — смешивать демо с реальными данными нельзя
+  const ff = [...fileFixes, "формат Ozon «Начисления»: суммы разложены по статьям из «Группы услуг» и «Типа начисления»"];
+  state.files.push({ id: state.nextId++, name: file.name, marketplace: "ozon", fileFixes: ff, rows, sig });
+  uploadStats.loaded++;
+}
+
 async function processNextUpload() {
   if (!uploadQueue.length) { finishUploads(); return; }
   const { file, formMarketplace } = uploadQueue.shift();
@@ -3387,6 +3443,13 @@ async function processNextUpload() {
       uploadStats.skipped++; processNextUpload(); return;
     }
     const { headers, rows: dataRows, fileFixes } = extractTable(file.name, buffer);
+    // «Длинный» отчёт Ozon «Начисления» распознаём и раскладываем сами —
+    // колонок сумм по статьям в нём нет, предпросмотр сопоставления бессмыслен.
+    if (isOzonLong(headers)) {
+      loadOzonLong(file, sig, headers, dataRows, fileFixes);
+      processNextUpload();
+      return;
+    }
     const numericCols = columnTypeMask(headers, dataRows);
     const sigHdr = headerSignature(headers);
     const remembered = state.rememberedMappings.get(sigHdr);
