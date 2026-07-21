@@ -608,7 +608,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v32 · 21.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v33 · 21.07</span>
 </div>
 
 <div class="layout">
@@ -681,7 +681,7 @@ th.sorted-desc::after { content: " ↓"; }
           <span class="muted">CSV или Excel (.xlsx) из кабинетов ВБ/Ozon; кодировка, разделители, числа и даты исправляются автоматически, а колонки можно проверить перед загрузкой</span>
         </div>
         <div class="upload-form">
-          <label class="field">
+          <label class="field" hidden>
             <span>Маркетплейс файла</span>
             <select id="upload-marketplace">
               <option value="wb">Wildberries</option>
@@ -694,7 +694,7 @@ th.sorted-desc::after { content: " ↓"; }
           </label>
           <button id="upload-submit" class="btn-primary" type="button">Загрузить</button>
         </div>
-        <p class="hint" style="margin-bottom:0">Если в файле есть колонка «Маркетплейс», она важнее выбора в форме — можно грузить смешанные файлы.</p>
+        <p class="hint" style="margin-bottom:0">Маркетплейс определяется автоматически по содержимому файла (у файла в списке появится бейдж WB/Ozon). Если в файле есть колонка «Маркетплейс», она важнее всего — можно грузить смешанные файлы. Грузите все файлы разом.</p>
         <p class="hint" id="upload-status" hidden></p>
       </div>
 
@@ -3701,6 +3701,20 @@ function resolveRemembered(remembered, headers) {
   return idx;
 }
 
+// Автоопределение маркетплейса по заголовкам файла: выбор в форме не нужен,
+// файлы WB и Ozon можно грузить вперемешку одной пачкой.
+function detectMarketplace(headers) {
+  const h = headers.map(x => String(x || "").toLowerCase()).join(" | ");
+  let oz = 0, wb = 0;
+  if (/ozon|озон/.test(h)) oz += 2;
+  if (/начислени|отправлени/.test(h)) oz += 1;
+  if (/баллы за скидки|схема работы|индекс локализации|обработка отправлени/.test(h)) oz += 2;
+  if (/wildberries|вайлдберриз/.test(h)) wb += 2;
+  if (/srid|квв|кв в|спп/.test(h)) wb += 2;
+  if (/виды логистики|к перечислению продавцу|услуги по доставке товара покупателю|обоснование для оплаты|пвз/.test(h)) wb += 2;
+  return oz > wb ? "ozon" : wb > oz ? "wb" : null;
+}
+
 // «Длинный» отчёт Ozon «Начисления» (2026): одна колонка «Сумма итого, руб.»,
 // смысл суммы задаёт пара «Группа услуг» / «Тип начисления» — одна продажа
 // разложена на 5–7 строк. Колонок сумм по статьям нет, поэтому предпросмотр
@@ -3782,6 +3796,10 @@ async function processNextUpload() {
       processNextUpload();
       return;
     }
+    // Маркетплейс определяем по заголовкам; скрытый выбор в форме — запасной.
+    const autoMp = detectMarketplace(headers);
+    const mpForFile = autoMp || formMarketplace;
+    if (autoMp) fileFixes.push(`маркетплейс определён по файлу: ${autoMp === "ozon" ? "Ozon" : "Wildberries"}`);
     const numericCols = columnTypeMask(headers, dataRows);
     const sigHdr = headerSignature(headers);
     const remembered = state.rememberedMappings.get(sigHdr);
@@ -3790,14 +3808,14 @@ async function processNextUpload() {
       enforceNumericTypes(idxByField, numericCols); // проверка типа обязательна и для запомненного маппинга
       try {
         validateMapping(idxByField);
-        loadWithMapping(file, sig, formMarketplace, headers, dataRows, fileFixes, idxByField, true);
+        loadWithMapping(file, sig, mpForFile, headers, dataRows, fileFixes, idxByField, true);
         processNextUpload();
         return;
       } catch { /* запомненный маппинг больше не подходит — показываем предпросмотр */ }
     }
     // Незнакомый файл — показываем предпросмотр сопоставления.
     const autoMap = autoMapping(headers, dataRows);
-    pendingMapping = { file, sig, formMarketplace, headers, dataRows, fileFixes, autoMap, sigHdr, numericCols };
+    pendingMapping = { file, sig, formMarketplace: mpForFile, headers, dataRows, fileFixes, autoMap, sigHdr, numericCols };
     renderMappingPreview();
   } catch (err) {
     uploadStats.failed++;
