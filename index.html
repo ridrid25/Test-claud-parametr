@@ -592,7 +592,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v28 · 21.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v29 · 21.07</span>
 </div>
 
 <div class="layout">
@@ -1598,6 +1598,9 @@ const RETURN_RATE_RED_ZONE = 0.30;
 const EXPENSE_SHARE_RED_ZONE = 0.50;
 
 const fmtMoney = v => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(v) + " ₽";
+// Бейдж маркетплейса — чтобы при загрузке двух кабинетов было видно, чья строка.
+const mpChip = mp => /ozon/i.test(mp || "") ? '<span class="mp-chip ozon">Ozon</span>'
+  : /^wb$|wildberries/i.test(mp || "") ? '<span class="mp-chip wb">WB</span>' : "";
 // Compact ruble for KPI hero tiles: "107,1 млн ₽" — exact value stays in the tooltip.
 const fmtMoneyCompact = v => {
   const a = Math.abs(v), sign = v < 0 ? "−" : "";
@@ -2144,7 +2147,10 @@ function buildFiles(model, G) {
   const { Styles, sheetXml } = G;
   const S = new Styles();
   const MONEY = S.numFmt('#,##0" ₽";[Red]-#,##0" ₽"'), PCT = S.numFmt("0.0%"), INT = S.numFmt("#,##0"), MONEY2 = S.numFmt('#,##0.00" ₽"');
-  const TEAL = "0A655E", TEALLT = "DCEBE9", GREY = "F1F1EF", RED = "BF3E2E", GREEN = "057A55", MAG = "A01A6E", MAGLT = "F6E7F1", DARK = "0B0B0B", MUTED = "8A8A85";
+  // Палитра акцентов: по умолчанию WB (бирюза + пурпур); Ozon передаёт синюю.
+  const ACC = model.accent || {};
+  const TEAL = ACC.main || "0A655E", TEALLT = ACC.mainLt || "DCEBE9", MAG = ACC.section || "A01A6E", MAGLT = ACC.sectionLt || "F6E7F1";
+  const GREY = "F1F1EF", RED = "BF3E2E", GREEN = "057A55", DARK = "0B0B0B", MUTED = "8A8A85";
   const thinB = S.border({ all: "thin" });
   const totalB = S.border({ all: "thin", top: "medium", topColor: TEAL });
   const sectB = S.border({ all: "thin", top: "medium", topColor: MAG });
@@ -2367,7 +2373,7 @@ function renderOzonReconcile(rows) {
       ${line("Прочие начисления" + (o.other < 0 ? " — доплата (взаимозачёт)" : ""), o.other < 0 ? `<span class="rec-plus">+ ${m(-o.other)}</span>` : minus(o.other))}
       ${line("К перечислению (расчёт)", "<strong>" + m(o.payout) + "</strong>", "rec-total")}
     </tbody></table>
-    <div style="margin-top:8px"><button id="ozon-export" class="btn-primary" type="button" style="background:#a01a6e; border-color:#a01a6e">⬇ Скачать в Excel</button><span id="ozon-export-msg" class="hint" style="margin-left:8px"></span></div>`;
+    <div style="margin-top:8px"><button id="ozon-export" class="btn-primary" type="button" style="background:#005bff; border-color:#005bff">⬇ Скачать в Excel</button><span id="ozon-export-msg" class="hint" style="margin-left:8px"></span></div>`;
   const exp = document.getElementById("ozon-export");
   if (exp) exp.addEventListener("click", () => exportOzonXlsx(filteredRows()));
 }
@@ -2415,7 +2421,7 @@ function exportOzonXlsx(rows) {
     if (msg) msg.textContent = "⚠️ В этом превью скачать нельзя. Откройте сайт ridrid25.github.io/Test-claud-parametr и нажмите кнопку там.";
     return;
   }
-  const bytes = xlsxZipStore(buildFiles({ rows: R }, makeGen()));
+  const bytes = xlsxZipStore(buildFiles({ rows: R, accent: { main: "005BFF", mainLt: "DEE9FF", section: "0047B3", sectionLt: "E4EEFF" } }, makeGen()));
   const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -3022,7 +3028,7 @@ function productCardRow(p, colspan) {
 function productLineHtml(p, colspan, indent = 0) {
   const line = `
     <tr class="product-line" data-sku="${escapeHtml(p.sku)}">
-      <td style="padding-left:${14 + indent}px">${escapeHtml(p.product_name) || "—"}<br /><span class="muted">${escapeHtml(p.sku)}</span></td>
+      <td style="padding-left:${14 + indent}px">${escapeHtml(p.product_name) || "—"}${mpChip(p.marketplace)}<br /><span class="muted">${escapeHtml(p.sku)}</span></td>
       <td class="num">${p.quantity || ""}</td>
       <td class="num">${fmtMoney(p.realization)}</td>
       <td class="num">${fmtMoney(p.returns)}</td>
@@ -3048,7 +3054,7 @@ const PRODUCT_COLUMNS = [
 function productRowHtml(p) {
   const row = `
     <tr class="product-line" data-sku="${escapeHtml(p.sku)}">
-      <td>${escapeHtml(p.product_name) || "—"}<br /><span class="muted">${escapeHtml(p.sku)}${p.category ? " · " + escapeHtml(p.category) : ""}</span></td>
+      <td>${escapeHtml(p.product_name) || "—"}${mpChip(p.marketplace)}<br /><span class="muted">${escapeHtml(p.sku)}${p.category ? " · " + escapeHtml(p.category) : ""}</span></td>
       <td><span class="abc-chip ${ABC_CHIP[p.abc] || ""}">${p.abc === "L" ? "−" : (p.abc || "")}</span></td>
       <td class="num">${fmtMoney(p.realization)}</td>
       <td class="num">${fmtMoney(p.returns)}</td>
@@ -3194,7 +3200,7 @@ function renderReturnsInner(container, byRub) {
         <thead><tr><th>Товар</th><th class="num">Потери, ₽</th><th class="num">% возврата</th><th class="num">Реализация</th><th>Сигнал</th></tr></thead>
         <tbody>${byRub.slice(0, 300).map(p => `
           <tr>
-            <td>${escapeHtml(p.product_name) || "—"}<br /><span class="muted">${escapeHtml(p.sku)}</span></td>
+            <td>${escapeHtml(p.product_name) || "—"}${mpChip(p.marketplace)}<br /><span class="muted">${escapeHtml(p.sku)}</span></td>
             <td class="num delta-down">${fmtMoney(p.returns)}</td>
             <td class="num">${fmtPercent(p.return_rate)}</td>
             <td class="num">${fmtMoney(p.realization)}</td>
@@ -3231,7 +3237,7 @@ function renderReturnsInner(container, byRub) {
         if (isOpen) {
           html += g.items.slice(0, 30).map(p => `
             <tr>
-              <td style="padding-left:32px">${escapeHtml(p.product_name) || "—"}<br /><span class="muted">${escapeHtml(p.sku)}</span></td>
+              <td style="padding-left:32px">${escapeHtml(p.product_name) || "—"}${mpChip(p.marketplace)}<br /><span class="muted">${escapeHtml(p.sku)}</span></td>
               <td class="num"></td>
               <td class="num delta-down">${fmtMoney(p.returns)}</td>
               <td class="num">${fmtPercent(p.return_rate)}${p.return_rate >= RETURN_RATE_RED_ZONE ? ` <span class="flag">≥ 30%</span>` : ""}</td>
