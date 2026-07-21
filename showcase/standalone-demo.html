@@ -583,13 +583,17 @@ th.sorted-desc::after { content: " ↓"; }
 .mp-stripe span { display: block; width: 100%; }
 .mp-stripe .wb { background: #a01a6e; }
 .mp-stripe .oz { background: #005bff; }
+#reconcile-card { box-shadow: inset 4px 0 0 #a01a6e; }
+#ozon-card { box-shadow: inset 4px 0 0 #005bff; }
+.mp-compare-th-wb { color:#a01a6e !important; }
+.mp-compare-th-oz { color:#005bff !important; }
 </style>
 
 <div id="app-viewport">
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v30 · 21.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v31 · 21.07</span>
 </div>
 
 <div class="layout">
@@ -1598,6 +1602,9 @@ const fmtMoney = v => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 
 // Бейдж маркетплейса — чтобы при загрузке двух кабинетов было видно, чья строка.
 const mpChip = mp => /ozon/i.test(mp || "") ? '<span class="mp-chip ozon">Ozon</span>'
   : /^wb$|wildberries/i.test(mp || "") ? '<span class="mp-chip wb">WB</span>' : "";
+const mpOfName = name => /^ozon$/i.test(name || "") ? "ozon" : /^wildberries$|^вб$/i.test(name || "") ? "wb" : null;
+const MP_COLOR = { wb: "#a01a6e", ozon: "#005bff" };
+const mpTint = mp => mp ? `background:${mp === "wb" ? "rgba(160,26,110,.05)" : "rgba(0,91,255,.05)"}; box-shadow: inset 3px 0 0 ${MP_COLOR[mp]};` : "";
 // Compact ruble for KPI hero tiles: "107,1 млн ₽" — exact value stays in the tooltip.
 const fmtMoneyCompact = v => {
   const a = Math.abs(v), sign = v < 0 ? "−" : "";
@@ -2475,7 +2482,7 @@ function renderMpCompare(rows) {
   const row = (label, w, z, fmt = m, cls = "") =>
     `<tr class="${cls}"><td>${label}</td><td class="num">${fmt(w)}</td><td class="num">${fmt(z)}</td><td class="num"><strong>${typeof w === "number" && typeof z === "number" ? fmt(w + z) : "—"}</strong></td></tr>`;
   document.getElementById("mp-compare-body").innerHTML = `
-    <table class="rec-table"><thead><tr><th>Показатель</th><th class="num">WB</th><th class="num">Ozon</th><th class="num">Вместе</th></tr></thead><tbody>
+    <table class="rec-table"><thead><tr><th>Показатель</th><th class="num mp-compare-th-wb">WB</th><th class="num mp-compare-th-oz">Ozon</th><th class="num">Вместе</th></tr></thead><tbody>
       ${row("Нетто реализация", wb.net, oz.net, m, "rec-strong")}
       ${row("Комиссия и эквайринг", wb.comm, oz.comm)}
       ${row("Логистика", wb.logi, oz.logi)}
@@ -3117,8 +3124,8 @@ function renderProducts(products) {
     const groupRowHtml = (g, key, level) => {
       const isOpen = expandedGroups.has(key);
       return `
-        <tr class="group-row ${level === 2 ? "level-2" : ""}" data-group="${escapeHtml(key)}">
-          <td style="padding-left:${level === 2 ? 28 : 12}px"><span class="group-caret">${isOpen ? "▾" : "▸"}</span>${level === 1 ? categoryIcon(g.name) : ""}${escapeHtml(g.name)}</td>
+        <tr class="group-row ${level === 2 ? "level-2" : ""}" data-group="${escapeHtml(key)}" style="${mpTint(mpOfName(g.name))}">
+          <td style="padding-left:${level === 2 ? 28 : 12}px"><span class="group-caret">${isOpen ? "▾" : "▸"}</span>${mpOfName(g.name) ? mpChip(mpOfName(g.name)) + " " : (level === 1 ? categoryIcon(g.name) : "")}${escapeHtml(g.name)}</td>
           <td class="num">${g.items.length}</td>
           <td class="num">${fmtMoney(g.realization)}</td>
           <td class="num">${fmtMoney(g.returns)}</td>
@@ -3245,8 +3252,8 @@ function renderReturnsInner(container, byRub) {
         const key = g.name;
         const isOpen = returnsExpanded.has(key);
         let html = `
-          <tr class="group-row" data-ret-group="${escapeHtml(key)}">
-            <td><span class="group-caret">${isOpen ? "▾" : "▸"}</span>${categoryIcon(g.name)}${escapeHtml(g.name)}</td>
+          <tr class="group-row" data-ret-group="${escapeHtml(key)}" style="${mpTint(mpOfName(g.name))}">
+            <td><span class="group-caret">${isOpen ? "▾" : "▸"}</span>${mpOfName(g.name) ? mpChip(mpOfName(g.name)) + " " : categoryIcon(g.name)}${escapeHtml(g.name)}</td>
             <td class="num">${g.items.length}</td>
             <td class="num delta-down">${fmtMoney(g.returns)}</td>
             <td class="num">${fmtPercent(returnRateOf(g))}</td>
@@ -3295,7 +3302,36 @@ function renderReturns(products, allRows) {
 
   const risky = withReturns.filter(p => p.return_rate >= RETURN_RATE_RED_ZONE);
 
-  el.innerHTML = `
+  // Возвраты по маркетплейсам: у кого сколько и чья возвратность хуже.
+  const mpAgg = {};
+  for (const r of allRows) {
+    const k = /ozon/i.test(r.marketplace || "") ? "ozon" : "wb";
+    (mpAgg[k] = mpAgg[k] || { real: 0, ret: 0 }).real += r.realization;
+    mpAgg[k].ret += r.returns;
+  }
+  const haveBoth = mpAgg.wb && mpAgg.ozon && (mpAgg.wb.real || mpAgg.wb.ret) && (mpAgg.ozon.real || mpAgg.ozon.ret);
+  const rate = a => (a.real + a.ret) ? a.ret / (a.real + a.ret) : 0;
+  let mpBlock = "";
+  if (haveBoth) {
+    const totRet = mpAgg.wb.ret + mpAgg.ozon.ret;
+    const wbShare = totRet ? Math.round(100 * mpAgg.wb.ret / totRet) : 0;
+    const tile = (mp, name, a) => `
+      <div style="flex:1; min-width:200px; border:1px solid var(--gridline); border-left:4px solid ${MP_COLOR[mp]}; border-radius:10px; padding:10px 12px">
+        <div style="font-weight:700">${mpChip(mp)} ${name}</div>
+        <div style="margin-top:4px">возвраты: <strong>${fmtMoney(mpAgg[mp].ret)}</strong></div>
+        <div class="muted">возвратность: <strong>${fmtPercent(rate(a))}</strong> от продаж</div>
+      </div>`;
+    mpBlock = `
+      <div class="pcard" style="margin-bottom:12px">
+        <div style="font-weight:700; margin-bottom:8px">Возвраты по маркетплейсам</div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap">${tile("wb", "Wildberries", mpAgg.wb)}${tile("ozon", "Ozon", mpAgg.ozon)}</div>
+        ${totRet ? `<div style="margin-top:10px; height:10px; border-radius:5px; overflow:hidden; display:flex">
+          <span style="width:${wbShare}%; background:${MP_COLOR.wb}"></span><span style="width:${100 - wbShare}%; background:${MP_COLOR.ozon}"></span></div>
+        <div class="muted" style="margin-top:4px">доля в деньгах возвратов: WB ${wbShare}% · Ozon ${100 - wbShare}%</div>` : ""}
+      </div>`;
+  }
+
+  el.innerHTML = mpBlock + `
     <p class="result-count">Возвраты съели <strong>${fmtMoney(totalReturns)}</strong>${totalReal ? ` (${(totalReturns / totalReal * 100).toFixed(1)}% реализации)` : ""}. Красная зона (возвратность ≥ 30%): <strong>${risky.length}</strong> товаров.</p>
     <div class="pcard wide-values" style="gap:24px">
       <div>
@@ -3395,7 +3431,7 @@ function renderUploadsList() {
       const fixed = f.rows.filter(r => r.status === "fixed").length;
       const errors = f.rows.filter(r => r.status === "error").length;
       return `<tr>
-        <td>${escapeHtml(f.name)}${f.fileFixes.length ? `<br /><span class="row-fixes-text">автоисправления: ${escapeHtml(f.fileFixes.join(", "))}</span>` : ""}</td>
+        <td>${escapeHtml(f.name)}${mpChip(f.marketplace)}${f.fileFixes.length ? `<br /><span class="row-fixes-text">автоисправления: ${escapeHtml(f.fileFixes.join(", "))}</span>` : ""}</td>
         <td class="num">${ok}</td>
         <td class="num">${fixed ? `<span class="chip chip-fixed">${fixed}</span>` : 0}</td>
         <td class="num">${errors ? `<span class="chip chip-error">${errors}</span>` : 0}</td>
