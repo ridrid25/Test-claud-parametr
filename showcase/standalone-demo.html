@@ -581,7 +581,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v26 · 21.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v27 · 21.07</span>
 </div>
 
 <div class="layout">
@@ -1605,13 +1605,25 @@ function renderStatRow(rows) {
   // «Сверка недели» показывали ОДНУ И ТУ ЖЕ выплату и сходились (валовая − СПП =
   // нетто; нетто − расходы = к выплате).
   const rec = commissionReconcile(rows);
+  // Смешанная загрузка (WB-отчёт + Ozon): к каскадным цифрам WB прибавляем
+  // вклад остальных строк, чтобы «К выплате» была суммой обоих кабинетов
+  // (воронка сохраняется: валовая − СПП = нетто; нетто − расходы = к выплате).
+  const oth = { gross: 0, net: 0, exp: 0, payout: 0 };
+  if (rec.show) for (const r of rows) {
+    if (r.wb) continue;
+    oth.gross += r.realization;
+    oth.net += r.realization - r.returns;
+    oth.exp += expenses(r);
+    oth.payout += r.payout;
+  }
+  const mixed = rec.show && (oth.net !== 0 || oth.payout !== 0);
   const tiles = rec.show
     ? [
-        { label: "Валовая розница", value: rec.gross, tone: "in" },
-        { label: `СПП ${Math.round(rec.sppPct * 100)}%`, value: rec.sppRub, tone: "out" },
-        { label: "Нетто реализация", value: rec.netto, signed: true },
-        { label: "Расходы МП", value: rec.netto - rec.finalPay, tone: "out" },
-        { label: "К выплате", value: rec.finalPay, signed: true, hero: true },
+        { label: "Валовая розница", value: rec.gross + oth.gross, tone: "in" },
+        { label: `СПП ${Math.round(rec.sppPct * 100)}%${mixed ? " (WB)" : ""}`, value: rec.sppRub, tone: "out" },
+        { label: "Нетто реализация", value: rec.netto + oth.net, signed: true },
+        { label: "Расходы МП", value: rec.netto - rec.finalPay + oth.exp, tone: "out" },
+        { label: "К выплате", value: rec.finalPay + oth.payout, signed: true, hero: true },
       ]
     : costsLoaded()
     ? [
