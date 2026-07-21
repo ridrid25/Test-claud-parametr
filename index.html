@@ -592,6 +592,11 @@ th.sorted-desc::after { content: " ↓"; }
 .mp-stripe .wb { background: #a01a6e; }
 .mp-stripe .oz { background: #005bff; }
 #reconcile-card { box-shadow: inset 4px 0 0 #a01a6e; }
+#commission-card { box-shadow: inset 4px 0 0 #a01a6e; }
+#ozon-commission-card { box-shadow: inset 4px 0 0 #005bff; }
+.mp-split { font-size: 11px; margin-top: 2px; white-space: nowrap; }
+.mp-split .w { color: #a01a6e; font-weight: 700; }
+.mp-split .o { color: #005bff; font-weight: 700; }
 #ozon-card { box-shadow: inset 4px 0 0 #005bff; }
 .mp-compare-th-wb { color:#a01a6e !important; }
 .mp-compare-th-oz { color:#005bff !important; }
@@ -603,7 +608,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v31 · 21.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v32 · 21.07</span>
 </div>
 
 <div class="layout">
@@ -891,6 +896,13 @@ th.sorted-desc::after { content: " ↓"; }
           <span class="muted">только доказанные тождества отчёта</span>
         </div>
         <div id="commission-body"></div>
+      </div>
+      <div class="card" id="ozon-commission-card" hidden>
+        <div class="card-header">
+          <h3>Проверка комиссии (Ozon)</h3>
+          <span class="muted">только доказанные тождества отчёта «Начисления»</span>
+        </div>
+        <div id="ozon-commission-body"></div>
       </div>
     </section>
 
@@ -1470,7 +1482,7 @@ function buildRows(formMarketplace, headers, dataRows, idxByField) {
       const dk = (wb.docKind || "").toLowerCase();
       // Штуки — только по строкам «Продажа»: в возвратных и служебных строках
       // «Кол-во» тоже заполнено и иначе задваивает счётчик проданного.
-      if (dk === "возврат") { row.data.returns = Math.abs(wb.pr || 0); row.data.realization = 0; row.data.quantity = 0; }
+      if (dk === "возврат") { row.data.returns = Math.abs(wb.pr || 0); row.data.realization = 0; row.data.quantity = 0; row.data.payout = -Math.abs(wb.perechisl || 0); }
       else if (dk === "продажа") { row.data.realization = wb.pr || 0; row.data.returns = 0; }
       else { row.data.realization = 0; row.data.returns = 0; row.data.quantity = 0; }
       // Реклама у WB приходит удержанием «Оказание услуг "WB Продвижение"/"WB Медиа"»
@@ -1706,10 +1718,13 @@ function renderStatRow(rows) {
     : `${t.label}: ${fmtMoney(t.value)}`;
   document.getElementById("stat-row").innerHTML = tiles.map(t => {
     const valueClass = t.signed ? (t.value >= 0 ? "positive" : "negative") : (t.tone === "out" ? "spend" : "");
+    const split = t.parts && Math.abs(t.parts[0]) && Math.abs(t.parts[1])
+      ? `<div class="mp-split"><span class="w">WB ${fmtMoneyCompact(t.parts[0])}</span> · <span class="o">Ozon ${fmtMoneyCompact(t.parts[1])}</span></div>` : "";
     return `
     <div class="stat-tile ${t.hero ? "stat-tile-hero" : ""} ${t.tone ? "tone-" + t.tone : ""}" title="${tipOf(t)}">
       <div class="label">${t.label}</div>
       <div class="value ${valueClass}">${fmtMoneyCompact(t.value)}</div>
+      ${split}
       ${stripe(t)}
     </div>`;
   }).join("");
@@ -1927,7 +1942,12 @@ function commissionAudit(rows) {
   }
   let sridDup = 0;
   for (const n of bySrid.values()) if (n > 1) sridDup += n - 1;
-  const reportPayout = wbRows.reduce((s, r) => s + (r.wb.perechisl || 0), 0);
+  // Продажа − возврат: сумма «как в отчёте», но возвраты вычитаем — иначе
+  // цифра завышена и не совпадает с «К перечислению за товар» каскада.
+  const reportPayout = wbRows.reduce((s, r) => {
+    const dk = (r.wb.docKind || "").toLowerCase();
+    return s + (dk === "возврат" ? -(r.wb.perechisl || 0) : (r.wb.perechisl || 0));
+  }, 0);
   return { show: true, salesCount: sales.length, c1a, c1b, c1c, sridDup, reportPayout };
 }
 
@@ -1961,6 +1981,55 @@ function renderCommissionAudit(rows) {
       ${tile(res.sridDup + " шт", "Дубли по Srid", res.sridDup ? "head" : "")}
       ${tile(state.residuals.length + " зап.", "Остатков собрано (для будущих формул)")}
       ${tile(res.reportPayout ? fmtMoney(Math.round(res.reportPayout)) : "—", "К перечислению по отчёту", "", "txt")}
+    </div>`;
+}
+
+/* ==== Проверка комиссии Ozon (доказанные тождества отчёта «Начисления») ==== */
+// Доказано на реальном отчёте: вознаграждение = ставка × (выручка + баллы +
+// программы) и цена продавца × кол-во = той же валовой — по каждому отправлению.
+function ozonCommissionAudit(rows) {
+  const oz = rows.filter(r => r.oz && r.ozPid);
+  if (!oz.length) return { show: false };
+  const posts = new Map();
+  for (const r of oz) {
+    let p = posts.get(r.ozPid);
+    if (!p) posts.set(r.ozPid, p = { gross: 0, comm: 0, rate: 0, price: 0, qty: 0, hasRev: false, hasAcq: false });
+    p.gross += r.realization || 0;
+    if (/вознаграждение за продажу/i.test(r.doc_type || "")) { p.comm += r.commission || 0; p.rate = r.ozRate || p.rate; }
+    if (/эквайринг/i.test(r.doc_type || "")) p.hasAcq = true;
+    if (/выручка/i.test(r.doc_type || "") && (r.realization || 0) > 0) { p.hasRev = true; p.price = r.ozPrice || p.price; p.qty += r.quantity || 0; }
+  }
+  let sales = 0, cRate = 0, cPrice = 0, noAcq = 0;
+  const rates = new Set();
+  for (const p of posts.values()) {
+    if (!p.hasRev) continue;
+    sales++;
+    if (p.rate) rates.add(Math.round(p.rate * 1000) / 10);
+    if (p.rate && Math.abs(p.comm - p.gross * p.rate) > 1) cRate++;
+    if (p.price && p.qty && Math.abs(p.price * p.qty - p.gross) > 1) cPrice++;
+    if (!p.hasAcq) noAcq++;
+  }
+  const reportPayout = rows.filter(r => r.oz).reduce((s, r) => s + (r.payout || 0), 0);
+  return { show: true, sales, cRate, cPrice, noAcq, rates: [...rates].sort(), reportPayout };
+}
+
+function renderOzonCommissionAudit(rows) {
+  const card = document.getElementById("ozon-commission-card");
+  const res = ozonCommissionAudit(rows);
+  if (!res.show) { card.hidden = true; return; }
+  card.hidden = false;
+  const tile = (val, lbl, cls = "", valCls = "") => `<div class="audit-tile ${cls}"><div class="a-val ${valCls}">${val}</div><div class="a-lbl">${lbl}</div></div>`;
+  document.getElementById("ozon-commission-body").innerHTML = `
+    <p class="hint" style="margin-top:0">Проверяем только <strong>доказанные тождества</strong> отчёта «Начисления» — расхождение по отправлению считаем кандидатом. Отправлений с выручкой: <strong>${res.sales}</strong>.</p>
+    <div class="audit-tiles row3">
+      ${tile(res.cRate + " шт", "вознаграждение = ставка × продажа", res.cRate ? "head" : "")}
+      ${tile(res.cPrice + " шт", "цена × кол-во = продажа", res.cPrice ? "head" : "")}
+      ${tile((res.rates.length ? res.rates.join(" / ") + "%" : "—"), "ставка комиссии в отчёте", "", "txt")}
+    </div>
+    <div class="audit-tiles row3">
+      ${tile(res.noAcq + " шт", "продаж без эквайринга (справочно: оплата без комиссии банка)")}
+      ${tile(fmtMoney(Math.round(res.reportPayout)), "К перечислению по отчёту", "", "txt")}
+      ${tile("до 1 ₽", "допуск расхождения на отправление", "", "txt")}
     </div>`;
 }
 
@@ -3407,6 +3476,7 @@ function refresh() {
   renderDeductions(rows);
   renderAudit(rows);
   renderCommissionAudit(rows);
+  renderOzonCommissionAudit(rows);
   renderDynamics(rows);
   const analysis = renderAnalysis(rows);
   const search = document.getElementById("f-search").value.trim().toLowerCase();
@@ -3645,7 +3715,8 @@ function buildOzonLongRows(headers, dataRows) {
   const keys = headers.map(h => String(h || "").toLowerCase());
   const col = s => keys.findIndex(k => k.includes(s));
   const iDate = col("дата начислени"), iGroup = col("группа услуг"), iType = col("тип начислени"),
-    iArt = col("артикул"), iName = col("название товара"), iQty = col("количество"), iSum = col("сумма итого");
+    iArt = col("артикул"), iName = col("название товара"), iQty = col("количество"), iSum = col("сумма итого"),
+    iPid = col("id начислени"), iRate = col("вознаграждение ozon"), iPrice = col("цена продавца");
   const rows = [];
   dataRows.forEach((raw, i) => {
     const amount = wbNum(raw[iSum]);
@@ -3675,6 +3746,9 @@ function buildOzonLongRows(headers, dataRows) {
     f.payout = amount;                        // «Сумма итого» со знаком — К выплате
     const row = normalizeRow("ozon", i, f, { computeCommission: false });
     row.data.oz = true;                       // строка длинного отчёта Ozon — для сверки недели
+    row.data.ozPid = iPid >= 0 ? String(raw[iPid] ?? "").trim() : "";
+    row.data.ozRate = iRate >= 0 ? wbNum(raw[iRate]) : 0;   // доля, напр. 0.41
+    row.data.ozPrice = iPrice >= 0 ? wbNum(raw[iPrice]) : 0;
     rows.push(row);
   });
   return rows;
