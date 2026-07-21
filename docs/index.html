@@ -592,7 +592,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v22 · 21.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v23 · 21.07</span>
 </div>
 
 <div class="layout">
@@ -2088,7 +2088,7 @@ function makeGen() {
     const dim = `A1:${colName((cols ? cols.length : 6) - 1)}${rowsMeta.length}`;
     // Автофильтр: воронка в шапке. Скрытые нулевые строки раскрываются через неё
     // («Выделить всё»), а не «угадыванием» пропущенных номеров строк.
-    const af = autoFilter ? `<autoFilter ref="${autoFilter.ref}"><filterColumn colId="${autoFilter.col}"><customFilters><customFilter operator="notEqual" val="0"/></customFilters></filterColumn></autoFilter>` : "";
+    const af = autoFilter ? `<autoFilter ref="${autoFilter.ref}"/>` : "";
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="${dim}"/><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/>${colsX}<sheetData>${sd}</sheetData>${af}${mg}</worksheet>`;
   }
@@ -2144,8 +2144,7 @@ function buildFiles(model, G) {
     }
     // Пустые (нулевые) подстроки прячем (строка остаётся в файле и вернётся,
     // как только по статье появится сумма). Раскрыть — воронка в шапке.
-    const hidden = isSub && typeof row.c[1] === "number" && Math.abs(row.c[1]) < 0.005;
-    return { cells, ht, hidden };
+    return { cells, ht };   // все строки открыты; нули скрывает сам пользователь воронкой
   });
   // Автофильтр по колонке «Сумма, ₽» (индекс 1), от шапки до строки итога.
   const af = { ref: `A${headerIdx + 1}:F${totalIdx + 1}`, col: 1 };
@@ -2216,7 +2215,7 @@ function exportReconcileXlsx(r, rows) {
   };
 
   push(["Проверка сверки недели — Wildberries"], "title");
-  push([`Сформировано ${new Date().toLocaleString("ru-RU")}. Пустые (нулевые) статьи скрыты — нажми воронку ▼ в шапке «Сумма, ₽» и выбери «Выделить всё», чтобы показать их.`], "subtitle");
+  push([`Сформировано ${new Date().toLocaleString("ru-RU")}. Скрыть нулевые строки: воронка ▼ в шапке «Сумма, ₽» → снять галочку «0». Вернуть — «Выделить всё».`], "subtitle");
   push([""], "blank");
   push(["Показатель", "Сумма, ₽", "Доля", "Кол-во, шт", "За 1 шт, ₽", "Примечание"], "header");
 
