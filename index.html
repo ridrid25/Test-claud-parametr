@@ -592,7 +592,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v24 · 21.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v25 · 21.07</span>
 </div>
 
 <div class="layout">
@@ -1452,6 +1452,9 @@ function buildRows(formMarketplace, headers, dataRows, idxByField) {
         row.data.promotion = wb.uderzh;
         row.data.other_deduction = 0;
       }
+      // Компенсационные строки (ВБ оформляет их как «Продажа» с Кол-во=1, но с
+      // нулевой ценой) — по смыслу не товар: в штуках не учитываем.
+      if (WB_COMP_RE.test(wb.obosnovanie || "")) row.data.quantity = 0;
     }
     rows.push(row);
   }
