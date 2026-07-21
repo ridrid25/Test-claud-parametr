@@ -592,7 +592,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v23 · 21.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v24 · 21.07</span>
 </div>
 
 <div class="layout">
@@ -1060,8 +1060,9 @@ const SUBSTR_EXCLUDE = {
   logistics: ["возмещен", "компенсац", "возврат", "дата"],
   period_date: ["доставк", "отгруз", "приёмк", "приемк"],
   realization: ["возврат"],
-  // «Количество возврата», «Количество доставок» — это счётчики, не суммы возвратов.
-  returns: ["количеств", "кол-во", "доставк"],
+  // «Количество возврата», «Количество доставок» — счётчики; «Возмещение за
+  // выдачу и возврат товаров на ПВЗ» — услуга ПВЗ, а не возвраты товара.
+  returns: ["количеств", "кол-во", "доставк", "возмещен"],
 };
 
 function normHeaderKey(h) {
@@ -1438,6 +1439,19 @@ function buildRows(formMarketplace, headers, dataRows, idxByField) {
         wb[key] = WB_TEXT_VERIFY.has(key) ? String(val ?? "").trim() : wbNum(val);
       }
       row.data.wb = wb;
+      // WB-режим: реализация и возвраты — строго по «Типу документа», в деньгах Пр.
+      // Сопоставленная по подстроке колонка возвратов в детальном отчёте регулярно
+      // оказывается услугой («Возмещение…на ПВЗ»), а не возвратами товара.
+      const dk = (wb.docKind || "").toLowerCase();
+      if (dk === "возврат") { row.data.returns = Math.abs(wb.pr || 0); row.data.realization = 0; }
+      else if (dk === "продажа") { row.data.realization = wb.pr || 0; row.data.returns = 0; }
+      else { row.data.realization = 0; row.data.returns = 0; }
+      // Реклама у WB приходит удержанием «Оказание услуг "WB Продвижение"/"WB Медиа"»
+      // (видно в «Видах логистики…») — это продвижение (ДРР), а не прочее удержание.
+      if (wb.uderzh && /продвижени|медиа/i.test(wb.logisticsType || "")) {
+        row.data.promotion = wb.uderzh;
+        row.data.other_deduction = 0;
+      }
     }
     rows.push(row);
   }
@@ -2192,7 +2206,7 @@ function exportReconcileXlsx(r, rows) {
   // Разбивки по фиксированным статьям (строки всегда есть, 0 — если статья пуста).
   const comp = wbBuckets(wbRows, WB_COMP_DEFS, w => w.obosnovanie, w => WB_COMP_RE.test(w.obosnovanie || "") ? w.perechisl : 0);
   const logi = wbBuckets(wbRows, WB_LOGI_DEFS, w => w.logisticsType || w.obosnovanie, w => (WB_STORNO_RE.test(w.obosnovanie || "") ? -1 : 1) * (w.dostavka || 0));
-  const uder = wbBuckets(wbRows, WB_UDER_DEFS, w => w.obosnovanie, w => w.uderzh || 0);
+  const uder = wbBuckets(wbRows, WB_UDER_DEFS, w => w.logisticsType || w.obosnovanie, w => w.uderzh || 0);
   const shtr = wbBuckets(wbRows, WB_SHTRAF_DEFS, w => w.logisticsType || w.obosnovanie, w => w.shtraf || 0);
   const logiQty = wbRows.reduce((s, x) => s + (x.wb.dostavka ? 1 : 0), 0);
   const hran = wbRows.reduce((s, x) => s + (x.wb.hran || 0), 0);
