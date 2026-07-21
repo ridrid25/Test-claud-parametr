@@ -581,7 +581,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v20 · 20.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v22 · 21.07</span>
 </div>
 
 <div class="layout">
@@ -1272,8 +1272,74 @@ const XLSX_EXT_RE = /\.(xlsx|xlsm|xlsb|xls|ods)$/i;
 
 // Достаёт из файла таблицу: { headers:[…], rows:[[…], …], fileFixes:[…] }.
 // CSV — как раньше; Excel — первый лист через SheetJS, дальше тот же пайплайн.
+// Тип ячейки для поиска строки заголовков: текст / число / дата / пусто.
+// Числа и даты могут прийти и значениями (Excel), и строками («1 234,56», «02.06.2026»).
+const HDR_NUM_RE = /^-?[\d\s ]+([.,]\d+)?\s*(%|₽|руб\.?)?$/i;
+const HDR_DATE_RE = /^(\d{1,2}[./-]\d{1,2}[./-]\d{2,4}|\d{4}-\d{2}-\d{2})([ T].*)?$/;
+function headerCellKind(v) {
+  if (v instanceof Date) return "date";
+  if (typeof v === "number") return "num";
+  const s = String(v ?? "").trim();
+  if (!s) return "empty";
+  if (HDR_DATE_RE.test(s)) return "date";
+  if (HDR_NUM_RE.test(s)) return "num";
+  return "text";
+}
+
+// Реальные выгрузки (1С, печатные формы) несут сверху шапку организации —
+// заголовки колонок не в первой строке. Ищем в первых 15 строках строку с
+// максимумом непустых ТЕКСТОВЫХ ячеек, под которой в 2+ строках по тем же
+// колонкам идут данные. Уверенного кандидата нет — работаем как раньше (строка 1).
+function findHeaderRow(rows) {
+  const scan = Math.min(rows.length, 15);
+  let best = -1, bestText = 0;
+  for (let i = 0; i < scan; i++) {
+    const filled = [];
+    let text = 0;
+    (rows[i] || []).forEach((c, j) => {
+      const k = headerCellKind(c);
+      if (k !== "empty") { filled.push(j); if (k === "text") text++; }
+    });
+    if (text < 2 || text <= bestText) continue;
+    let dataRows = 0;
+    for (let r = i + 1; r < Math.min(rows.length, i + 6); r++) {
+      const nonEmpty = filled.filter(j => headerCellKind((rows[r] || [])[j]) !== "empty").length;
+      if (nonEmpty >= Math.min(2, filled.length)) dataRows++;
+    }
+    if (dataRows >= 2) { best = i; bestText = text; }
+  }
+  return best;
+}
+
+// Строка итогов (не данные): первая или вторая ячейка — «Итого»/«Всего»/«Итог».
+const TOTAL_ROW_RE = /^(итого|всего|итог)\s*[:.]?$/i;
+function isTotalRow(r) {
+  return TOTAL_ROW_RE.test(String((r || [])[0] ?? "").trim()) || TOTAL_ROW_RE.test(String((r || [])[1] ?? "").trim());
+}
+
+// Общий финал для Excel- и CSV-ветки: найти шапку, отбросить всё выше,
+// исключить строки итогов. entries хранят исходный номер строки файла,
+// чтобы сообщение «заголовки найдены в строке N» совпадало с тем, что
+// человек видит в своём файле.
+function finalizeTable(entries, fileFixes) {
+  const hdrIdx = findHeaderRow(entries.map(e => e.r));
+  if (hdrIdx > 0) {
+    fileFixes.push(`заголовки найдены в строке ${entries[hdrIdx].orig + 1}, шапка выше отброшена`);
+    entries = entries.slice(hdrIdx);
+  }
+  const headers = entries[0].r.map(h => String(h ?? "").trim());
+  let rows = entries.slice(1).map(e => e.r);
+  const before = rows.length;
+  rows = rows.filter(r => !isTotalRow(r));
+  if (rows.length !== before) fileFixes.push(`исключены строки итогов: ${before - rows.length}`);
+  return { headers, rows, fileFixes };
+}
+
 function extractTable(fileName, buffer) {
   const fileFixes = [];
+  const nonEmptyEntries = aoa => aoa
+    .map((r, i) => ({ r: Array.isArray(r) ? r : [], orig: i }))
+    .filter(e => e.r.some(c => c !== "" && c != null && String(c).trim() !== ""));
   if (XLSX_EXT_RE.test(fileName || "")) {
     if (typeof XLSX === "undefined") throw new Error("Не удалось прочитать Excel — библиотека чтения не загрузилась.");
     const wb = XLSX.read(new Uint8Array(buffer), { type: "array", cellDates: true });
@@ -1283,20 +1349,20 @@ function extractTable(fileName, buffer) {
     if (!sheetName) sheetName = wb.SheetNames
       .map(n => ({ n, len: XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, blankrows: false }).length }))
       .sort((a, b) => b.len - a.len)[0].n;
-    const aoa = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, raw: true, defval: "", blankrows: false });
+    const aoa = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, raw: true, defval: "", blankrows: true });
     const ext = (fileName.split(".").pop() || "xlsx").toLowerCase();
     fileFixes.push(`формат Excel (.${ext}), лист «${sheetName}»`);
-    const table = aoa.filter(r => Array.isArray(r) && r.some(c => c !== "" && c != null && String(c).trim() !== ""));
-    if (!table.length) throw new Error("Лист пустой — в нём нет ни одной строки.");
-    return { headers: table[0].map(h => String(h ?? "").trim()), rows: table.slice(1), fileFixes };
+    const entries = nonEmptyEntries(aoa);
+    if (!entries.length) throw new Error("Лист пустой — в нём нет ни одной строки.");
+    return finalizeTable(entries, fileFixes);
   }
   const { text, fix: encodingFix } = decodeBytes(buffer);
   const delimiter = sniffDelimiter(text);
   if (encodingFix) fileFixes.push(encodingFix);
   if (delimiter !== ",") fileFixes.push(`разделитель '${delimiter === "\t" ? "таб" : delimiter}'`);
-  const table = csvParse(text, delimiter).filter(r => r.some(c => String(c).trim() !== ""));
-  if (!table.length) throw new Error("Файл пустой — в нём нет ни одной строки.");
-  return { headers: table[0].map(h => String(h ?? "").trim()), rows: table.slice(1), fileFixes };
+  const entries = nonEmptyEntries(csvParse(text, delimiter));
+  if (!entries.length) throw new Error("Файл пустой — в нём нет ни одной строки.");
+  return finalizeTable(entries, fileFixes);
 }
 
 // Эталонные колонки еженедельного детализированного отчёта WB для проверки комиссии.
