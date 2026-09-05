@@ -589,6 +589,12 @@ th.sorted-desc::after { content: " ↓"; }
 .mp-split { font-size: 11px; margin-top: 2px; white-space: nowrap; }
 .mp-split .w { color: #a01a6e; font-weight: 700; }
 .mp-split .o { color: #005bff; font-weight: 700; }
+/* «Обзор»: плитки налога и замороженных денег — та же форма, что KPI-плашки. */
+.fin-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.fin-tiles .stat-tile .sub { font-size: 12.5px; color: var(--text-secondary); margin-top: 8px; line-height: 1.35; }
+.fin-tiles .stat-tile .sub strong { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.fin-tiles .stat-tile .sub.warn { color: var(--status-serious); }
+@media (max-width: 720px) { .fin-tiles { grid-template-columns: 1fr; } }
 .field[hidden] { display: none !important; }
 #ozon-card { box-shadow: inset 4px 0 0 #005bff; }
 .mp-compare-th-wb { color:#a01a6e !important; }
@@ -599,7 +605,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v35 · 21.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v36 · 05.09</span>
 </div>
 
 <div class="layout">
@@ -635,6 +641,27 @@ th.sorted-desc::after { content: " ↓"; }
         <span>Поиск товара</span>
         <input id="f-search" type="text" placeholder="Название или SKU" />
       </label>
+    </div>
+
+    <div class="sidebar-section" id="fin-settings">
+      <span class="sidebar-section-title">Налог и деньги</span>
+      <label class="field">
+        <span>Режим налогообложения</span>
+        <select id="s-tax-mode">
+          <option value="none">Без налога</option>
+          <option value="usn_income">УСН «Доходы»</option>
+          <option value="usn_profit">УСН «Доходы минус расходы»</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Ставка налога, %</span>
+        <input id="s-tax-rate" type="number" min="0" max="100" step="0.1" inputmode="decimal" />
+      </label>
+      <label class="field">
+        <span>Цена денег, % годовых</span>
+        <input id="s-money-rate" type="number" min="0" max="200" step="0.5" inputmode="decimal" />
+      </label>
+      <p class="hint" style="margin:0">Настройки запоминаются в этом браузере. Налог считается со всей выручки за период, а не по товарам.</p>
     </div>
 
     <div class="sidebar-section">
@@ -717,6 +744,22 @@ th.sorted-desc::after { content: " ↓"; }
           <button id="cost-remove" class="btn-small danger" type="button" hidden>Убрать себестоимость</button>
         </div>
         <p class="hint" id="cost-status" style="margin-bottom:0">Понимает «Полная себестоимость за шт», «Себестоимость закупки за шт» или просто «Себестоимость». Пока файл не загружен, анализ идёт без неё.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Остатки на складах (файл продавца)</h3>
+          <span class="muted">CSV со столбцами SKU и остатком в штуках — покажет, сколько денег заморожено в товаре</span>
+        </div>
+        <div class="upload-form">
+          <label class="field">
+            <span>Файл остатков CSV</span>
+            <input id="stock-file" type="file" accept=".csv,text/csv" />
+          </label>
+          <button id="stock-submit" class="btn-primary" type="button">Загрузить остатки</button>
+          <button id="stock-remove" class="btn-small danger" type="button" hidden>Убрать остатки</button>
+        </div>
+        <p class="hint" id="stock-status" style="margin-bottom:0">Понимает «Остаток, шт», «Остаток на складе», «Количество» или просто «Остаток». Заморожено = остаток × себестоимость за штуку, поэтому нужен и файл себестоимости.</p>
       </div>
 
       <div class="card">
@@ -839,6 +882,13 @@ th.sorted-desc::after { content: " ↓"; }
     </section>
 
     <section class="tab-panel" data-panel="overview" role="tabpanel" id="panel-overview" aria-labelledby="tab-overview" hidden>
+      <div class="card" id="fin-card">
+        <div class="card-header">
+          <h3>Налог и деньги в остатках</h3>
+          <span class="muted">за выбранный период; режим и ставки — в настройках слева</span>
+        </div>
+        <div class="fin-tiles" id="fin-tiles"></div>
+      </div>
       <div class="card" id="reconcile-card" hidden>
         <div class="card-header">
           <h3>Сверка недели (WB)</h3>
@@ -927,7 +977,7 @@ th.sorted-desc::after { content: " ↓"; }
             </select>
           </label>
         </div>
-        <p class="hint" style="margin-top:0">Клик по группе — раскрыть подгруппы, по подгруппе — товары (худшие первыми), по товару — карточка с полной раскладкой.</p>
+        <p class="hint" style="margin-top:0">Клик по группе — раскрыть подгруппы, по подгруппе — товары (худшие первыми), по товару — карточка с полной раскладкой. <span id="products-tax-note" hidden>Колонка «Прибыль после налога»: налог платится со всей выручки за период, а не с товара — по SKU он распределён пропорционально выручке, это оценка, а не факт.</span> <span id="products-frozen-note" hidden>Колонка «Заморожено»: остаток шт × себестоимость за шт по файлу остатков; «—» — SKU нет в файле остатков или нет себестоимости.</span></p>
         <div class="table-wrap" id="table-products"></div>
       </div>
     </section>
@@ -1523,9 +1573,11 @@ function parseFile(formMarketplace, buffer, fileName = "") {
 /* ==== Состояние ==== */
 
 const state = { files: [], nextId: 1, openRowsFileId: null, costs: new Map(), costFileName: null,
+  stocks: new Map(), stockFileName: null,
   rememberedMappings: new Map(), residuals: [], payoutActual: null };
 
 const costsLoaded = () => state.costs.size > 0;
+const stocksLoaded = () => state.stocks.size > 0;
 
 // Cost-column candidates in priority order (checked after unit stripping).
 const COST_COLUMN_CANDIDATES = [
@@ -1533,8 +1585,16 @@ const COST_COLUMN_CANDIDATES = [
   "себестоимость закупки за шт", "себестоимость за шт", "себестоимость",
   "unit_cost", "cost", "закупочная цена",
 ];
+// Stock-column candidates (остаток в штуках) — тот же порядок приоритета.
+const STOCK_COLUMN_CANDIDATES = [
+  "остаток шт", "остаток на складе", "остаток на складах", "остатки на складе",
+  "остаток", "остатки", "доступно к продаже", "доступно", "в наличии",
+  "количество", "кол-во", "stock", "quantity", "qty", "balance",
+];
 
-function parseCostsFile(buffer) {
+// Общий разбор «SKU → число» для файлов продавца (себестоимость, остатки):
+// одна колонка с артикулом + одна числовая колонка из списка кандидатов.
+function parseSkuValueFile(buffer, candidates, missingText, emptyText, { sum = false } = {}) {
   const { text } = decodeBytes(buffer);
   const delimiter = sniffDelimiter(text);
   const table = csvParse(text, delimiter).filter(r => r.some(c => String(c).trim() !== ""));
@@ -1553,26 +1613,122 @@ function parseCostsFile(buffer) {
   });
   if (skuIdx === -1) throw new Error("Не найдена колонка с SKU/артикулом. Ожидается «SKU МП», «Артикул» или похожая.");
 
-  let costIdx = -1;
-  for (const candidate of COST_COLUMN_CANDIDATES) {
-    const idx = headerKeys.findIndex(keys => keys.has(candidate));
-    if (idx !== -1) { costIdx = idx; break; }
+  let valueIdx = -1;
+  for (const candidate of candidates) {
+    const idx = headerKeys.findIndex((keys, i) => i !== skuIdx && keys.has(candidate));
+    if (idx !== -1) { valueIdx = idx; break; }
   }
-  if (costIdx === -1) throw new Error("Не найдена колонка себестоимости. Ожидается «Полная себестоимость за шт», «Себестоимость закупки за шт» или «Себестоимость».");
+  if (valueIdx === -1) throw new Error(missingText);
 
-  const costs = new Map();
+  const values = new Map();
   let skipped = 0;
   for (let i = 1; i < table.length; i++) {
     const sku = String(table[i][skuIdx] ?? "").trim();
     if (!sku) { skipped++; continue; }
     try {
-      const cost = parseNumber(table[i][costIdx]);
-      if (cost > 0) costs.set(sku, cost);
+      const v = parseNumber(table[i][valueIdx]);
+      // Себестоимость: повтор SKU — последняя строка важнее. Остатки: один SKU на
+      // нескольких складах — суммируем.
+      if (v > 0) values.set(sku, sum ? (values.get(sku) || 0) + v : v);
       else skipped++;
     } catch { skipped++; }
   }
-  if (!costs.size) throw new Error("Ни одной строки с валидной себестоимостью не найдено.");
-  return { costs, skipped, costColumn: table[0][costIdx] };
+  if (!values.size) throw new Error(emptyText);
+  return { values, skipped, valueColumn: table[0][valueIdx] };
+}
+
+function parseCostsFile(buffer) {
+  const { values, skipped, valueColumn } = parseSkuValueFile(buffer, COST_COLUMN_CANDIDATES,
+    "Не найдена колонка себестоимости. Ожидается «Полная себестоимость за шт», «Себестоимость закупки за шт» или «Себестоимость».",
+    "Ни одной строки с валидной себестоимостью не найдено.");
+  return { costs: values, skipped, costColumn: valueColumn };
+}
+
+function parseStocksFile(buffer) {
+  const { values, skipped, valueColumn } = parseSkuValueFile(buffer, STOCK_COLUMN_CANDIDATES,
+    "Не найдена колонка остатка. Ожидается «Остаток, шт», «Остаток на складе», «Количество» или «Остаток».",
+    "Ни одной строки с положительным остатком не найдено.", { sum: true });
+  // Остаток — целые штуки.
+  const stocks = new Map();
+  for (const [sku, q] of values) stocks.set(sku, Math.round(q));
+  return { stocks, skipped, stockColumn: valueColumn };
+}
+
+/* ==== Настройки: налог и цена денег (localStorage) ==== */
+
+const FIN_SETTINGS_KEY = "mp_fin_settings";
+const TAX_MODES = {
+  none: { label: "Без налога", rate: 0 },
+  usn_income: { label: "УСН «Доходы»", rate: 6 },
+  usn_profit: { label: "УСН «Доходы минус расходы»", rate: 15 },
+};
+const FIN_DEFAULTS = { taxMode: "none", taxRate: 6, moneyRate: 24 };
+
+function loadFinSettings() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(FIN_SETTINGS_KEY) || "{}") || {}; } catch { saved = {}; }
+  const s = { ...FIN_DEFAULTS, ...saved };
+  if (!TAX_MODES[s.taxMode]) s.taxMode = FIN_DEFAULTS.taxMode;
+  const num = (v, d) => { const n = Number(v); return Number.isFinite(n) && n >= 0 ? n : d; };
+  s.taxRate = num(s.taxRate, TAX_MODES[s.taxMode].rate);
+  s.moneyRate = num(s.moneyRate, FIN_DEFAULTS.moneyRate);
+  return s;
+}
+function saveFinSettings(s) {
+  try { localStorage.setItem(FIN_SETTINGS_KEY, JSON.stringify(s)); } catch { /* приватный режим — просто не запоминаем */ }
+}
+let finSettings = loadFinSettings();
+
+// Сумма к уплате по выбранному режиму. База «Доходы» — вся реализация минус
+// возвраты (не выплата после удержаний). База «Доходы минус расходы» — прибыль
+// после удержаний площадки и себестоимости; налог не бывает отрицательным.
+function computeTax(rows, s = finSettings) {
+  let income = 0, payout = 0, cogs = 0;
+  for (const r of rows) {
+    income += r.realization - r.returns;
+    payout += r.payout;
+    const u = state.costs.get(r.sku);
+    if (u != null) cogs += u * (r.quantity || 0);
+  }
+  const rate = (s.taxRate || 0) / 100;
+  const mode = s.taxMode;
+  let base = 0;
+  if (mode === "usn_income") base = income;
+  else if (mode === "usn_profit") base = payout - cogs;
+  const tax = mode === "none" ? 0 : Math.max(0, base) * rate;
+  return { mode, rate, base, income, profit: payout - cogs, tax };
+}
+
+// Дни периода — по датам строк текущего фильтра (первая и последняя включительно).
+function periodDays(rows) {
+  let min = null, max = null;
+  for (const r of rows) {
+    const d = r.period_date;
+    if (!d) continue;
+    if (min === null || d < min) min = d;
+    if (max === null || d > max) max = d;
+  }
+  if (min === null) return { days: 0, from: null, to: null };
+  const days = Math.round((Date.parse(max) - Date.parse(min)) / 86400000) + 1;
+  return { days: Math.max(1, days), from: min, to: max };
+}
+
+// Заморожено в остатках = остаток шт × себестоимость за шт, по всему файлу
+// остатков (это снимок склада, фильтр по датам на него не влияет).
+// Цена денег = заморожено × ставка × дни периода / 365.
+function computeFrozen(rows, s = finSettings) {
+  if (!stocksLoaded()) return { show: false };
+  let frozen = 0, skusWithCost = 0, skusNoCost = 0, unitsNoCost = 0;
+  for (const [sku, qty] of state.stocks) {
+    const unit = state.costs.get(sku);
+    if (unit == null) { skusNoCost++; unitsNoCost += qty; continue; }
+    skusWithCost++;
+    frozen += qty * unit;
+  }
+  const { days } = periodDays(rows);
+  const rate = (s.moneyRate || 0) / 100;
+  const moneyCost = frozen * rate * days / 365;
+  return { show: true, frozen, moneyCost, days, rate, skusWithCost, skusNoCost, unitsNoCost };
 }
 
 function goodRows() {
@@ -2642,6 +2798,13 @@ function productAggregates(rows, applySearch = true) {
     // «Итоговая» метрика для таблиц/сегментов: прибыль, когда есть себестоимость.
     p.result = costsLoaded() ? p.profit : p.payout;
     p.margin = costsLoaded() ? p.profit_margin : p.payout_margin;
+    // Заморожено в остатках по SKU: остаток шт × себестоимость за шт (снимок склада).
+    p.stock_qty = state.stocks.get(p.sku) ?? null;
+    p.frozen = (p.stock_qty != null && p.unit_cost != null) ? p.stock_qty * p.unit_cost : 0;
+    // Налог по SKU — только распределение общей суммы пропорционально выручке
+    // (заполняется в computeAnalysis, где известен итог по всему периоду).
+    p.tax_alloc = 0;
+    p.profit_after_tax = p.profit;
     p.red_flags = [];
     if (p.result < 0) p.red_flags.push(costsLoaded() ? "убыток с уч. себестоимости" : "убыток");
     if (p.return_rate >= RETURN_RATE_RED_ZONE) p.red_flags.push("высокая возвратность");
@@ -2691,6 +2854,17 @@ function computeAnalysis(rows) {
   const top10ReturnsShare = total.returns
     ? byReturnsRub.slice(0, 10).reduce((s, p) => s + p.returns, 0) / total.returns : 0;
 
+  // Налог за период считается со всей выручки; по товарам его можно только
+  // распределить пропорционально выручке (реализация − возвраты). Сумма
+  // распределения сходится с налогом за период до копейки.
+  const tax = computeTax(rows);
+  const taxBaseSum = products.reduce((s, p) => s + Math.max(0, p.net_revenue), 0);
+  for (const p of products) {
+    p.tax_alloc = (tax.tax > 0 && taxBaseSum > 0 && p.net_revenue > 0) ? tax.tax * p.net_revenue / taxBaseSum : 0;
+    p.profit_after_tax = p.profit - p.tax_alloc;
+  }
+  const frozen = computeFrozen(rows);
+
   const positiveSorted = products.filter(p => p.payout > 0).sort((a, b) => b.payout - a.payout);
   const positiveTotal = positiveSorted.reduce((s, p) => s + p.payout, 0);
   const top10PayoutShare = positiveTotal
@@ -2714,7 +2888,52 @@ function computeAnalysis(rows) {
     c.other += r.penalty + r.other_deduction; c.payout += r.payout;
   }
 
-  return { products, total, losers, lossSum, deadStock, deadCost, byReturnsRub, top10ReturnsShare, top10PayoutShare, months, channels, cogsTotal, profitTotal, costCoverage };
+  return { products, total, losers, lossSum, deadStock, deadCost, byReturnsRub, top10ReturnsShare, top10PayoutShare, months, channels, cogsTotal, profitTotal, costCoverage, tax, frozen };
+}
+
+/* ==== «Обзор»: налог за период и заморожено в остатках ==== */
+
+function renderFinance(a) {
+  const el = document.getElementById("fin-tiles");
+  const t = a.tax, f = a.frozen;
+  const modeLabel = TAX_MODES[t.mode]?.label || "Без налога";
+  const ratePct = String(Math.round(t.rate * 1000) / 10).replace(".", ",") + "%";
+  let taxTile;
+  if (t.mode === "none") {
+    taxTile = `
+    <div class="stat-tile" title="Режим налогообложения не выбран">
+      <div class="label">Налог за период</div>
+      <div class="value">—</div>
+      <div class="sub">Режим не выбран. Укажите «Режим налогообложения» в настройках слева — налог посчитается со всей выручки за период.</div>
+    </div>`;
+  } else {
+    const baseLabel = t.mode === "usn_income"
+      ? `база — реализация минус возвраты: <strong>${fmtMoney(t.income)}</strong>`
+      : `база — прибыль после удержаний${costsLoaded() ? " и себестоимости" : ""}: <strong>${fmtMoney(t.profit)}</strong>${t.profit <= 0 ? " (убыток — налог 0)" : ""}`;
+    const noCostNote = t.mode === "usn_profit" && !costsLoaded()
+      ? `<div class="sub warn">Себестоимость не загружена — в расходах учтены только удержания площадки, налог завышен.</div>` : "";
+    taxTile = `
+    <div class="stat-tile tone-out" title="${modeLabel} ${ratePct}: ${fmtMoney(t.tax)}">
+      <div class="label">Налог за период · ${modeLabel} ${ratePct}</div>
+      <div class="value spend">${fmtMoneyCompact(t.tax)}</div>
+      <div class="sub">${baseLabel}. Налог платится со всей выручки, а не с товара: в «Товарах» он распределён по SKU пропорционально выручке — это оценка, а не факт.</div>
+      ${noCostNote}
+    </div>`;
+  }
+  let frozenTile = "";
+  if (f.show) {
+    const moneyPct = String(Math.round(f.rate * 1000) / 10).replace(".", ",") + "%";
+    const gap = f.skusNoCost
+      ? `<div class="sub warn">Без себестоимости: ${f.skusNoCost} SKU (${f.unitsNoCost} шт) — в сумму не вошли, загрузите их в файл себестоимости.</div>` : "";
+    frozenTile = `
+    <div class="stat-tile tone-out" title="Заморожено в остатках: ${fmtMoney(f.frozen)}; цена денег ${fmtMoney(f.moneyCost)}">
+      <div class="label">Заморожено в остатках</div>
+      <div class="value spend">${fmtMoneyCompact(f.frozen)}</div>
+      <div class="sub">Цена этих денег: <strong>${fmtMoney(f.moneyCost)}</strong> за ${f.days} дн. периода при ${moneyPct} годовых. Остаток × себестоимость за шт по «${escapeHtml(state.stockFileName || "")}», ${f.skusWithCost} SKU.</div>
+      ${gap}
+    </div>`;
+  }
+  el.innerHTML = taxTile + frozenTile;
 }
 
 function renderInsights(a) {
@@ -3063,10 +3282,11 @@ function groupProducts(products, groupKey) {
   const groups = new Map();
   for (const p of products) {
     const name = keyFn(p);
-    if (!groups.has(name)) groups.set(name, { name, items: [], realization: 0, returns: 0, mp_expenses: 0, payout: 0 });
+    if (!groups.has(name)) groups.set(name, { name, items: [], realization: 0, returns: 0, mp_expenses: 0, payout: 0, frozen: 0, tax_alloc: 0, profit_after_tax: 0 });
     const g = groups.get(name);
     g.items.push(p);
     g.realization += p.realization; g.returns += p.returns; g.mp_expenses += p.mp_expenses; g.payout += p.payout;
+    g.frozen += p.frozen; g.tax_alloc += p.tax_alloc; g.profit_after_tax += p.profit_after_tax;
   }
   for (const g of groups.values()) {
     g.margin = g.realization ? g.payout / g.realization : (g.payout < 0 ? -1 : 0);
@@ -3125,6 +3345,35 @@ function productCardRow(p, colspan) {
     </td></tr>`;
 }
 
+// Две дополнительные колонки «Товаров»: «Заморожено» — когда загружен файл
+// остатков, «Прибыль после налога» — когда выбран режим налогообложения.
+const taxShown = () => finSettings.taxMode !== "none";
+const EXTRA_PRODUCT_COLUMNS = () => [
+  ...(stocksLoaded() ? [["frozen", "Заморожено", true]] : []),
+  ...(taxShown() ? [["profit_after_tax", "Прибыль после налога", true]] : []),
+];
+const extraProductHeadHtml = () => EXTRA_PRODUCT_COLUMNS().map(([, label]) => `<th class="num">${label}</th>`).join("");
+function extraProductCells(p) {
+  let html = "";
+  if (stocksLoaded()) {
+    const has = p.stock_qty != null && p.unit_cost != null;
+    const tip = p.stock_qty == null ? "SKU нет в файле остатков"
+      : p.unit_cost == null ? `остаток ${p.stock_qty} шт, себестоимость не найдена`
+      : `${p.stock_qty} шт × ${fmtMoney(p.unit_cost)}`;
+    html += `<td class="num" title="${escapeHtml(tip)}">${has ? fmtMoney(p.frozen) : "—"}</td>`;
+  }
+  if (taxShown()) {
+    html += `<td class="num ${p.profit_after_tax < 0 ? "delta-down" : ""}" title="${costsLoaded() ? "чистая прибыль" : "к выплате"} ${fmtMoney(p.profit)} − распределённый налог ${fmtMoney(p.tax_alloc)} (оценка)">${fmtMoney(p.profit_after_tax)}</td>`;
+  }
+  return html;
+}
+function extraGroupCells(g) {
+  let html = "";
+  if (stocksLoaded()) html += `<td class="num">${fmtMoney(g.frozen)}</td>`;
+  if (taxShown()) html += `<td class="num ${g.profit_after_tax < 0 ? "delta-down" : ""}" title="распределённый налог ${fmtMoney(g.tax_alloc)} (оценка)">${fmtMoney(g.profit_after_tax)}</td>`;
+  return html;
+}
+
 function productLineHtml(p, colspan, indent = 0) {
   const line = `
     <tr class="product-line" data-sku="${escapeHtml(p.sku)}">
@@ -3136,11 +3385,12 @@ function productLineHtml(p, colspan, indent = 0) {
       <td class="num">${fmtMoney(p.mp_expenses)}</td>
       <td class="num ${p.margin < 0 ? "delta-down" : ""}">${fmtPercent(p.margin)}</td>
       <td class="num ${p.payout < 0 ? "delta-down" : ""}">${fmtMoney(p.payout)}</td>
+      ${extraProductCells(p)}
     </tr>`;
   return line + (openProductSku === p.sku ? productCardRow(p, colspan) : "");
 }
 
-const PRODUCT_COLUMNS = [
+const BASE_PRODUCT_COLUMNS = [
   ["product_name", "Товар", false],
   ["abc", "ABC", false],
   ["realization", "Реализация", true],
@@ -3150,6 +3400,7 @@ const PRODUCT_COLUMNS = [
   ["margin", "Маржа", true],
   ["payout", "К выплате", true],
 ];
+const PRODUCT_COLUMNS_NOW = () => [...BASE_PRODUCT_COLUMNS, ...EXTRA_PRODUCT_COLUMNS()];
 
 function productRowHtml(p) {
   const row = `
@@ -3162,12 +3413,13 @@ function productRowHtml(p) {
       <td class="num">${fmtMoney(p.mp_expenses)}</td>
       <td class="num ${p.margin < 0 ? "delta-down" : ""}">${fmtPercent(p.margin)}</td>
       <td class="num ${p.payout < 0 ? "delta-down" : ""}">${fmtMoney(p.payout)}</td>
+      ${extraProductCells(p)}
       <td>${p.red_flags.map(f => `<span class="flag">${f}</span>`).join("")}</td>
     </tr>`;
-  return row + (openProductSku === p.sku ? productCardRow(p, 9) : "");
+  return row + (openProductSku === p.sku ? productCardRow(p, PRODUCT_COLUMNS_NOW().length + 1) : "");
 }
 
-const PRODUCT_HEAD = () => `<thead><tr>${PRODUCT_COLUMNS.map(([key, label, isNum]) => {
+const PRODUCT_HEAD = () => `<thead><tr>${PRODUCT_COLUMNS_NOW().map(([key, label, isNum]) => {
   const shown = key === "margin" && costsLoaded() ? "Рентаб." : label;
   return `<th class="sortable ${isNum ? "num" : ""} ${productSort.key === key ? "sorted-" + productSort.dir : ""}" data-sort="${key}">${shown}</th>`;
 }).join("")}<th>Флаги</th></tr></thead>`;
@@ -3175,6 +3427,10 @@ const PRODUCT_HEAD = () => `<thead><tr>${PRODUCT_COLUMNS.map(([key, label, isNum
 function renderProducts(products) {
   const el = document.getElementById("table-products");
   renderSegments(products);
+  document.getElementById("products-tax-note").hidden = !taxShown();
+  document.getElementById("products-frozen-note").hidden = !stocksLoaded();
+  // Сортировка по колонке, которой сейчас нет (сняли остатки/налог) — вернуться к выплате.
+  if (!PRODUCT_COLUMNS_NOW().some(([key]) => key === productSort.key)) productSort = { key: "payout", dir: "asc" };
 
   const segment = SEGMENTS.find(([key]) => key === productSegment) || SEGMENTS[0];
   let visible = products.filter(segment[2]);
@@ -3194,7 +3450,7 @@ function renderProducts(products) {
   if (grouping) {
     const grouping2 = document.getElementById("product-grouping2").value;
     const sub = (grouping2 && grouping2 !== grouping) ? grouping2 : null;
-    const COLSPAN = 8;
+    const COLSPAN = 8 + EXTRA_PRODUCT_COLUMNS().length;
 
     const groupRowHtml = (g, key, level) => {
       const isOpen = expandedGroups.has(key);
@@ -3208,6 +3464,7 @@ function renderProducts(products) {
           <td class="num">${fmtMoney(g.mp_expenses)}</td>
           <td class="num ${g.margin < 0 ? "delta-down" : ""}">${fmtPercent(g.margin)}</td>
           <td class="num ${g.payout < 0 ? "delta-down" : ""}">${fmtMoney(g.payout)}</td>
+          ${extraGroupCells(g)}
         </tr>`;
     };
 
@@ -3219,7 +3476,7 @@ function renderProducts(products) {
     const count = `<p class="result-count">Групп: <strong>${groups.length}</strong>, товаров${segNote}${searchNote}: <strong>${visible.length}</strong>.</p>`;
     el.innerHTML = count + `
       <table>
-        <thead><tr><th>Группа / товар</th><th class="num">Шт</th><th class="num">Реализация</th><th class="num">Возвраты</th><th class="num">% возврата</th><th class="num">Расходы МП</th><th class="num">Маржа</th><th class="num">К выплате</th></tr></thead>
+        <thead><tr><th>Группа / товар</th><th class="num">Шт</th><th class="num">Реализация</th><th class="num">Возвраты</th><th class="num">% возврата</th><th class="num">Расходы МП</th><th class="num">Маржа</th><th class="num">К выплате</th>${extraProductHeadHtml()}</tr></thead>
         <tbody>${groups.map(g => {
           const key1 = g.name;
           let html = groupRowHtml(g, key1, 1);
@@ -3475,6 +3732,7 @@ function refresh() {
   renderOzonCommissionAudit(rows);
   renderDynamics(rows);
   const analysis = renderAnalysis(rows);
+  renderFinance(analysis);
   const search = document.getElementById("f-search").value.trim().toLowerCase();
   let products = analysis.products;
   if (search) products = products.filter(p =>
@@ -3482,6 +3740,7 @@ function refresh() {
   renderProducts(products);
   renderReturns(products, rows);
   if (costsLoaded()) updateCostStatus();
+  if (stocksLoaded()) updateStockStatus();
 }
 
 /* ==== Вкладка «Загрузка» ==== */
@@ -3665,6 +3924,91 @@ function setupCostUpload() {
     refresh();
     updateCostStatus();
   });
+}
+
+/* ==== Остатки (файл продавца): второй загрузчик по образцу себестоимости ==== */
+
+const STOCK_STATUS_DEFAULT = "Понимает «Остаток, шт», «Остаток на складе», «Количество» или просто «Остаток». Заморожено = остаток × себестоимость за штуку, поэтому нужен и файл себестоимости.";
+
+function updateStockStatus(errorText) {
+  const el = document.getElementById("stock-status");
+  const removeBtn = document.getElementById("stock-remove");
+  if (errorText) {
+    el.textContent = errorText;
+    el.style.color = "var(--status-critical)";
+    return;
+  }
+  el.style.color = "";
+  if (!stocksLoaded()) {
+    el.textContent = STOCK_STATUS_DEFAULT;
+    removeBtn.hidden = true;
+    return;
+  }
+  let units = 0, withCost = 0;
+  for (const [sku, q] of state.stocks) { units += q; if (state.costs.has(sku)) withCost++; }
+  const costNote = costsLoaded()
+    ? ` Себестоимость найдена для ${withCost} из ${state.stocks.size} SKU.`
+    : " Себестоимость не загружена — сумма замороженных денег пока не считается.";
+  el.textContent = `Остатки загружены: «${state.stockFileName}», ${state.stocks.size} SKU, ${units} шт.${costNote} Блок «Заморожено в остатках» — на вкладке «Обзор».`;
+  removeBtn.hidden = false;
+}
+
+function setupStockUpload() {
+  document.getElementById("stock-submit").addEventListener("click", async () => {
+    const input = document.getElementById("stock-file");
+    const file = input.files[0];
+    if (!file) { updateStockStatus("Сначала выберите файл CSV с остатками."); return; }
+    try {
+      const buffer = await file.arrayBuffer();
+      const { stocks, skipped } = parseStocksFile(buffer);
+      state.stocks = stocks;
+      state.stockFileName = file.name;
+      input.value = "";
+      refresh();
+      updateStockStatus();
+      if (skipped) {
+        const el = document.getElementById("stock-status");
+        el.textContent += ` Пропущено строк без положительного остатка: ${skipped}.`;
+      }
+    } catch (err) {
+      console.error(err);
+      updateStockStatus(`«${file.name}»: ${err.message}`);
+    }
+  });
+  document.getElementById("stock-remove").addEventListener("click", () => {
+    state.stocks = new Map();
+    state.stockFileName = null;
+    refresh();
+    updateStockStatus();
+  });
+}
+
+/* ==== Настройки налога и цены денег: форма ↔ localStorage ==== */
+
+function setupFinSettings() {
+  const modeEl = document.getElementById("s-tax-mode");
+  const rateEl = document.getElementById("s-tax-rate");
+  const moneyEl = document.getElementById("s-money-rate");
+  const fill = () => {
+    modeEl.value = finSettings.taxMode;
+    rateEl.value = finSettings.taxRate;
+    rateEl.disabled = finSettings.taxMode === "none";
+    moneyEl.value = finSettings.moneyRate;
+  };
+  fill();
+  modeEl.addEventListener("change", () => {
+    finSettings.taxMode = TAX_MODES[modeEl.value] ? modeEl.value : "none";
+    // Смена режима подставляет стандартную ставку (6% / 15%); её можно переопределить.
+    finSettings.taxRate = TAX_MODES[finSettings.taxMode].rate;
+    saveFinSettings(finSettings); fill(); refresh();
+  });
+  const onRate = (el, key, fallback) => () => {
+    const n = Number(String(el.value).replace(",", "."));
+    finSettings[key] = Number.isFinite(n) && n >= 0 ? n : fallback();
+    saveFinSettings(finSettings); refresh();
+  };
+  rateEl.addEventListener("change", onRate(rateEl, "taxRate", () => TAX_MODES[finSettings.taxMode].rate));
+  moneyEl.addEventListener("change", onRate(moneyEl, "moneyRate", () => FIN_DEFAULTS.moneyRate));
 }
 
 // Очередь загрузки: файлы обрабатываются по одному, между ними — предпросмотр
@@ -4037,6 +4381,10 @@ function setupConnect() {
 const DEMO_SALES_CSV = "Маркетплейс;Дата;Артикул;Товар;Категория;Бренд;Продано, шт;Реализация, ₽;Возвраты, ₽;Комиссия МП, ₽;Логистика, ₽;Хранение, ₽;Продвижение, ₽;Штрафы, ₽;Прочие удержания, ₽;К выплате, ₽\nWildberries;2026-06-05;WB-001;Худи Northmoor 01;Одежда/Худи;Northmoor;47;81122;0;12168;8451;346;3244;0;0;56913\nWildberries;2026-06-05;WB-002;Худи Aurelka 02;Одежда/Худи;Aurelka;2;1444;606;216;106;308;0;0;0;208\nWildberries;2026-06-05;WB-003;Худи Aurelka 03;Одежда/Худи;Aurelka;14;34146;0;5121;3603;81;1365;0;0;23976\nOzon;2026-06-05;OZ-004;Худи Aurelka 04;Одежда/Худи;Aurelka;17;21012;1050;3151;1389;194;0;0;0;15228\nOzon;2026-06-05;OZ-005;Футболки Basico 05;Одежда/Футболки;Basico;38;63954;7674;9593;5894;193;0;0;0;40600\nOzon;2026-06-05;OZ-006;Футболки Basico 06;Одежда/Футболки;Basico;36;49932;0;7489;4977;395;0;0;0;37071\nWildberries;2026-06-05;WB-007;Футболки Northmoor 07;Одежда/Футболки;Northmoor;55;55715;6685;8357;5467;186;0;0;0;35020\nOzon;2026-06-05;OZ-008;Футболки Basico 08;Одежда/Футболки;Basico;13;43485;0;6522;4198;87;1739;0;0;30939\nWildberries;2026-06-05;WB-009;Кружки Keramo 09;Посуда/Кружки;Keramo;29;62466;0;9369;6313;393;0;0;0;46391\nWildberries;2026-06-05;WB-010;Кружки Keramo 10;Посуда/Кружки;Keramo;51;96492;0;14473;7011;290;3859;0;0;70859\nOzon;2026-06-05;OZ-011;Кружки Keramo 11;Посуда/Кружки;Keramo;41;108404;13008;16260;7433;71;0;0;0;71632\nOzon;2026-06-05;OZ-012;Кружки LuceCasa 12;Посуда/Кружки;LuceCasa;57;170430;0;25564;20424;70;6817;0;0;117555\nOzon;2026-06-05;OZ-013;Тарелки Keramo 13;Посуда/Тарелки;Keramo;48;38016;0;5702;3712;348;5322;0;0;22932\nOzon;2026-06-05;OZ-014;Тарелки Keramo 14;Посуда/Тарелки;Keramo;24;51912;6229;7786;4762;283;0;0;0;32852\nWildberries;2026-06-05;WB-015;Тарелки LuceCasa 15;Посуда/Тарелки;LuceCasa;49;158025;7901;23703;13603;232;0;0;0;112586\nOzon;2026-06-05;OZ-016;Тарелки Keramo 16;Посуда/Тарелки;Keramo;32;33120;1656;4968;3659;259;4636;0;0;17942\nWildberries;2026-06-05;WB-017;Наушники Voltra 17;Электроника/Наушники;Voltra;23;85629;0;12844;8214;250;0;0;0;64321\nWildberries;2026-06-05;WB-018;Наушники SonaX 18;Электроника/Наушники;SonaX;56;224336;0;33650;14239;290;0;0;0;176157\nWildberries;2026-06-05;WB-019;Наушники SonaX 19;Электроника/Наушники;SonaX;52;45916;0;6887;3108;243;6428;0;0;29250\nWildberries;2026-06-05;WB-020;Наушники SonaX 20;Электроника/Наушники;SonaX;33;137709;0;20656;15937;386;5508;0;0;95222\nWildberries;2026-06-05;WB-021;Пледы Aurelka 21;Дом/Пледы;Aurelka;25;83775;10053;12566;9548;231;0;0;0;51377\nWildberries;2026-06-05;WB-022;Пледы CozyNest 22;Дом/Пледы;CozyNest;4;7936;3333;1190;739;301;0;0;0;2373\nWildberries;2026-06-05;WB-023;Пледы CozyNest 23;Дом/Пледы;CozyNest;45;143280;60177;21492;9176;16;0;0;0;52419\nWildberries;2026-06-05;WB-024;Пледы CozyNest 24;Дом/Пледы;CozyNest;17;56780;0;8517;5871;292;2271;0;0;39829\nWildberries;2026-05-06;WB-002;Худи Aurelka 02;Одежда/Худи;Aurelka;3;1200;0;180;24;20;0;0;0;976\nWildberries;2026-06-14;WB-070;Худи Basico 70;Одежда/Худи;Basico;3;9000;0;1980;1200;80;0;0;0;5740\nWildberries;2026-06-14;WB-071;Кружки Keramo 71;Посуда/Кружки;Keramo;3;9000;0;1980;1200;80;0;0;0;5740\nWildberries;2026-06-18;WB-050;Штраф — маркировка;Прочее/Корректировки;—;0;0;0;0;0;0;0;620;0;-620\nOzon;2026-06-20;OZ-060;Удержание — эквайринг;Прочее/Корректировки;—;0;0;0;0;0;0;0;0;450;-450\nOzon;2026-06-21;OZ-060;Удержание — эквайринг;Прочее/Корректировки;—;0;0;0;0;0;0;0;0;450;-450";
 const DEMO_COSTS_CSV = "SKU;Полная себестоимость за шт\nWB-001;1059\nWB-002;271\nWB-003;1152\nOZ-004;601\nOZ-005;958\nWB-007;467\nOZ-008;2156\nWB-009;810\nWB-010;886\nOZ-011;1057\nOZ-013;510\nOZ-014;692\nOZ-016;711\nWB-018;1468\nWB-019;340\nWB-020;1349\nWB-021;2326\nWB-022;1217\nWB-023;1493";
 
+// Демо-остатки: часть SKU нарочно без остатка, один — без себестоимости (WB-006),
+// чтобы было видно, как блок показывает пробелы.
+const DEMO_STOCKS_CSV = "SKU;Остаток, шт\nWB-001;120\nWB-002;340\nWB-003;55\nOZ-004;80\nOZ-005;24\nWB-006;15\nWB-007;210\nOZ-008;12\nWB-009;60\nWB-010;95\nOZ-011;40\nOZ-013;130\nWB-018;18\nWB-019;400\nWB-020;33\nWB-021;9\nWB-022;70";
+
 function bufFromString(s) { return new TextEncoder().encode(s).buffer; }
 
 function clearDemoData() {
@@ -4045,11 +4393,12 @@ function clearDemoData() {
   const hadDemo = state.files.some(f => f.isDemo);
   state.files = state.files.filter(f => !f.isDemo);
   state.isDemo = false;
-  if (hadDemo) { state.costs = new Map(); state.costFileName = null; }
+  if (hadDemo) { state.costs = new Map(); state.costFileName = null; state.stocks = new Map(); state.stockFileName = null; }
   const banner = document.getElementById("demo-banner");
   if (banner) banner.hidden = true;
   renderUploadsList();
   updateCostStatus();
+  updateStockStatus();
 }
 
 // Быстрый хэш содержимого файла (FNV-1a + длина) — для защиты от повторной загрузки.
@@ -4068,6 +4417,9 @@ function initDemo() {
     const { costs } = parseCostsFile(bufFromString(DEMO_COSTS_CSV));
     state.costs = costs;
     state.costFileName = "Демо-себестоимость (пример).csv";
+    const { stocks } = parseStocksFile(bufFromString(DEMO_STOCKS_CSV));
+    state.stocks = stocks;
+    state.stockFileName = "Демо-остатки (пример).csv";
     state.isDemo = true;
     document.getElementById("demo-banner").hidden = false;
   } catch (err) {
@@ -4075,6 +4427,7 @@ function initDemo() {
   }
   renderUploadsList();
   updateCostStatus();
+  updateStockStatus();
   refresh();
   document.getElementById("tab-analysis").click();
 }
@@ -4087,6 +4440,8 @@ document.getElementById("demo-clear").addEventListener("click", () => {
 
 setupUploads();
 setupCostUpload();
+setupStockUpload();
+setupFinSettings();
 setupExport();
 setupConnect();
 renderUploadsList();
