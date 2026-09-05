@@ -1594,7 +1594,7 @@ const STOCK_COLUMN_CANDIDATES = [
 
 // Общий разбор «SKU → число» для файлов продавца (себестоимость, остатки):
 // одна колонка с артикулом + одна числовая колонка из списка кандидатов.
-function parseSkuValueFile(buffer, candidates, missingText, emptyText, { sum = false } = {}) {
+function parseSkuValueFile(buffer, candidates, missingText, emptyText, { sum = false, allowZero = false } = {}) {
   const { text } = decodeBytes(buffer);
   const delimiter = sniffDelimiter(text);
   const table = csvParse(text, delimiter).filter(r => r.some(c => String(c).trim() !== ""));
@@ -1627,9 +1627,10 @@ function parseSkuValueFile(buffer, candidates, missingText, emptyText, { sum = f
     if (!sku) { skipped++; continue; }
     try {
       const v = parseNumber(table[i][valueIdx]);
-      // Себестоимость: повтор SKU — последняя строка важнее. Остатки: один SKU на
-      // нескольких складах — суммируем.
-      if (v > 0) values.set(sku, sum ? (values.get(sku) || 0) + v : v);
+      // Себестоимость: повтор SKU — последняя строка важнее, ноль — не цена.
+      // Остатки: один SKU на нескольких складах — суммируем, ноль — законный
+      // остаток (распродано), его надо сохранить, а не выбросить.
+      if (v > 0 || (allowZero && v === 0)) values.set(sku, sum ? (values.get(sku) || 0) + v : v);
       else skipped++;
     } catch { skipped++; }
   }
@@ -1647,7 +1648,7 @@ function parseCostsFile(buffer) {
 function parseStocksFile(buffer) {
   const { values, skipped, valueColumn } = parseSkuValueFile(buffer, STOCK_COLUMN_CANDIDATES,
     "Не найдена колонка остатка. Ожидается «Остаток, шт», «Остаток на складе», «Количество» или «Остаток».",
-    "Ни одной строки с положительным остатком не найдено.", { sum: true });
+    "Ни одной строки с валидным остатком (число ≥ 0) не найдено.", { sum: true, allowZero: true });
   // Остаток — целые штуки.
   const stocks = new Map();
   for (const [sku, q] of values) stocks.set(sku, Math.round(q));
@@ -1682,13 +1683,25 @@ let finSettings = loadFinSettings();
 // Сумма к уплате по выбранному режиму. База «Доходы» — вся реализация минус
 // возвраты (не выплата после удержаний). База «Доходы минус расходы» — прибыль
 // после удержаний площадки и себестоимости; налог не бывает отрицательным.
+// Минимальный налог УСН «Доходы минус расходы» — 1% от доходов; платится по
+// итогам года, если он больше обычного. Здесь период произвольный, поэтому
+// показываем его справочно, а не подменяем им расчёт.
+const USN_MIN_TAX_RATE = 0.01;
+
 function computeTax(rows, s = finSettings) {
   let income = 0, payout = 0, cogs = 0;
+  // Проданные SKU без себестоимости: их закупка в расходы не попала, база
+  // «Доходы минус расходы» и налог по ней завышены.
+  const soldSkus = new Set(), soldNoCost = new Set();
   for (const r of rows) {
     income += r.realization - r.returns;
     payout += r.payout;
     const u = state.costs.get(r.sku);
     if (u != null) cogs += u * (r.quantity || 0);
+    if (!r.service && (r.quantity || 0) > 0) {
+      soldSkus.add(r.sku);
+      if (u == null) soldNoCost.add(r.sku);
+    }
   }
   const rate = (s.taxRate || 0) / 100;
   const mode = s.taxMode;
@@ -1696,10 +1709,14 @@ function computeTax(rows, s = finSettings) {
   if (mode === "usn_income") base = income;
   else if (mode === "usn_profit") base = payout - cogs;
   const tax = mode === "none" ? 0 : Math.max(0, base) * rate;
-  return { mode, rate, base, income, profit: payout - cogs, tax };
+  const minTax = mode === "usn_profit" ? Math.max(0, income) * USN_MIN_TAX_RATE : 0;
+  return { mode, rate, base, income, profit: payout - cogs, tax, minTax,
+    soldSkuCount: soldSkus.size, soldNoCostCount: soldNoCost.size };
 }
 
-// Дни периода — по датам строк текущего фильтра (первая и последняя включительно).
+// Дни периода: границы — из фильтра дат, если они заданы; иначе — первая и
+// последняя дата строк текущего фильтра (включительно). Так цена денег
+// считается за выбранный период, даже если продажи были не каждый день.
 function periodDays(rows) {
   let min = null, max = null;
   for (const r of rows) {
@@ -1708,9 +1725,12 @@ function periodDays(rows) {
     if (min === null || d < min) min = d;
     if (max === null || d > max) max = d;
   }
-  if (min === null) return { days: 0, from: null, to: null };
-  const days = Math.round((Date.parse(max) - Date.parse(min)) / 86400000) + 1;
-  return { days: Math.max(1, days), from: min, to: max };
+  const fromEl = document.getElementById("f-date-from"), toEl = document.getElementById("f-date-to");
+  const from = (fromEl && fromEl.value) || min;
+  const to = (toEl && toEl.value) || max;
+  if (!from || !to) return { days: 0, from: null, to: null };
+  const days = Math.round((Date.parse(to) - Date.parse(from)) / 86400000) + 1;
+  return { days: Math.max(1, days), from, to };
 }
 
 // Заморожено в остатках = остаток шт × себестоимость за шт, по всему файлу
@@ -1725,10 +1745,10 @@ function computeFrozen(rows, s = finSettings) {
     skusWithCost++;
     frozen += qty * unit;
   }
-  const { days } = periodDays(rows);
+  const { days, from, to } = periodDays(rows);
   const rate = (s.moneyRate || 0) / 100;
   const moneyCost = frozen * rate * days / 365;
-  return { show: true, frozen, moneyCost, days, rate, skusWithCost, skusNoCost, unitsNoCost };
+  return { show: true, frozen, moneyCost, days, from, to, rate, skusWithCost, skusNoCost, unitsNoCost };
 }
 
 function goodRows() {
@@ -2910,14 +2930,20 @@ function renderFinance(a) {
     const baseLabel = t.mode === "usn_income"
       ? `база — реализация минус возвраты: <strong>${fmtMoney(t.income)}</strong>`
       : `база — прибыль после удержаний${costsLoaded() ? " и себестоимости" : ""}: <strong>${fmtMoney(t.profit)}</strong>${t.profit <= 0 ? " (убыток — налог 0)" : ""}`;
-    const noCostNote = t.mode === "usn_profit" && !costsLoaded()
-      ? `<div class="sub warn">Себестоимость не загружена — в расходах учтены только удержания площадки, налог завышен.</div>` : "";
+    let noCostNote = "";
+    if (t.mode === "usn_profit") {
+      if (!costsLoaded()) noCostNote = `<div class="sub warn">Себестоимость не загружена — в расходах учтены только удержания площадки, налог завышен.</div>`;
+      else if (t.soldNoCostCount) noCostNote = `<div class="sub warn">Себестоимость не найдена для ${t.soldNoCostCount} из ${t.soldSkuCount} проданных SKU — их закупка в расходы не вошла, налог завышен.</div>`;
+    }
+    const minTaxNote = t.mode === "usn_profit"
+      ? `<div class="sub">Справочно: минимальный налог 1% от доходов — <strong>${fmtMoney(t.minTax)}</strong>. По итогам года платится больший из двух; к промежуточному периоду минимальный налог не применяется.</div>` : "";
     taxTile = `
     <div class="stat-tile tone-out" title="${modeLabel} ${ratePct}: ${fmtMoney(t.tax)}">
       <div class="label">Налог за период · ${modeLabel} ${ratePct}</div>
       <div class="value spend">${fmtMoneyCompact(t.tax)}</div>
       <div class="sub">${baseLabel}. Налог платится со всей выручки, а не с товара: в «Товарах» он распределён по SKU пропорционально выручке — это оценка, а не факт.</div>
       ${noCostNote}
+      ${minTaxNote}
     </div>`;
   }
   let frozenTile = "";
@@ -2929,7 +2955,7 @@ function renderFinance(a) {
     <div class="stat-tile tone-out" title="Заморожено в остатках: ${fmtMoney(f.frozen)}; цена денег ${fmtMoney(f.moneyCost)}">
       <div class="label">Заморожено в остатках</div>
       <div class="value spend">${fmtMoneyCompact(f.frozen)}</div>
-      <div class="sub">Цена этих денег: <strong>${fmtMoney(f.moneyCost)}</strong> за ${f.days} дн. периода при ${moneyPct} годовых. Остаток × себестоимость за шт по «${escapeHtml(state.stockFileName || "")}», ${f.skusWithCost} SKU.</div>
+      <div class="sub">Цена этих денег: <strong>${fmtMoney(f.moneyCost)}</strong> за ${f.days} дн. периода${f.from && f.to ? ` (${f.from} — ${f.to})` : ""} при ${moneyPct} годовых. Остаток × себестоимость за шт по «${escapeHtml(state.stockFileName || "")}», ${f.skusWithCost} SKU.</div>
       ${gap}
     </div>`;
   }
@@ -3968,7 +3994,7 @@ function setupStockUpload() {
       updateStockStatus();
       if (skipped) {
         const el = document.getElementById("stock-status");
-        el.textContent += ` Пропущено строк без положительного остатка: ${skipped}.`;
+        el.textContent += ` Пропущено строк без валидного остатка: ${skipped}.`;
       }
     } catch (err) {
       console.error(err);
