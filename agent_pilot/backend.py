@@ -280,11 +280,22 @@ class MarketplaceCsvBackend(MerchantBackend):
                                         "orders": 0.0, "order_sum": 0.0, "dates": [], "skus": set()})
             c["spend"] += r["spend"]; c["orders"] += r["orders"]; c["order_sum"] += r["order_sum"]
             c["dates"].append(r["date"]); c["skus"].add(r["sku"])
+        by_sku = self._by_sku(self._rows()[0])
         out = []
         for cid, c in sorted(by.items()):
+            # Маржа SKU после удержаний и себестоимости — чтобы ROAS кабинета читался
+            # вместе с фактической прибыльностью товара, а не отдельно от неё.
+            margins = []
+            for sku in sorted(c["skus"]):
+                a = by_sku.get(sku)
+                if a and a["profit"] is not None and a["real"]:
+                    margins.append(f"{sku} маржа после удержаний {a['profit'] / a['real'] * 100:+.1f}%")
+                elif a:
+                    margins.append(f"{sku} маржа неизвестна (нет себестоимости)")
+            objective = f"{c['type']} — продажи {', '.join(sorted(c['skus']))}. " + "; ".join(margins)
             out.append(Campaign(
                 campaign_id=cid, name=c["name"], status="active",
-                objective=f"{c['type']} — продажи {', '.join(sorted(c['skus']))} (по данным кабинета)",
+                objective=objective[:200],
                 channel=f"{'Wildberries' if c['mp'] == 'wb' else 'Ozon'} · {c['type']}",
                 budget=round(c["spend"], 2), spend=round(c["spend"], 2), revenue=round(c["order_sum"], 2),
                 currency="RUB", starts=min(c["dates"]),
@@ -464,7 +475,19 @@ class MarketplaceCsvBackend(MerchantBackend):
         tax = income * self.tax_rate / 100 if self.tax_mode == "usn_income" else max(0.0, payout - cogs) * self.tax_rate / 100 if self.tax_mode == "usn_profit" else 0.0
         no_cost = sorted(s for s, a in by.items() if a["unit_cost"] is None and a["qty"] > 0)
         alerts = self._alerts()
+        losers = sorted((a for a in by.values() if a["profit"] is not None and a["profit"] < 0), key=lambda a: a["profit"])
+        frozen_by_sku = sorted(((sku, self.stocks.get(sku, 0) * c) for sku, c in self.costs.items() if self.stocks.get(sku)),
+                               key=lambda x: -x[1])
         return {
+            "loss_making_skus": [
+                {"sku": a["sku"], "title": a["name"], "profit_after_cogs": round(a["profit"], 2),
+                 "margin_after_deductions_pct": round(a["profit"] / a["real"] * 100, 1) if a["real"] else None,
+                 "ad_spend": round(a["promo"], 2), "stock": a["stock"],
+                 "frozen_rub": round((a["stock"] or 0) * (a["unit_cost"] or 0), 2)}
+                for a in losers[:8]
+            ],
+            "frozen_by_sku_top": [{"sku": sku, "frozen_rub": round(v, 2), "stock": self.stocks.get(sku)} for sku, v in frozen_by_sku[:8]],
+            "frozen_note": "заморожено = остаток × себестоимость за шт (не × цена продажи)",
             "store": self.store_name, "operator": session.operator, "currency": "RUB",
             "current_period": label, "prior_period": self._label(self.period - 1) if self.period > 1 else None,
             "data_source": "отчёты о реализации Wildberries и Ozon по неделям + файл себестоимости + файл остатков + выгрузки рекламных кабинетов",
