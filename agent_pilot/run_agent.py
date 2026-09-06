@@ -74,7 +74,7 @@ async def dry_run(backend, skills_dir: Path):
     from merchant_agent_runtime import MerchantAgent
 
     session, state = make_session(backend)
-    config = MerchantAgentConfig(brand_name="Финсрез / МП")
+    config = MerchantAgentConfig(brand_name="Финсрез / МП", max_context_chars=8000)
     script = [
         tool_use_message("get_business_snapshot", {}),
         tool_use_message("get_inventory_alerts", {}),
@@ -106,7 +106,10 @@ async def dry_run(backend, skills_dir: Path):
     calls = [e.data for e in events if e.type == "tool_call"]
     results = [e.data for e in events if e.type == "tool_result"]
     system_blocks = client.calls[0].get("system") if client.calls else None
-    return {"model_calls": len(client.calls), "tool_calls": calls, "tool_results": results,
+    system_text = json.dumps(system_blocks, ensure_ascii=False) if system_blocks else ""
+    context_included = "loss_making_skus" in system_text and "merchant context omitted" not in system_text
+    return {"model_calls": len(client.calls), "merchant_context_included": context_included,
+            "tool_calls": calls, "tool_results": results,
             "tool_result_texts": seen, "system_prompt": system_blocks,
             "tools_offered": [t["name"] for t in client.calls[0].get("tools", [])] if client.calls else []}
 
@@ -118,7 +121,7 @@ async def live(backend, skills_dir: Path, text: str):
 
     session, state = make_session(backend)
     agent = MerchantAgent(backend=backend, skills=SkillRegistry.from_dir(skills_dir),
-                          config=MerchantAgentConfig(brand_name="Финсрез / МП"))
+                          config=MerchantAgentConfig(brand_name="Финсрез / МП", max_context_chars=8000))
     messages = [{"role": "user", "content": text}]
     reply, ui = [], []
     async for ev in agent.stream_turn(messages, session, state):
