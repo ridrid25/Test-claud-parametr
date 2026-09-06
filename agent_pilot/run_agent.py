@@ -141,18 +141,27 @@ def main():
     ap.add_argument("--digest", action="store_true")
     ap.add_argument("--tax-mode", default="usn_income", choices=["none", "usn_income", "usn_profit"])
     ap.add_argument("--tax-rate", type=float, default=6.0)
+    ap.add_argument("--out", help="записать результат в файл (UTF-8) вместо вывода на экран")
     a = ap.parse_args()
+    def emit(obj):
+        text = json.dumps(obj, ensure_ascii=False, indent=2)
+        if a.out:
+            Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+            Path(a.out).write_text(text, encoding="utf-8")
+            print(f"записано: {a.out}")
+        else:
+            print(text)
     backend = MarketplaceCsvBackend(period=a.period, tax_mode=a.tax_mode, tax_rate=a.tax_rate)
     skills_dir = Path(a.repo) / "merchant-agent" / "skills"
     if a.dump:
-        print(json.dumps(asyncio.run(dump_reads(backend)), ensure_ascii=False, indent=2))
+        emit(asyncio.run(dump_reads(backend)))
     elif a.dry_run:
-        print(json.dumps(asyncio.run(dry_run(backend, skills_dir)), ensure_ascii=False, indent=2))
+        emit(asyncio.run(dry_run(backend, skills_dir)))
     elif a.ask or a.digest:
         if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
             sys.exit("Нужен ANTHROPIC_API_KEY (или ANTHROPIC_AUTH_TOKEN) в окружении.")
         text = a.ask or "Produce the morning digest: what needs attention today and why. Answer in Russian."
-        print(json.dumps(asyncio.run(live(backend, skills_dir, text)), ensure_ascii=False, indent=2))
+        emit(asyncio.run(live(backend, skills_dir, text)))
     else:
         ap.print_help()
 
