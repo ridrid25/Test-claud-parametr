@@ -1,0 +1,102 @@
+{
+  "reply": "Пилот работает только на чтение: изменения вы вносите в кабинете сами.",
+  "ui": [
+    {
+      "component": "digest",
+      "payload": {
+        "title": "Утренняя сводка, 01–28.06.2026",
+        "items": [
+          {
+            "kind": "slow_mover",
+            "ref_id": "WB-002",
+            "headline": "WB-002: 340 шт на остатке против 4 продаж за 30 дней — покрытие 2380 дней",
+            "why_it_matters": "В остатке заморожено около 246 тыс. руб. по цене 724 руб.; решение: оставить, уценить или снять с продажи.",
+            "listing": {
+              "listing_id": "WB-002",
+              "title": "Худи Aurelka 02",
+              "status": "active",
+              "price": 724.0,
+              "currency": "RUB",
+              "stock": 340,
+              "category": "Одежда/Худи",
+              "attributes": {
+                "brand": "Aurelka",
+                "marketplace": "Wildberries"
+              },
+              "options": {},
+              "option_values": {},
+              "review_snippets": [],
+              "sales_last_30d": 4,
+              "return_rate_pct": 29.8,
+              "missing_attributes": [
+                "description",
+                "images"
+              ],
+              "variants": []
+            }
+          },
+          {
+            "kind": "order_issue",
+            "ref_id": "WB-002",
+            "headline": "Возвраты по WB-002 — 29,8% от продаж",
+            "why_it_matters": "Причины возвратов в данных недоступны; у карточки нет описания и фото — это первое, что можно поправить.",
+            "listing": {
+              "listing_id": "WB-002",
+              "title": "Худи Aurelka 02",
+              "status": "active",
+              "price": 724.0,
+              "currency": "RUB",
+              "stock": 340,
+              "category": "Одежда/Худи",
+              "attributes": {
+                "brand": "Aurelka",
+                "marketplace": "Wildberries"
+              },
+              "options": {},
+              "option_values": {},
+              "review_snippets": [],
+              "sales_last_30d": 4,
+              "return_rate_pct": 29.8,
+              "missing_attributes": [
+                "description",
+                "images"
+              ],
+              "variants": []
+            }
+          },
+          {
+            "kind": "metric",
+            "ref_id": "finance",
+            "headline": "Заморожено в товаре 9 330 954 руб., стоимость денег за 28 дней — 171 792 руб. при ставке 24%",
+            "why_it_matters": "Это прямой вычет из прибыли 1 453 173 руб.; разбор по SKU покажет, где деньги стоят дороже всего."
+          },
+          {
+            "kind": "metric",
+            "ref_id": "tax",
+            "headline": "Налог УСН 6% за период — 415 526 руб. со всей выручки 6 925 434 руб.",
+            "why_it_matters": "Отложите сумму до конца квартала; по SKU налог только распределяется, не считается отдельно."
+          },
+          {
+            "kind": "note",
+            "ref_id": "OZ-006",
+            "headline": "Нет себестоимости у проданного SKU OZ-006; заказов, трафика и конверсии в отчётах нет",
+            "why_it_matters": "Прибыль по OZ-006 считается неполно — добавьте себестоимость в файл."
+          }
+        ]
+      },
+      "stream_id": "toolu_01DVoztBZZXPtKRTYEXScwHL"
+    },
+    {
+      "component": "suggestions",
+      "payload": {
+        "suggestions": [
+          "Посчитать уценку по WB-002 с маржой",
+          "Показать топ SKU по замороженным деньгам",
+          "Разобрать возвраты по каталогу",
+          "Что доработать в карточке WB-002"
+        ]
+      },
+      "stream_id": "toolu_01HwSn7PRp1KhUGXSvV4ny3Q"
+    }
+  ]
+}

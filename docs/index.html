@@ -244,6 +244,31 @@ body {
 .tab[data-tab="returns"] svg { color: #e0443f; }
 .tab[data-tab="control"] svg { color: #d99a00; }
 .tab[data-tab="connect"] svg { color: #c01a9c; }
+.tab[data-tab="advisor"] svg { color: #0a655e; }
+/* «Советник»: кнопки вопросов, ответ агента, карточки сводки. */
+.advisor-questions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.advisor-ask { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+.advisor-ask textarea { flex: 1 1 320px; min-height: 64px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; font: inherit; font-size: 14px; color: var(--text-primary); background: var(--surface-1); resize: vertical; }
+.advisor-ask textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--focus-ring); }
+.advisor-status { margin: 10px 0 0; }
+.advisor-answer { margin-top: 16px; }
+.advisor-answer .reply { font-size: 15px; line-height: 1.55; white-space: pre-wrap; }
+.advisor-answer .reply p { margin: 0 0 10px; }
+.advisor-digest { display: grid; gap: 10px; margin: 14px 0; }
+.advisor-item { border: 1px solid var(--border); border-left: 4px solid var(--series-1); border-radius: 12px; padding: 12px 14px; background: var(--surface-1); }
+.advisor-item.kind-order_issue, .advisor-item.kind-low_stock { border-left-color: var(--status-critical); }
+.advisor-item.kind-slow_mover { border-left-color: var(--status-serious); }
+.advisor-item.kind-metric { border-left-color: #0a655e; }
+.advisor-item .h { font-weight: 600; margin-bottom: 4px; }
+.advisor-item .w { color: var(--text-secondary); font-size: 13.5px; }
+.advisor-item .ref { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+.advisor-meta { font-size: 12.5px; color: var(--text-muted); margin-top: 12px; }
+.advisor-dry { background: color-mix(in srgb, var(--status-serious) 10%, transparent); border: 1px solid color-mix(in srgb, var(--status-serious) 35%, transparent); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; margin-bottom: 12px; }
+.advisor-suggest { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.advisor-suggest button { font-size: 12.5px; padding: 6px 10px; }
+.advisor-payload { font-size: 12px; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }
+.advisor-answer .reply, .advisor-item, .advisor-meta { overflow-wrap: anywhere; }
+@media (max-width: 720px) { .advisor-ask textarea { flex-basis: 100%; } .advisor-ask .btn-primary { width: 100%; } .advisor-questions .btn { flex: 1 1 45%; } }
 .tab.active svg { color: #fff; }
 .tab:hover { color: var(--accent-strong); background: var(--accent-soft); }
 .tab:active { transform: scale(0.97); }
@@ -537,11 +562,14 @@ th.sorted-desc::after { content: " ↓"; }
   /* Заголовок помещается в одну строку — экономим высоту экрана. */
   .content-header h2 { font-size: 17px; letter-spacing: -0.02em; }
   .content-header .eyebrow { font-size: 10px; }
-  /* Ровно 3 вкладки в ряд → две аккуратные строки (Загрузка/Анализ/Обзор,
-     Товары/Возвраты/Подключение), без бокового скролла. */
-  .tabs { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .tabs .tab { justify-content: center; padding: 9px 6px; font-size: 12px; }
-  .tabs .tab svg { width: 14px; height: 14px; }
+  /* 4 вкладки в ряд → две строки (Загрузка/Анализ/Обзор/Товары,
+     Возвраты/Советник/Подключение), без бокового скролла. */
+  .tabs { width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+  .tabs .tab { justify-content: center; padding: 9px 2px; font-size: 11px; letter-spacing: -0.01em; min-width: 0; overflow: hidden; white-space: nowrap; gap: 3px; }
+  .tabs .tab svg { width: 13px; height: 13px; flex-shrink: 0; }
+  /* KPI-плашки: длинная подпись «WB … · Ozon …» переносится, а не растягивает экран. */
+  .stat-tile { min-width: 0; overflow: hidden; }
+  .mp-split { white-space: normal; }
   /* Two-up KPI tiles; the bottom-line hero spans the full width and leads. */
   .stat-row { grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat-tile { padding: 14px 14px 16px; }
@@ -597,6 +625,12 @@ th.sorted-desc::after { content: " ↓"; }
 .mp-split { font-size: 11px; margin-top: 2px; white-space: nowrap; }
 .mp-split .w { color: #a01a6e; font-weight: 700; }
 .mp-split .o { color: #005bff; font-weight: 700; }
+/* «Обзор»: плитки налога и замороженных денег — та же форма, что KPI-плашки. */
+.fin-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.fin-tiles .stat-tile .sub { font-size: 12.5px; color: var(--text-secondary); margin-top: 8px; line-height: 1.35; }
+.fin-tiles .stat-tile .sub strong { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.fin-tiles .stat-tile .sub.warn { color: var(--status-serious); }
+@media (max-width: 720px) { .fin-tiles { grid-template-columns: 1fr; } }
 .field[hidden] { display: none !important; }
 #ozon-card { box-shadow: inset 4px 0 0 #005bff; }
 .mp-compare-th-wb { color:#a01a6e !important; }
@@ -609,7 +643,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v35 · 21.07</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v37 · 06.09</span>
 </div>
 
 <div class="layout">
@@ -647,6 +681,27 @@ th.sorted-desc::after { content: " ↓"; }
       </label>
     </div>
 
+    <div class="sidebar-section" id="fin-settings">
+      <span class="sidebar-section-title">Налог и деньги</span>
+      <label class="field">
+        <span>Режим налогообложения</span>
+        <select id="s-tax-mode">
+          <option value="none">Без налога</option>
+          <option value="usn_income">УСН «Доходы»</option>
+          <option value="usn_profit">УСН «Доходы минус расходы»</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Ставка налога, %</span>
+        <input id="s-tax-rate" type="number" min="0" max="100" step="0.1" inputmode="decimal" />
+      </label>
+      <label class="field">
+        <span>Цена денег, % годовых</span>
+        <input id="s-money-rate" type="number" min="0" max="200" step="0.5" inputmode="decimal" />
+      </label>
+      <p class="hint" style="margin:0">Настройки запоминаются в этом браузере. Налог считается со всей выручки за период, а не по товарам.</p>
+    </div>
+
     <div class="sidebar-section">
       <span class="sidebar-section-title">Экспорт</span>
       <button id="export-csv" class="btn" type="button">Товары CSV</button>
@@ -665,6 +720,7 @@ th.sorted-desc::after { content: " ↓"; }
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-overview" id="tab-overview" data-tab="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M7 21V11"/><path d="M12 21V6"/><path d="M17 21v-8"/></svg>Обзор</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-products" id="tab-products" data-tab="products"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v8l-9 4-9-4V8l9-4z"/><path d="M3 8l9 4 9-4"/><path d="M12 12v8"/></svg>Товары</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-returns" id="tab-returns" data-tab="returns"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10H8"/></svg>Возвраты</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-advisor" id="tab-advisor" data-tab="advisor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4z"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/><path d="M9 8h.01M15 8h.01"/></svg>Советник</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-connect" id="tab-connect" data-tab="connect"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg>Подключение</button>
     </nav>
 
@@ -731,6 +787,38 @@ th.sorted-desc::after { content: " ↓"; }
 
       <div class="card">
         <div class="card-header">
+          <h3>Остатки на складах (файл продавца)</h3>
+          <span class="muted">CSV со столбцами SKU и остатком в штуках — покажет, сколько денег заморожено в товаре</span>
+        </div>
+        <div class="upload-form">
+          <label class="field">
+            <span>Файл остатков CSV</span>
+            <input id="stock-file" type="file" accept=".csv,text/csv" />
+          </label>
+          <button id="stock-submit" class="btn-primary" type="button">Загрузить остатки</button>
+          <button id="stock-remove" class="btn-small danger" type="button" hidden>Убрать остатки</button>
+        </div>
+        <p class="hint" id="stock-status" style="margin-bottom:0">Понимает «Остаток, шт», «Остаток на складе», «Количество» или просто «Остаток». Заморожено = остаток × себестоимость за штуку, поэтому нужен и файл себестоимости.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Рекламный кабинет (WB / Ozon)</h3>
+          <span class="muted">статистика кампаний: кампания, артикул, дата, показы, клики, затраты, заказы — нужна советнику, чтобы считать рекламу от маржи</span>
+        </div>
+        <div class="upload-form">
+          <label class="field">
+            <span>Файл статистики кампаний CSV или Excel (можно несколько)</span>
+            <input id="ads-file" type="file" accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" multiple />
+          </label>
+          <button id="ads-submit" class="btn-primary" type="button">Загрузить рекламу</button>
+          <button id="ads-remove" class="btn-small danger" type="button" hidden>Убрать рекламу</button>
+        </div>
+        <p class="hint" id="ads-status" style="margin-bottom:0">Маркетплейс определяется по колонкам («Артикул WB», «CPC» — Wildberries; «ДРР», «Расход» — Ozon). Дашборд эти файлы не показывает: они нужны только вкладке «Советник».</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
           <h3>Загруженные файлы</h3>
           <span class="muted">данные живут, пока открыта страница</span>
         </div>
@@ -743,6 +831,45 @@ th.sorted-desc::after { content: " ↓"; }
           <span class="muted">строки с ошибками можно исправить прямо здесь</span>
         </div>
         <div class="table-wrap" id="upload-rows"></div>
+      </div>
+    </section>
+
+    <section class="tab-panel" data-panel="advisor" role="tabpanel" id="panel-advisor" aria-labelledby="tab-advisor" hidden>
+      <div class="card">
+        <div class="card-header">
+          <h3>Советник по вашим данным</h3>
+          <span class="muted">торговый агент читает те же цифры, что и дашборд, и предлагает действия; ничего в кабинетах не меняет</span>
+        </div>
+        <div class="advisor-questions">
+          <button class="btn" type="button" data-ask="digest">Сводка дня</button>
+          <button class="btn" type="button" data-ask="payout">Почему изменилась выплата</button>
+          <button class="btn" type="button" data-ask="losers">Убыточные и заморозка</button>
+          <button class="btn" type="button" data-ask="ads">Реклама: что остановить, что усилить</button>
+          <button class="btn" type="button" data-ask="stock">Остатки: что заканчивается</button>
+        </div>
+        <div class="advisor-ask">
+          <textarea id="advisor-question" placeholder="Или свой вопрос: например, «Какая цена на OZ-012 даст 15 % после удержаний?»"></textarea>
+          <button id="advisor-send" class="btn-primary" type="button">Спросить</button>
+        </div>
+        <p class="hint advisor-status" id="advisor-status">Ответ строится по строкам текущего фильтра (маркетплейс и даты), себестоимости, остаткам и рекламе. Период сравнения — такой же длины перед выбранным.</p>
+        <div class="advisor-answer" id="advisor-answer"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Сервер-советник</h3>
+          <span class="muted">ключ Anthropic лежит на нём, не в браузере; сервер ничего не хранит</span>
+        </div>
+        <div class="upload-form">
+          <label class="field" style="flex:1 1 260px; min-width:0">
+            <span>Адрес сервера</span>
+            <input id="advisor-url" type="text" placeholder="http://127.0.0.1:8010" />
+          </label>
+          <button id="advisor-check" class="btn" type="button">Проверить связь</button>
+          <button id="advisor-preview" class="btn-small" type="button">Что уйдёт на сервер</button>
+        </div>
+        <p class="hint" id="advisor-conn">Сервер не проверялся. Запуск: <code>python -m advisor.server</code> в папке проекта (см. advisor/README.md). Без сервера советник не работает: файлы никуда не отправляются.</p>
+        <pre class="advisor-payload" id="advisor-payload" hidden></pre>
+        <p class="hint" style="margin-bottom:0">Что уходит: нормализованные строки отчёта (дата, артикул, суммы), себестоимость, остатки, строки рекламы, режим налога. Что не уходит: исходные файлы кабинетов, ключи API. Сервер передаёт эти цифры в API Anthropic для ответа — это единственное место, куда данные покидают ваш компьютер.</p>
       </div>
     </section>
 
@@ -849,6 +976,13 @@ th.sorted-desc::after { content: " ↓"; }
     </section>
 
     <section class="tab-panel" data-panel="overview" role="tabpanel" id="panel-overview" aria-labelledby="tab-overview" hidden>
+      <div class="card" id="fin-card">
+        <div class="card-header">
+          <h3>Налог и деньги в остатках</h3>
+          <span class="muted">за выбранный период; режим и ставки — в настройках слева</span>
+        </div>
+        <div class="fin-tiles" id="fin-tiles"></div>
+      </div>
       <div class="card" id="reconcile-card" hidden>
         <div class="card-header">
           <h3>Сверка недели (WB)</h3>
@@ -937,7 +1071,7 @@ th.sorted-desc::after { content: " ↓"; }
             </select>
           </label>
         </div>
-        <p class="hint" style="margin-top:0">Клик по группе — раскрыть подгруппы, по подгруппе — товары (худшие первыми), по товару — карточка с полной раскладкой.</p>
+        <p class="hint" style="margin-top:0">Клик по группе — раскрыть подгруппы, по подгруппе — товары (худшие первыми), по товару — карточка с полной раскладкой. <span id="products-tax-note" hidden>Колонка «Прибыль после налога»: налог платится со всей выручки за период, а не с товара — по SKU он распределён пропорционально выручке, это оценка, а не факт.</span> <span id="products-frozen-note" hidden>Колонка «Заморожено»: остаток шт × себестоимость за шт по файлу остатков; «—» — SKU нет в файле остатков или нет себестоимости.</span></p>
         <div class="table-wrap" id="table-products"></div>
       </div>
     </section>
@@ -1533,9 +1667,12 @@ function parseFile(formMarketplace, buffer, fileName = "") {
 /* ==== Состояние ==== */
 
 const state = { files: [], nextId: 1, openRowsFileId: null, costs: new Map(), costFileName: null,
+  stocks: new Map(), stockFileName: null,
+  ads: [], adsFileNames: [],
   rememberedMappings: new Map(), residuals: [], payoutActual: null };
 
 const costsLoaded = () => state.costs.size > 0;
+const stocksLoaded = () => state.stocks.size > 0;
 
 // Cost-column candidates in priority order (checked after unit stripping).
 const COST_COLUMN_CANDIDATES = [
@@ -1543,8 +1680,16 @@ const COST_COLUMN_CANDIDATES = [
   "себестоимость закупки за шт", "себестоимость за шт", "себестоимость",
   "unit_cost", "cost", "закупочная цена",
 ];
+// Stock-column candidates (остаток в штуках) — тот же порядок приоритета.
+const STOCK_COLUMN_CANDIDATES = [
+  "остаток шт", "остаток на складе", "остаток на складах", "остатки на складе",
+  "остаток", "остатки", "доступно к продаже", "доступно", "в наличии",
+  "количество", "кол-во", "stock", "quantity", "qty", "balance",
+];
 
-function parseCostsFile(buffer) {
+// Общий разбор «SKU → число» для файлов продавца (себестоимость, остатки):
+// одна колонка с артикулом + одна числовая колонка из списка кандидатов.
+function parseSkuValueFile(buffer, candidates, missingText, emptyText, { sum = false, allowZero = false } = {}) {
   const { text } = decodeBytes(buffer);
   const delimiter = sniffDelimiter(text);
   const table = csvParse(text, delimiter).filter(r => r.some(c => String(c).trim() !== ""));
@@ -1563,26 +1708,142 @@ function parseCostsFile(buffer) {
   });
   if (skuIdx === -1) throw new Error("Не найдена колонка с SKU/артикулом. Ожидается «SKU МП», «Артикул» или похожая.");
 
-  let costIdx = -1;
-  for (const candidate of COST_COLUMN_CANDIDATES) {
-    const idx = headerKeys.findIndex(keys => keys.has(candidate));
-    if (idx !== -1) { costIdx = idx; break; }
+  let valueIdx = -1;
+  for (const candidate of candidates) {
+    const idx = headerKeys.findIndex((keys, i) => i !== skuIdx && keys.has(candidate));
+    if (idx !== -1) { valueIdx = idx; break; }
   }
-  if (costIdx === -1) throw new Error("Не найдена колонка себестоимости. Ожидается «Полная себестоимость за шт», «Себестоимость закупки за шт» или «Себестоимость».");
+  if (valueIdx === -1) throw new Error(missingText);
 
-  const costs = new Map();
+  const values = new Map();
   let skipped = 0;
   for (let i = 1; i < table.length; i++) {
     const sku = String(table[i][skuIdx] ?? "").trim();
     if (!sku) { skipped++; continue; }
     try {
-      const cost = parseNumber(table[i][costIdx]);
-      if (cost > 0) costs.set(sku, cost);
+      const v = parseNumber(table[i][valueIdx]);
+      // Себестоимость: повтор SKU — последняя строка важнее, ноль — не цена.
+      // Остатки: один SKU на нескольких складах — суммируем, ноль — законный
+      // остаток (распродано), его надо сохранить, а не выбросить.
+      if (v > 0 || (allowZero && v === 0)) values.set(sku, sum ? (values.get(sku) || 0) + v : v);
       else skipped++;
     } catch { skipped++; }
   }
-  if (!costs.size) throw new Error("Ни одной строки с валидной себестоимостью не найдено.");
-  return { costs, skipped, costColumn: table[0][costIdx] };
+  if (!values.size) throw new Error(emptyText);
+  return { values, skipped, valueColumn: table[0][valueIdx] };
+}
+
+function parseCostsFile(buffer) {
+  const { values, skipped, valueColumn } = parseSkuValueFile(buffer, COST_COLUMN_CANDIDATES,
+    "Не найдена колонка себестоимости. Ожидается «Полная себестоимость за шт», «Себестоимость закупки за шт» или «Себестоимость».",
+    "Ни одной строки с валидной себестоимостью не найдено.");
+  return { costs: values, skipped, costColumn: valueColumn };
+}
+
+function parseStocksFile(buffer) {
+  const { values, skipped, valueColumn } = parseSkuValueFile(buffer, STOCK_COLUMN_CANDIDATES,
+    "Не найдена колонка остатка. Ожидается «Остаток, шт», «Остаток на складе», «Количество» или «Остаток».",
+    "Ни одной строки с валидным остатком (число ≥ 0) не найдено.", { sum: true, allowZero: true });
+  // Остаток — целые штуки.
+  const stocks = new Map();
+  for (const [sku, q] of values) stocks.set(sku, Math.round(q));
+  return { stocks, skipped, stockColumn: valueColumn };
+}
+
+/* ==== Настройки: налог и цена денег (localStorage) ==== */
+
+const FIN_SETTINGS_KEY = "mp_fin_settings";
+const TAX_MODES = {
+  none: { label: "Без налога", rate: 0 },
+  usn_income: { label: "УСН «Доходы»", rate: 6 },
+  usn_profit: { label: "УСН «Доходы минус расходы»", rate: 15 },
+};
+const FIN_DEFAULTS = { taxMode: "none", taxRate: 6, moneyRate: 24 };
+
+function loadFinSettings() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(FIN_SETTINGS_KEY) || "{}") || {}; } catch { saved = {}; }
+  const s = { ...FIN_DEFAULTS, ...saved };
+  if (!TAX_MODES[s.taxMode]) s.taxMode = FIN_DEFAULTS.taxMode;
+  const num = (v, d) => { const n = Number(v); return Number.isFinite(n) && n >= 0 ? n : d; };
+  s.taxRate = num(s.taxRate, TAX_MODES[s.taxMode].rate);
+  s.moneyRate = num(s.moneyRate, FIN_DEFAULTS.moneyRate);
+  return s;
+}
+function saveFinSettings(s) {
+  try { localStorage.setItem(FIN_SETTINGS_KEY, JSON.stringify(s)); } catch { /* приватный режим — просто не запоминаем */ }
+}
+let finSettings = loadFinSettings();
+
+// Сумма к уплате по выбранному режиму. База «Доходы» — вся реализация минус
+// возвраты (не выплата после удержаний). База «Доходы минус расходы» — прибыль
+// после удержаний площадки и себестоимости; налог не бывает отрицательным.
+// Минимальный налог УСН «Доходы минус расходы» — 1% от доходов; платится по
+// итогам года, если он больше обычного. Здесь период произвольный, поэтому
+// показываем его справочно, а не подменяем им расчёт.
+const USN_MIN_TAX_RATE = 0.01;
+
+function computeTax(rows, s = finSettings) {
+  let income = 0, payout = 0, cogs = 0;
+  // Проданные SKU без себестоимости: их закупка в расходы не попала, база
+  // «Доходы минус расходы» и налог по ней завышены.
+  const soldSkus = new Set(), soldNoCost = new Set();
+  for (const r of rows) {
+    income += r.realization - r.returns;
+    payout += r.payout;
+    const u = state.costs.get(r.sku);
+    if (u != null) cogs += u * (r.quantity || 0);
+    if (!r.service && (r.quantity || 0) > 0) {
+      soldSkus.add(r.sku);
+      if (u == null) soldNoCost.add(r.sku);
+    }
+  }
+  const rate = (s.taxRate || 0) / 100;
+  const mode = s.taxMode;
+  let base = 0;
+  if (mode === "usn_income") base = income;
+  else if (mode === "usn_profit") base = payout - cogs;
+  const tax = mode === "none" ? 0 : Math.max(0, base) * rate;
+  const minTax = mode === "usn_profit" ? Math.max(0, income) * USN_MIN_TAX_RATE : 0;
+  return { mode, rate, base, income, profit: payout - cogs, tax, minTax,
+    soldSkuCount: soldSkus.size, soldNoCostCount: soldNoCost.size };
+}
+
+// Дни периода: границы — из фильтра дат, если они заданы; иначе — первая и
+// последняя дата строк текущего фильтра (включительно). Так цена денег
+// считается за выбранный период, даже если продажи были не каждый день.
+function periodDays(rows) {
+  let min = null, max = null;
+  for (const r of rows) {
+    const d = r.period_date;
+    if (!d) continue;
+    if (min === null || d < min) min = d;
+    if (max === null || d > max) max = d;
+  }
+  const fromEl = document.getElementById("f-date-from"), toEl = document.getElementById("f-date-to");
+  const from = (fromEl && fromEl.value) || min;
+  const to = (toEl && toEl.value) || max;
+  if (!from || !to) return { days: 0, from: null, to: null };
+  const days = Math.round((Date.parse(to) - Date.parse(from)) / 86400000) + 1;
+  return { days: Math.max(1, days), from, to };
+}
+
+// Заморожено в остатках = остаток шт × себестоимость за шт, по всему файлу
+// остатков (это снимок склада, фильтр по датам на него не влияет).
+// Цена денег = заморожено × ставка × дни периода / 365.
+function computeFrozen(rows, s = finSettings) {
+  if (!stocksLoaded()) return { show: false };
+  let frozen = 0, skusWithCost = 0, skusNoCost = 0, unitsNoCost = 0;
+  for (const [sku, qty] of state.stocks) {
+    const unit = state.costs.get(sku);
+    if (unit == null) { skusNoCost++; unitsNoCost += qty; continue; }
+    skusWithCost++;
+    frozen += qty * unit;
+  }
+  const { days, from, to } = periodDays(rows);
+  const rate = (s.moneyRate || 0) / 100;
+  const moneyCost = frozen * rate * days / 365;
+  return { show: true, frozen, moneyCost, days, from, to, rate, skusWithCost, skusNoCost, unitsNoCost };
 }
 
 function goodRows() {
@@ -2652,6 +2913,13 @@ function productAggregates(rows, applySearch = true) {
     // «Итоговая» метрика для таблиц/сегментов: прибыль, когда есть себестоимость.
     p.result = costsLoaded() ? p.profit : p.payout;
     p.margin = costsLoaded() ? p.profit_margin : p.payout_margin;
+    // Заморожено в остатках по SKU: остаток шт × себестоимость за шт (снимок склада).
+    p.stock_qty = state.stocks.get(p.sku) ?? null;
+    p.frozen = (p.stock_qty != null && p.unit_cost != null) ? p.stock_qty * p.unit_cost : 0;
+    // Налог по SKU — только распределение общей суммы пропорционально выручке
+    // (заполняется в computeAnalysis, где известен итог по всему периоду).
+    p.tax_alloc = 0;
+    p.profit_after_tax = p.profit;
     p.red_flags = [];
     if (p.result < 0) p.red_flags.push(costsLoaded() ? "убыток с уч. себестоимости" : "убыток");
     if (p.return_rate >= RETURN_RATE_RED_ZONE) p.red_flags.push("высокая возвратность");
@@ -2701,6 +2969,17 @@ function computeAnalysis(rows) {
   const top10ReturnsShare = total.returns
     ? byReturnsRub.slice(0, 10).reduce((s, p) => s + p.returns, 0) / total.returns : 0;
 
+  // Налог за период считается со всей выручки; по товарам его можно только
+  // распределить пропорционально выручке (реализация − возвраты). Сумма
+  // распределения сходится с налогом за период до копейки.
+  const tax = computeTax(rows);
+  const taxBaseSum = products.reduce((s, p) => s + Math.max(0, p.net_revenue), 0);
+  for (const p of products) {
+    p.tax_alloc = (tax.tax > 0 && taxBaseSum > 0 && p.net_revenue > 0) ? tax.tax * p.net_revenue / taxBaseSum : 0;
+    p.profit_after_tax = p.profit - p.tax_alloc;
+  }
+  const frozen = computeFrozen(rows);
+
   const positiveSorted = products.filter(p => p.payout > 0).sort((a, b) => b.payout - a.payout);
   const positiveTotal = positiveSorted.reduce((s, p) => s + p.payout, 0);
   const top10PayoutShare = positiveTotal
@@ -2724,7 +3003,58 @@ function computeAnalysis(rows) {
     c.other += r.penalty + r.other_deduction; c.payout += r.payout;
   }
 
-  return { products, total, losers, lossSum, deadStock, deadCost, byReturnsRub, top10ReturnsShare, top10PayoutShare, months, channels, cogsTotal, profitTotal, costCoverage };
+  return { products, total, losers, lossSum, deadStock, deadCost, byReturnsRub, top10ReturnsShare, top10PayoutShare, months, channels, cogsTotal, profitTotal, costCoverage, tax, frozen };
+}
+
+/* ==== «Обзор»: налог за период и заморожено в остатках ==== */
+
+function renderFinance(a) {
+  const el = document.getElementById("fin-tiles");
+  const t = a.tax, f = a.frozen;
+  const modeLabel = TAX_MODES[t.mode]?.label || "Без налога";
+  const ratePct = String(Math.round(t.rate * 1000) / 10).replace(".", ",") + "%";
+  let taxTile;
+  if (t.mode === "none") {
+    taxTile = `
+    <div class="stat-tile" title="Режим налогообложения не выбран">
+      <div class="label">Налог за период</div>
+      <div class="value">—</div>
+      <div class="sub">Режим не выбран. Укажите «Режим налогообложения» в настройках слева — налог посчитается со всей выручки за период.</div>
+    </div>`;
+  } else {
+    const baseLabel = t.mode === "usn_income"
+      ? `база — реализация минус возвраты: <strong>${fmtMoney(t.income)}</strong>`
+      : `база — прибыль после удержаний${costsLoaded() ? " и себестоимости" : ""}: <strong>${fmtMoney(t.profit)}</strong>${t.profit <= 0 ? " (убыток — налог 0)" : ""}`;
+    let noCostNote = "";
+    if (t.mode === "usn_profit") {
+      if (!costsLoaded()) noCostNote = `<div class="sub warn">Себестоимость не загружена — в расходах учтены только удержания площадки, налог завышен.</div>`;
+      else if (t.soldNoCostCount) noCostNote = `<div class="sub warn">Себестоимость не найдена для ${t.soldNoCostCount} из ${t.soldSkuCount} проданных SKU — их закупка в расходы не вошла, налог завышен.</div>`;
+    }
+    const minTaxNote = t.mode === "usn_profit"
+      ? `<div class="sub">Справочно: минимальный налог 1% от доходов — <strong>${fmtMoney(t.minTax)}</strong>. По итогам года платится больший из двух; к промежуточному периоду минимальный налог не применяется.</div>` : "";
+    taxTile = `
+    <div class="stat-tile tone-out" title="${modeLabel} ${ratePct}: ${fmtMoney(t.tax)}">
+      <div class="label">Налог за период · ${modeLabel} ${ratePct}</div>
+      <div class="value spend">${fmtMoneyCompact(t.tax)}</div>
+      <div class="sub">${baseLabel}. Налог платится со всей выручки, а не с товара: в «Товарах» он распределён по SKU пропорционально выручке — это оценка, а не факт.</div>
+      ${noCostNote}
+      ${minTaxNote}
+    </div>`;
+  }
+  let frozenTile = "";
+  if (f.show) {
+    const moneyPct = String(Math.round(f.rate * 1000) / 10).replace(".", ",") + "%";
+    const gap = f.skusNoCost
+      ? `<div class="sub warn">Без себестоимости: ${f.skusNoCost} SKU (${f.unitsNoCost} шт) — в сумму не вошли, загрузите их в файл себестоимости.</div>` : "";
+    frozenTile = `
+    <div class="stat-tile tone-out" title="Заморожено в остатках: ${fmtMoney(f.frozen)}; цена денег ${fmtMoney(f.moneyCost)}">
+      <div class="label">Заморожено в остатках</div>
+      <div class="value spend">${fmtMoneyCompact(f.frozen)}</div>
+      <div class="sub">Цена этих денег: <strong>${fmtMoney(f.moneyCost)}</strong> за ${f.days} дн. периода${f.from && f.to ? ` (${f.from} — ${f.to})` : ""} при ${moneyPct} годовых. Остаток × себестоимость за шт по «${escapeHtml(state.stockFileName || "")}», ${f.skusWithCost} SKU.</div>
+      ${gap}
+    </div>`;
+  }
+  el.innerHTML = taxTile + frozenTile;
 }
 
 function renderInsights(a) {
@@ -3073,10 +3403,11 @@ function groupProducts(products, groupKey) {
   const groups = new Map();
   for (const p of products) {
     const name = keyFn(p);
-    if (!groups.has(name)) groups.set(name, { name, items: [], realization: 0, returns: 0, mp_expenses: 0, payout: 0 });
+    if (!groups.has(name)) groups.set(name, { name, items: [], realization: 0, returns: 0, mp_expenses: 0, payout: 0, frozen: 0, tax_alloc: 0, profit_after_tax: 0 });
     const g = groups.get(name);
     g.items.push(p);
     g.realization += p.realization; g.returns += p.returns; g.mp_expenses += p.mp_expenses; g.payout += p.payout;
+    g.frozen += p.frozen; g.tax_alloc += p.tax_alloc; g.profit_after_tax += p.profit_after_tax;
   }
   for (const g of groups.values()) {
     g.margin = g.realization ? g.payout / g.realization : (g.payout < 0 ? -1 : 0);
@@ -3135,6 +3466,35 @@ function productCardRow(p, colspan) {
     </td></tr>`;
 }
 
+// Две дополнительные колонки «Товаров»: «Заморожено» — когда загружен файл
+// остатков, «Прибыль после налога» — когда выбран режим налогообложения.
+const taxShown = () => finSettings.taxMode !== "none";
+const EXTRA_PRODUCT_COLUMNS = () => [
+  ...(stocksLoaded() ? [["frozen", "Заморожено", true]] : []),
+  ...(taxShown() ? [["profit_after_tax", "Прибыль после налога", true]] : []),
+];
+const extraProductHeadHtml = () => EXTRA_PRODUCT_COLUMNS().map(([, label]) => `<th class="num">${label}</th>`).join("");
+function extraProductCells(p) {
+  let html = "";
+  if (stocksLoaded()) {
+    const has = p.stock_qty != null && p.unit_cost != null;
+    const tip = p.stock_qty == null ? "SKU нет в файле остатков"
+      : p.unit_cost == null ? `остаток ${p.stock_qty} шт, себестоимость не найдена`
+      : `${p.stock_qty} шт × ${fmtMoney(p.unit_cost)}`;
+    html += `<td class="num" title="${escapeHtml(tip)}">${has ? fmtMoney(p.frozen) : "—"}</td>`;
+  }
+  if (taxShown()) {
+    html += `<td class="num ${p.profit_after_tax < 0 ? "delta-down" : ""}" title="${costsLoaded() ? "чистая прибыль" : "к выплате"} ${fmtMoney(p.profit)} − распределённый налог ${fmtMoney(p.tax_alloc)} (оценка)">${fmtMoney(p.profit_after_tax)}</td>`;
+  }
+  return html;
+}
+function extraGroupCells(g) {
+  let html = "";
+  if (stocksLoaded()) html += `<td class="num">${fmtMoney(g.frozen)}</td>`;
+  if (taxShown()) html += `<td class="num ${g.profit_after_tax < 0 ? "delta-down" : ""}" title="распределённый налог ${fmtMoney(g.tax_alloc)} (оценка)">${fmtMoney(g.profit_after_tax)}</td>`;
+  return html;
+}
+
 function productLineHtml(p, colspan, indent = 0) {
   const line = `
     <tr class="product-line" data-sku="${escapeHtml(p.sku)}">
@@ -3146,11 +3506,12 @@ function productLineHtml(p, colspan, indent = 0) {
       <td class="num">${fmtMoney(p.mp_expenses)}</td>
       <td class="num ${p.margin < 0 ? "delta-down" : ""}">${fmtPercent(p.margin)}</td>
       <td class="num ${p.payout < 0 ? "delta-down" : ""}">${fmtMoney(p.payout)}</td>
+      ${extraProductCells(p)}
     </tr>`;
   return line + (openProductSku === p.sku ? productCardRow(p, colspan) : "");
 }
 
-const PRODUCT_COLUMNS = [
+const BASE_PRODUCT_COLUMNS = [
   ["product_name", "Товар", false],
   ["abc", "ABC", false],
   ["realization", "Реализация", true],
@@ -3160,6 +3521,7 @@ const PRODUCT_COLUMNS = [
   ["margin", "Маржа", true],
   ["payout", "К выплате", true],
 ];
+const PRODUCT_COLUMNS_NOW = () => [...BASE_PRODUCT_COLUMNS, ...EXTRA_PRODUCT_COLUMNS()];
 
 function productRowHtml(p) {
   const row = `
@@ -3172,12 +3534,13 @@ function productRowHtml(p) {
       <td class="num">${fmtMoney(p.mp_expenses)}</td>
       <td class="num ${p.margin < 0 ? "delta-down" : ""}">${fmtPercent(p.margin)}</td>
       <td class="num ${p.payout < 0 ? "delta-down" : ""}">${fmtMoney(p.payout)}</td>
+      ${extraProductCells(p)}
       <td>${p.red_flags.map(f => `<span class="flag">${f}</span>`).join("")}</td>
     </tr>`;
-  return row + (openProductSku === p.sku ? productCardRow(p, 9) : "");
+  return row + (openProductSku === p.sku ? productCardRow(p, PRODUCT_COLUMNS_NOW().length + 1) : "");
 }
 
-const PRODUCT_HEAD = () => `<thead><tr>${PRODUCT_COLUMNS.map(([key, label, isNum]) => {
+const PRODUCT_HEAD = () => `<thead><tr>${PRODUCT_COLUMNS_NOW().map(([key, label, isNum]) => {
   const shown = key === "margin" && costsLoaded() ? "Рентаб." : label;
   return `<th class="sortable ${isNum ? "num" : ""} ${productSort.key === key ? "sorted-" + productSort.dir : ""}" data-sort="${key}">${shown}</th>`;
 }).join("")}<th>Флаги</th></tr></thead>`;
@@ -3185,6 +3548,10 @@ const PRODUCT_HEAD = () => `<thead><tr>${PRODUCT_COLUMNS.map(([key, label, isNum
 function renderProducts(products) {
   const el = document.getElementById("table-products");
   renderSegments(products);
+  document.getElementById("products-tax-note").hidden = !taxShown();
+  document.getElementById("products-frozen-note").hidden = !stocksLoaded();
+  // Сортировка по колонке, которой сейчас нет (сняли остатки/налог) — вернуться к выплате.
+  if (!PRODUCT_COLUMNS_NOW().some(([key]) => key === productSort.key)) productSort = { key: "payout", dir: "asc" };
 
   const segment = SEGMENTS.find(([key]) => key === productSegment) || SEGMENTS[0];
   let visible = products.filter(segment[2]);
@@ -3204,7 +3571,7 @@ function renderProducts(products) {
   if (grouping) {
     const grouping2 = document.getElementById("product-grouping2").value;
     const sub = (grouping2 && grouping2 !== grouping) ? grouping2 : null;
-    const COLSPAN = 8;
+    const COLSPAN = 8 + EXTRA_PRODUCT_COLUMNS().length;
 
     const groupRowHtml = (g, key, level) => {
       const isOpen = expandedGroups.has(key);
@@ -3218,6 +3585,7 @@ function renderProducts(products) {
           <td class="num">${fmtMoney(g.mp_expenses)}</td>
           <td class="num ${g.margin < 0 ? "delta-down" : ""}">${fmtPercent(g.margin)}</td>
           <td class="num ${g.payout < 0 ? "delta-down" : ""}">${fmtMoney(g.payout)}</td>
+          ${extraGroupCells(g)}
         </tr>`;
     };
 
@@ -3229,7 +3597,7 @@ function renderProducts(products) {
     const count = `<p class="result-count">Групп: <strong>${groups.length}</strong>, товаров${segNote}${searchNote}: <strong>${visible.length}</strong>.</p>`;
     el.innerHTML = count + `
       <table>
-        <thead><tr><th>Группа / товар</th><th class="num">Шт</th><th class="num">Реализация</th><th class="num">Возвраты</th><th class="num">% возврата</th><th class="num">Расходы МП</th><th class="num">Маржа</th><th class="num">К выплате</th></tr></thead>
+        <thead><tr><th>Группа / товар</th><th class="num">Шт</th><th class="num">Реализация</th><th class="num">Возвраты</th><th class="num">% возврата</th><th class="num">Расходы МП</th><th class="num">Маржа</th><th class="num">К выплате</th>${extraProductHeadHtml()}</tr></thead>
         <tbody>${groups.map(g => {
           const key1 = g.name;
           let html = groupRowHtml(g, key1, 1);
@@ -3485,6 +3853,7 @@ function refresh() {
   renderOzonCommissionAudit(rows);
   renderDynamics(rows);
   const analysis = renderAnalysis(rows);
+  renderFinance(analysis);
   const search = document.getElementById("f-search").value.trim().toLowerCase();
   let products = analysis.products;
   if (search) products = products.filter(p =>
@@ -3492,6 +3861,7 @@ function refresh() {
   renderProducts(products);
   renderReturns(products, rows);
   if (costsLoaded()) updateCostStatus();
+  if (stocksLoaded()) updateStockStatus();
 }
 
 /* ==== Вкладка «Загрузка» ==== */
@@ -3675,6 +4045,293 @@ function setupCostUpload() {
     refresh();
     updateCostStatus();
   });
+}
+
+/* ==== Остатки (файл продавца): второй загрузчик по образцу себестоимости ==== */
+
+const STOCK_STATUS_DEFAULT = "Понимает «Остаток, шт», «Остаток на складе», «Количество» или просто «Остаток». Заморожено = остаток × себестоимость за штуку, поэтому нужен и файл себестоимости.";
+
+function updateStockStatus(errorText) {
+  const el = document.getElementById("stock-status");
+  const removeBtn = document.getElementById("stock-remove");
+  if (errorText) {
+    el.textContent = errorText;
+    el.style.color = "var(--status-critical)";
+    return;
+  }
+  el.style.color = "";
+  if (!stocksLoaded()) {
+    el.textContent = STOCK_STATUS_DEFAULT;
+    removeBtn.hidden = true;
+    return;
+  }
+  let units = 0, withCost = 0;
+  for (const [sku, q] of state.stocks) { units += q; if (state.costs.has(sku)) withCost++; }
+  const costNote = costsLoaded()
+    ? ` Себестоимость найдена для ${withCost} из ${state.stocks.size} SKU.`
+    : " Себестоимость не загружена — сумма замороженных денег пока не считается.";
+  el.textContent = `Остатки загружены: «${state.stockFileName}», ${state.stocks.size} SKU, ${units} шт.${costNote} Блок «Заморожено в остатках» — на вкладке «Обзор».`;
+  removeBtn.hidden = false;
+}
+
+function setupStockUpload() {
+  document.getElementById("stock-submit").addEventListener("click", async () => {
+    const input = document.getElementById("stock-file");
+    const file = input.files[0];
+    if (!file) { updateStockStatus("Сначала выберите файл CSV с остатками."); return; }
+    try {
+      const buffer = await file.arrayBuffer();
+      const { stocks, skipped } = parseStocksFile(buffer);
+      state.stocks = stocks;
+      state.stockFileName = file.name;
+      input.value = "";
+      refresh();
+      updateStockStatus();
+      if (skipped) {
+        const el = document.getElementById("stock-status");
+        el.textContent += ` Пропущено строк без валидного остатка: ${skipped}.`;
+      }
+    } catch (err) {
+      console.error(err);
+      updateStockStatus(`«${file.name}»: ${err.message}`);
+    }
+  });
+  document.getElementById("stock-remove").addEventListener("click", () => {
+    state.stocks = new Map();
+    state.stockFileName = null;
+    refresh();
+    updateStockStatus();
+  });
+}
+
+/* ==== Рекламный кабинет: выгрузка статистики кампаний (для советника) ==== */
+
+const ADS_STATUS_DEFAULT = "Маркетплейс определяется по колонкам («Артикул WB», «CPC» — Wildberries; «ДРР», «Расход» — Ozon). Дашборд эти файлы не показывает: они нужны только вкладке «Советник».";
+const adsLoaded = () => state.ads.length > 0;
+
+// Строки рекламной выгрузки → объекты {заголовок: значение} + _mp. Разбор тот же,
+// что для отчётов (CSV/Excel, кодировка, разделитель).
+function parseAdsFile(fileName, buffer) {
+  const { headers, rows } = extractTable(fileName, buffer);
+  const keys = headers.map(h => String(h || "").trim().toLowerCase());
+  const has = re => keys.some(k => re.test(k));
+  if (!has(/кампани|campaign/)) throw new Error("Не найдена колонка «Кампания» — это не статистика кампаний.");
+  if (!has(/артикул|sku|nm/)) throw new Error("Не найдена колонка с артикулом.");
+  if (!has(/затрат|расход|spend|cost/)) throw new Error("Не найдена колонка затрат/расхода.");
+  const mp = has(/wb|wildberries|cpc|ctr/) && !has(/ozon|дрр/) ? "wb" : has(/ozon|дрр/) ? "ozon" : "wb";
+  const out = [];
+  for (const r of rows) {
+    const o = { _mp: mp };
+    headers.forEach((h, i) => { o[String(h || "").trim()] = r[i] ?? ""; });
+    out.push(o);
+  }
+  return { rows: out, mp };
+}
+
+function updateAdsStatus(errorText) {
+  const el = document.getElementById("ads-status");
+  const removeBtn = document.getElementById("ads-remove");
+  if (errorText) { el.textContent = errorText; el.style.color = "var(--status-critical)"; return; }
+  el.style.color = "";
+  if (!adsLoaded()) { el.textContent = ADS_STATUS_DEFAULT; removeBtn.hidden = true; return; }
+  const wb = state.ads.filter(r => r._mp === "wb").length, oz = state.ads.length - wb;
+  el.textContent = `Реклама загружена: ${state.adsFileNames.map(n => "«" + n + "»").join(", ")} — ${state.ads.length} строк (WB ${wb}, Ozon ${oz}). Советник учитывает её при вопросах про рекламу.`;
+  removeBtn.hidden = false;
+}
+
+function setupAdsUpload() {
+  document.getElementById("ads-submit").addEventListener("click", async () => {
+    const input = document.getElementById("ads-file");
+    const files = [...input.files];
+    if (!files.length) { updateAdsStatus("Сначала выберите файл статистики кампаний."); return; }
+    const errors = [];
+    for (const file of files) {
+      try {
+        const { rows } = parseAdsFile(file.name, await file.arrayBuffer());
+        state.ads = state.ads.concat(rows);
+        if (!state.adsFileNames.includes(file.name)) state.adsFileNames.push(file.name);
+      } catch (err) { console.error(err); errors.push(`«${file.name}»: ${err.message}`); }
+    }
+    input.value = "";
+    updateAdsStatus(errors.length ? errors.join(" ") : undefined);
+  });
+  document.getElementById("ads-remove").addEventListener("click", () => {
+    state.ads = []; state.adsFileNames = []; updateAdsStatus();
+  });
+}
+
+/* ==== Советник: агрегаты → сервер с ключом → ответ агента ==== */
+
+const ADVISOR_KEY = "mp_advisor";
+const ADVISOR_DEFAULT_URL = "http://127.0.0.1:8010";
+function advisorUrl() {
+  const el = document.getElementById("advisor-url");
+  const v = (el.value || "").trim().replace(/\/+$/, "");
+  return v || ADVISOR_DEFAULT_URL;
+}
+function loadAdvisorSettings() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(ADVISOR_KEY) || "{}") || {}; } catch { saved = {}; }
+  document.getElementById("advisor-url").value = saved.url || ADVISOR_DEFAULT_URL;
+}
+function saveAdvisorSettings() {
+  try { localStorage.setItem(ADVISOR_KEY, JSON.stringify({ url: advisorUrl() })); } catch { /* ok */ }
+}
+
+// Пакет для сервера: только нормализованные строки (без сырых полей отчёта),
+// себестоимость, остатки, реклама, период фильтра и настройки налога.
+const ROW_FIELDS = ["marketplace", "period_date", "sku", "product_name", "category", "brand", "quantity", "realization",
+  "returns", "commission", "logistics", "storage", "promotion", "penalty", "other_deduction", "payout", "service"];
+function buildAdvisorPayload(mode, question) {
+  const mp = document.getElementById("f-marketplace").value;
+  const from = document.getElementById("f-date-from").value, to = document.getElementById("f-date-to").value;
+  // Все строки по маркетплейсу (нужен и предыдущий период для сравнения); границы — из фильтра дат.
+  const rows = goodRows().filter(r => !mp || r.marketplace === mp).map(r => {
+    const o = {}; for (const k of ROW_FIELDS) o[k] = r[k]; return o;
+  });
+  const dates = rows.map(r => r.period_date).filter(Boolean).sort();
+  const period = { from: from || dates[0] || null, to: to || dates[dates.length - 1] || null };
+  return {
+    mode: mode || null, question: question || null, rows,
+    costs: Object.fromEntries(state.costs), stocks: Object.fromEntries(state.stocks), ads_raw: state.ads,
+    period, settings: { taxMode: finSettings.taxMode, taxRate: finSettings.taxRate, moneyRate: finSettings.moneyRate },
+    operator: "финансист",
+  };
+}
+
+function setAdvisorStatus(text, isError = false) {
+  const el = document.getElementById("advisor-status");
+  el.textContent = text; el.style.color = isError ? "var(--status-critical)" : "";
+}
+
+function renderAdvisorAnswer(d) {
+  const el = document.getElementById("advisor-answer");
+  const parts = [];
+  if (d.dry_run) parts.push(`<div class="advisor-dry">Сухой прогон: на сервере нет ключа Anthropic, модель не вызывалась. Инструменты отработали на ваших данных, но текста ответа нет. Задайте PILOT_ANTHROPIC_KEY на сервере и спросите снова.</div>`);
+  if (d.reply && d.reply.trim()) {
+    parts.push(`<div class="reply">${d.reply.trim().split(/\n{2,}/).map(pg => `<p>${escapeHtml(pg)}</p>`).join("")}</div>`);
+  }
+  for (const u of d.ui || []) {
+    const c = u.component, p = u.payload || {};
+    if (c === "digest") {
+      parts.push(`<h4 style="margin:12px 0 6px">${escapeHtml(p.title || "Сводка")}</h4><div class="advisor-digest">${(p.items || []).map(it => `
+        <div class="advisor-item kind-${escapeHtml(it.kind || "note")}">
+          ${it.ref_id ? `<div class="ref">${escapeHtml(it.ref_id)}</div>` : ""}
+          <div class="h">${escapeHtml(it.headline || "")}</div>
+          ${it.why_it_matters ? `<div class="w">${escapeHtml(it.why_it_matters)}</div>` : ""}
+        </div>`).join("")}</div>`);
+    } else if (c === "metrics") {
+      const rowsHtml = (p.metrics || []).map(m => {
+        const val = m.value != null ? (typeof m.value === "number" ? (Math.abs(m.value) >= 1000 ? fmtMoney(m.value) : String(m.value)) : escapeHtml(String(m.value))) : (m.series ? `${(m.series.points || []).length} точек` : "—");
+        return `<tr><td>${escapeHtml(m.metric || "")}</td><td class="num">${val}</td><td>${escapeHtml(m.note || "")}</td></tr>`;
+      }).join("");
+      parts.push(`<h4 style="margin:12px 0 6px">${escapeHtml(p.title || "Показатели")}${p.period ? ` <span class="muted">· ${escapeHtml(p.period)}</span>` : ""}</h4>
+        <div class="table-wrap"><table><thead><tr><th>Показатель</th><th class="num">Значение</th><th>Комментарий</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`);
+    } else if (c === "suggestions") {
+      parts.push(`<div class="advisor-suggest">${(p.suggestions || []).map(sg => `<button class="btn-small" type="button" data-suggest="${escapeHtml(sg)}">${escapeHtml(sg)}</button>`).join("")}</div>`);
+    }
+  }
+  if (d.tool_errors && d.tool_errors.length) {
+    parts.push(`<p class="hint">Отказы инструментов: ${d.tool_errors.map(e => escapeHtml(e.tool + ": " + (e.text || ""))).join("; ")}</p>`);
+  }
+  const s = d.sent || {};
+  parts.push(`<div class="advisor-meta">Период ${escapeHtml(d.period?.from || "")} — ${escapeHtml(d.period?.to || "")}${d.prior ? `, сравнение с ${escapeHtml(d.prior.from)} — ${escapeHtml(d.prior.to)}` : ""}. Отправлено: строк ${s.rows ?? 0}, себестоимость ${s.costs ?? 0} SKU, остатки ${s.stocks ?? 0} SKU, реклама ${s.ads ?? 0} строк. Инструментов вызвано: ${(d.tool_calls || []).length}. ${d.elapsed_s != null ? d.elapsed_s + " с." : ""} Всё это предложения: изменения в кабинетах делает человек.</div>`);
+  el.innerHTML = parts.join("");
+  el.querySelectorAll("button[data-suggest]").forEach(b => b.addEventListener("click", () => {
+    document.getElementById("advisor-question").value = b.dataset.suggest;
+    askAdvisor(null, b.dataset.suggest);
+  }));
+}
+
+let advisorBusy = false;
+async function askAdvisor(mode, question) {
+  if (advisorBusy) return;
+  if (!goodRows().length) { setAdvisorStatus("Сначала загрузите отчёт о реализации на вкладке «Загрузка».", true); return; }
+  const payload = buildAdvisorPayload(mode, question);
+  if (!payload.rows.length) { setAdvisorStatus("По текущему фильтру нет строк.", true); return; }
+  advisorBusy = true;
+  document.querySelectorAll("#panel-advisor button").forEach(b => (b.disabled = true));
+  setAdvisorStatus(`Отправляю агрегаты (${payload.rows.length} строк) и жду ответ агента… обычно 20–60 секунд.`);
+  try {
+    const resp = await fetch(advisorUrl() + "/advise", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const text = await resp.text();
+    let data; try { data = JSON.parse(text); } catch { data = { detail: text.slice(0, 300) }; }
+    if (!resp.ok) throw new Error(data.detail || `HTTP ${resp.status}`);
+    renderAdvisorAnswer(data);
+    setAdvisorStatus(data.dry_run ? "Ответ получен в режиме сухого прогона (нет ключа на сервере)." : "Ответ получен.");
+  } catch (err) {
+    console.error(err);
+    const msg = /Failed to fetch|NetworkError|Load failed/i.test(String(err.message))
+      ? `Сервер-советник недоступен по адресу ${advisorUrl()}. Запустите его (python -m advisor.server) и нажмите «Проверить связь».`
+      : `Ошибка: ${err.message}`;
+    setAdvisorStatus(msg, true);
+  } finally {
+    advisorBusy = false;
+    document.querySelectorAll("#panel-advisor button").forEach(b => (b.disabled = false));
+  }
+}
+
+async function checkAdvisor() {
+  const el = document.getElementById("advisor-conn");
+  el.style.color = "";
+  el.textContent = `Проверяю ${advisorUrl()}…`;
+  try {
+    const resp = await fetch(advisorUrl() + "/health");
+    const d = await resp.json();
+    el.textContent = `Сервер отвечает. Ключ Anthropic: ${d.key_present ? "есть" : "НЕТ — будет сухой прогон без текста ответа"}. Скиллы агента: ${d.skills_found ? "найдены" : "не найдены (задайте COMMERCE_AGENTS_DIR на сервере)"}.`;
+    el.style.color = d.key_present && d.skills_found ? "" : "var(--status-serious)";
+  } catch (err) {
+    el.textContent = `Сервер недоступен по адресу ${advisorUrl()}. Запустите его командой python -m advisor.server (инструкция в advisor/README.md) и проверьте снова.`;
+    el.style.color = "var(--status-critical)";
+  }
+}
+
+function setupAdvisor() {
+  loadAdvisorSettings();
+  document.getElementById("advisor-url").addEventListener("change", saveAdvisorSettings);
+  document.getElementById("advisor-check").addEventListener("click", checkAdvisor);
+  document.querySelectorAll("#panel-advisor button[data-ask]").forEach(b => b.addEventListener("click", () => askAdvisor(b.dataset.ask, null)));
+  document.getElementById("advisor-send").addEventListener("click", () => {
+    const q = document.getElementById("advisor-question").value.trim();
+    if (!q) { setAdvisorStatus("Напишите вопрос или нажмите одну из кнопок выше.", true); return; }
+    askAdvisor(null, q);
+  });
+  document.getElementById("advisor-preview").addEventListener("click", () => {
+    const pre = document.getElementById("advisor-payload");
+    if (!pre.hidden) { pre.hidden = true; return; }
+    const p = buildAdvisorPayload("digest", null);
+    const sample = { ...p, rows: p.rows.slice(0, 3), ads_raw: p.ads_raw.slice(0, 2) };
+    pre.textContent = `Строк отчёта: ${p.rows.length}, себестоимость: ${Object.keys(p.costs).length} SKU, остатки: ${Object.keys(p.stocks).length} SKU, реклама: ${p.ads_raw.length} строк, период ${p.period.from} — ${p.period.to}.\nПример (первые строки):\n` + JSON.stringify(sample, null, 1);
+    pre.hidden = false;
+  });
+}
+
+/* ==== Настройки налога и цены денег: форма ↔ localStorage ==== */
+
+function setupFinSettings() {
+  const modeEl = document.getElementById("s-tax-mode");
+  const rateEl = document.getElementById("s-tax-rate");
+  const moneyEl = document.getElementById("s-money-rate");
+  const fill = () => {
+    modeEl.value = finSettings.taxMode;
+    rateEl.value = finSettings.taxRate;
+    rateEl.disabled = finSettings.taxMode === "none";
+    moneyEl.value = finSettings.moneyRate;
+  };
+  fill();
+  modeEl.addEventListener("change", () => {
+    finSettings.taxMode = TAX_MODES[modeEl.value] ? modeEl.value : "none";
+    // Смена режима подставляет стандартную ставку (6% / 15%); её можно переопределить.
+    finSettings.taxRate = TAX_MODES[finSettings.taxMode].rate;
+    saveFinSettings(finSettings); fill(); refresh();
+  });
+  const onRate = (el, key, fallback) => () => {
+    const n = Number(String(el.value).replace(",", "."));
+    finSettings[key] = Number.isFinite(n) && n >= 0 ? n : fallback();
+    saveFinSettings(finSettings); refresh();
+  };
+  rateEl.addEventListener("change", onRate(rateEl, "taxRate", () => TAX_MODES[finSettings.taxMode].rate));
+  moneyEl.addEventListener("change", onRate(moneyEl, "moneyRate", () => FIN_DEFAULTS.moneyRate));
 }
 
 // Очередь загрузки: файлы обрабатываются по одному, между ними — предпросмотр
@@ -4047,6 +4704,10 @@ function setupConnect() {
 const DEMO_SALES_CSV = "Маркетплейс;Дата;Артикул;Товар;Категория;Бренд;Продано, шт;Реализация, ₽;Возвраты, ₽;Комиссия МП, ₽;Логистика, ₽;Хранение, ₽;Продвижение, ₽;Штрафы, ₽;Прочие удержания, ₽;К выплате, ₽\nWildberries;2026-06-05;WB-001;Худи Northmoor 01;Одежда/Худи;Northmoor;47;81122;0;12168;8451;346;3244;0;0;56913\nWildberries;2026-06-05;WB-002;Худи Aurelka 02;Одежда/Худи;Aurelka;2;1444;606;216;106;308;0;0;0;208\nWildberries;2026-06-05;WB-003;Худи Aurelka 03;Одежда/Худи;Aurelka;14;34146;0;5121;3603;81;1365;0;0;23976\nOzon;2026-06-05;OZ-004;Худи Aurelka 04;Одежда/Худи;Aurelka;17;21012;1050;3151;1389;194;0;0;0;15228\nOzon;2026-06-05;OZ-005;Футболки Basico 05;Одежда/Футболки;Basico;38;63954;7674;9593;5894;193;0;0;0;40600\nOzon;2026-06-05;OZ-006;Футболки Basico 06;Одежда/Футболки;Basico;36;49932;0;7489;4977;395;0;0;0;37071\nWildberries;2026-06-05;WB-007;Футболки Northmoor 07;Одежда/Футболки;Northmoor;55;55715;6685;8357;5467;186;0;0;0;35020\nOzon;2026-06-05;OZ-008;Футболки Basico 08;Одежда/Футболки;Basico;13;43485;0;6522;4198;87;1739;0;0;30939\nWildberries;2026-06-05;WB-009;Кружки Keramo 09;Посуда/Кружки;Keramo;29;62466;0;9369;6313;393;0;0;0;46391\nWildberries;2026-06-05;WB-010;Кружки Keramo 10;Посуда/Кружки;Keramo;51;96492;0;14473;7011;290;3859;0;0;70859\nOzon;2026-06-05;OZ-011;Кружки Keramo 11;Посуда/Кружки;Keramo;41;108404;13008;16260;7433;71;0;0;0;71632\nOzon;2026-06-05;OZ-012;Кружки LuceCasa 12;Посуда/Кружки;LuceCasa;57;170430;0;25564;20424;70;6817;0;0;117555\nOzon;2026-06-05;OZ-013;Тарелки Keramo 13;Посуда/Тарелки;Keramo;48;38016;0;5702;3712;348;5322;0;0;22932\nOzon;2026-06-05;OZ-014;Тарелки Keramo 14;Посуда/Тарелки;Keramo;24;51912;6229;7786;4762;283;0;0;0;32852\nWildberries;2026-06-05;WB-015;Тарелки LuceCasa 15;Посуда/Тарелки;LuceCasa;49;158025;7901;23703;13603;232;0;0;0;112586\nOzon;2026-06-05;OZ-016;Тарелки Keramo 16;Посуда/Тарелки;Keramo;32;33120;1656;4968;3659;259;4636;0;0;17942\nWildberries;2026-06-05;WB-017;Наушники Voltra 17;Электроника/Наушники;Voltra;23;85629;0;12844;8214;250;0;0;0;64321\nWildberries;2026-06-05;WB-018;Наушники SonaX 18;Электроника/Наушники;SonaX;56;224336;0;33650;14239;290;0;0;0;176157\nWildberries;2026-06-05;WB-019;Наушники SonaX 19;Электроника/Наушники;SonaX;52;45916;0;6887;3108;243;6428;0;0;29250\nWildberries;2026-06-05;WB-020;Наушники SonaX 20;Электроника/Наушники;SonaX;33;137709;0;20656;15937;386;5508;0;0;95222\nWildberries;2026-06-05;WB-021;Пледы Aurelka 21;Дом/Пледы;Aurelka;25;83775;10053;12566;9548;231;0;0;0;51377\nWildberries;2026-06-05;WB-022;Пледы CozyNest 22;Дом/Пледы;CozyNest;4;7936;3333;1190;739;301;0;0;0;2373\nWildberries;2026-06-05;WB-023;Пледы CozyNest 23;Дом/Пледы;CozyNest;45;143280;60177;21492;9176;16;0;0;0;52419\nWildberries;2026-06-05;WB-024;Пледы CozyNest 24;Дом/Пледы;CozyNest;17;56780;0;8517;5871;292;2271;0;0;39829\nWildberries;2026-05-06;WB-002;Худи Aurelka 02;Одежда/Худи;Aurelka;3;1200;0;180;24;20;0;0;0;976\nWildberries;2026-06-14;WB-070;Худи Basico 70;Одежда/Худи;Basico;3;9000;0;1980;1200;80;0;0;0;5740\nWildberries;2026-06-14;WB-071;Кружки Keramo 71;Посуда/Кружки;Keramo;3;9000;0;1980;1200;80;0;0;0;5740\nWildberries;2026-06-18;WB-050;Штраф — маркировка;Прочее/Корректировки;—;0;0;0;0;0;0;0;620;0;-620\nOzon;2026-06-20;OZ-060;Удержание — эквайринг;Прочее/Корректировки;—;0;0;0;0;0;0;0;0;450;-450\nOzon;2026-06-21;OZ-060;Удержание — эквайринг;Прочее/Корректировки;—;0;0;0;0;0;0;0;0;450;-450";
 const DEMO_COSTS_CSV = "SKU;Полная себестоимость за шт\nWB-001;1059\nWB-002;271\nWB-003;1152\nOZ-004;601\nOZ-005;958\nWB-007;467\nOZ-008;2156\nWB-009;810\nWB-010;886\nOZ-011;1057\nOZ-013;510\nOZ-014;692\nOZ-016;711\nWB-018;1468\nWB-019;340\nWB-020;1349\nWB-021;2326\nWB-022;1217\nWB-023;1493";
 
+// Демо-остатки: часть SKU нарочно без остатка, один — без себестоимости (WB-006),
+// чтобы было видно, как блок показывает пробелы.
+const DEMO_STOCKS_CSV = "SKU;Остаток, шт\nWB-001;120\nWB-002;340\nWB-003;55\nOZ-004;80\nOZ-005;24\nWB-006;15\nWB-007;210\nOZ-008;12\nWB-009;60\nWB-010;95\nOZ-011;40\nOZ-013;130\nWB-018;18\nWB-019;400\nWB-020;33\nWB-021;9\nWB-022;70";
+
 function bufFromString(s) { return new TextEncoder().encode(s).buffer; }
 
 function clearDemoData() {
@@ -4055,11 +4716,13 @@ function clearDemoData() {
   const hadDemo = state.files.some(f => f.isDemo);
   state.files = state.files.filter(f => !f.isDemo);
   state.isDemo = false;
-  if (hadDemo) { state.costs = new Map(); state.costFileName = null; }
+  if (hadDemo) { state.costs = new Map(); state.costFileName = null; state.stocks = new Map(); state.stockFileName = null; state.ads = []; state.adsFileNames = []; }
   const banner = document.getElementById("demo-banner");
   if (banner) banner.hidden = true;
   renderUploadsList();
   updateCostStatus();
+  updateStockStatus();
+  updateAdsStatus();
 }
 
 // Быстрый хэш содержимого файла (FNV-1a + длина) — для защиты от повторной загрузки.
@@ -4078,6 +4741,9 @@ function initDemo() {
     const { costs } = parseCostsFile(bufFromString(DEMO_COSTS_CSV));
     state.costs = costs;
     state.costFileName = "Демо-себестоимость (пример).csv";
+    const { stocks } = parseStocksFile(bufFromString(DEMO_STOCKS_CSV));
+    state.stocks = stocks;
+    state.stockFileName = "Демо-остатки (пример).csv";
     state.isDemo = true;
     document.getElementById("demo-banner").hidden = false;
   } catch (err) {
@@ -4085,6 +4751,7 @@ function initDemo() {
   }
   renderUploadsList();
   updateCostStatus();
+  updateStockStatus();
   refresh();
   document.getElementById("tab-analysis").click();
 }
@@ -4097,6 +4764,10 @@ document.getElementById("demo-clear").addEventListener("click", () => {
 
 setupUploads();
 setupCostUpload();
+setupStockUpload();
+setupAdsUpload();
+setupAdvisor();
+setupFinSettings();
 setupExport();
 setupConnect();
 renderUploadsList();
