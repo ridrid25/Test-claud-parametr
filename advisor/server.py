@@ -7,6 +7,8 @@
 Запуск:  python -m advisor.server            (порт 8010; ADVISOR_PORT — изменить)
 Ключ:    PILOT_ANTHROPIC_KEY или ANTHROPIC_API_KEY в окружении процесса.
 Скиллы:  COMMERCE_AGENTS_DIR — путь к клону anthropics/commerce-agents.
+Кабинеты: WB_API_TOKEN, OZON_PERF_CLIENT_ID/OZON_PERF_CLIENT_SECRET (см. advisor/cabinets.py) —
+         тогда «Подтянуть из кабинетов» в дашборде забирает статистику кампаний без файлов.
 Без ключа сервер отвечает сухим прогоном (инструменты работают, текста модели нет).
 """
 from __future__ import annotations
@@ -27,8 +29,9 @@ if str(ROOT) not in sys.path:
 
 from agent_pilot.backend import MarketplaceBackend, parse_ads_rows  # noqa: E402
 from agent_pilot.runner import STANDARD_QUESTIONS, api_key_present, build_agent, run_question, skills_dir  # noqa: E402
+from advisor.cabinets import CabinetError, cabinet_status, fetch_ads  # noqa: E402
 
-app = FastAPI(title="Финсрез / МП — советник", version="1.1")
+app = FastAPI(title="Финсрез / МП — советник", version="1.2")
 # Сайт открыт по HTTPS с github.io, а сервер — локальный (127.0.0.1). Chrome считает
 # это обращением из публичной сети в приватную и на preflight требует
 # Access-Control-Allow-Private-Network: true; Starlette 1.x без allow_private_network
@@ -62,11 +65,35 @@ class AdviseRequest(BaseModel):
     dry_run: bool = False
 
 
+class CabinetsRequest(BaseModel):
+    date_from: str = Field(alias="from")
+    date_to: str = Field(alias="to")
+    marketplaces: list[str] = Field(default_factory=lambda: ["wb", "ozon"])
+    model_config = {"populate_by_name": True}
+
+
 @app.get("/health")
 def health() -> dict[str, Any]:
     sd = skills_dir()
     return {"ok": True, "key_present": api_key_present(), "skills_dir": str(sd), "skills_found": sd.exists(),
-            "questions": list(STANDARD_QUESTIONS)}
+            "questions": list(STANDARD_QUESTIONS), "cabinets": cabinet_status(), "version": app.version}
+
+
+@app.post("/cabinets/ads")
+def cabinets_ads(req: CabinetsRequest) -> dict[str, Any]:
+    """Статистика кампаний из рекламных кабинетов по ключам на сервере. Только чтение.
+    Долгий запрос: WB отдаёт статистику не чаще раза в минуту, Ozon строит отчёт до минуты."""
+    st = cabinet_status()
+    if not any(st[m]["configured"] for m in ("wb", "ozon") if m in req.marketplaces):
+        raise HTTPException(400, "На сервере нет ключей кабинетов: задайте WB_API_TOKEN и/или "
+                                 "OZON_PERF_CLIENT_ID + OZON_PERF_CLIENT_SECRET (см. advisor/README.md).")
+    started = time.monotonic()
+    try:
+        res = fetch_ads(req.date_from, req.date_to, req.marketplaces, log=lambda m: print("кабинеты:", m))
+    except (CabinetError, ValueError) as e:
+        raise HTTPException(400, str(e)) from e
+    res["elapsed_s"] = round(time.monotonic() - started, 1)
+    return res
 
 
 @app.post("/advise")
