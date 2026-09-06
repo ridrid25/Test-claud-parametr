@@ -565,7 +565,7 @@ th.sorted-desc::after { content: " ↓"; }
   /* 4 вкладки в ряд → две строки (Загрузка/Анализ/Обзор/Товары,
      Возвраты/Советник/Подключение), без бокового скролла. */
   .tabs { width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
-  .tabs .tab { justify-content: center; padding: 9px 3px; font-size: 11.5px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; gap: 4px; }
+  .tabs .tab { justify-content: center; padding: 9px 2px; font-size: 11px; letter-spacing: -0.01em; min-width: 0; overflow: hidden; white-space: nowrap; gap: 3px; }
   .tabs .tab svg { width: 13px; height: 13px; flex-shrink: 0; }
   /* KPI-плашки: длинная подпись «WB … · Ozon …» переносится, а не растягивает экран. */
   .stat-tile { min-width: 0; overflow: hidden; }
