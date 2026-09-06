@@ -50,7 +50,7 @@ async def dump_reads(backend):
     out = {
         "merchant_context": await backend.get_merchant_context(session),
         "business_snapshot": dump(await backend.get_business_snapshot(session)),
-        "business_snapshot_prior": dump(await backend.get_business_snapshot(session, "prior")) if backend.period > 1 else None,
+        "business_snapshot_prior": dump(await backend.get_business_snapshot(session, "prior")) if backend.prev else None,
         "inventory_alerts": dump(await backend.get_inventory_alerts(session)),
         "order_issues": dump(await backend.get_order_issues(session)),
         "campaigns": dump(await backend.get_campaign_performance(session)),
@@ -115,30 +115,9 @@ async def dry_run(backend, skills_dir: Path):
 
 
 async def live(backend, skills_dir: Path, text: str):
-    from commerce_common.skills import SkillRegistry
-    from merchant_agent import MerchantAgentConfig
-    from merchant_agent_runtime import MerchantAgent
-
-    session, state = make_session(backend)
-    # Ключ для пилота: PILOT_ANTHROPIC_KEY имеет приоритет (чтобы не смешивать с ключом
-    # самой среды Claude Code), иначе стандартная цепочка SDK (ANTHROPIC_API_KEY).
-    # base_url задаём явно: в облачных сессиях ANTHROPIC_BASE_URL указывает на прокси
-    # Claude Code, а не на публичный API.
-    from anthropic import AsyncAnthropic
-    client = AsyncAnthropic(api_key=os.environ.get("PILOT_ANTHROPIC_KEY") or None,
-                            base_url="https://api.anthropic.com", timeout=120)
-    agent = MerchantAgent(backend=backend, skills=SkillRegistry.from_dir(skills_dir),
-                          config=MerchantAgentConfig(brand_name="Финсрез / МП", max_context_chars=8000), client=client)
-    messages = [{"role": "user", "content": text}]
-    reply, ui = [], []
-    async for ev in agent.stream_turn(messages, session, state):
-        if ev.type == "text_delta":
-            reply.append(ev.data["text"])
-        elif ev.type == "tool_call":
-            print(f"→ {ev.data['tool']} {json.dumps(ev.data['input'], ensure_ascii=False)}", file=sys.stderr)
-        elif ev.type == "ui":
-            ui.append(ev.data)
-    return {"reply": "".join(reply), "ui": ui}
+    from agent_pilot.runner import build_agent, run_question
+    agent = build_agent(backend, dry_run=False, repo=str(skills_dir.parent.parent))
+    return await run_question(agent, text, now=datetime(2026, 8, 24, 9, 0, tzinfo=timezone.utc))
 
 
 def main():

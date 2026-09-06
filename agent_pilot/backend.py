@@ -106,6 +106,23 @@ class Row:
         self.payout = _num(r["К выплате, ₽"])
         self.service = self.category.startswith("Прочее/")
 
+    @classmethod
+    def from_norm(cls, r: dict[str, Any]) -> "Row":
+        """Строка в схеме дашборда: marketplace, period_date, sku, product_name, category,
+        brand, quantity, realization, returns, commission, logistics, storage, promotion,
+        penalty, other_deduction, payout, service."""
+        self = cls.__new__(cls)
+        self.mp = "ozon" if "ozon" in str(r.get("marketplace", "")).lower() else "wb"
+        self.date = str(r.get("period_date", ""))[:10]
+        self.sku = str(r.get("sku", "")); self.name = str(r.get("product_name", ""))
+        self.category = str(r.get("category", "")); self.brand = str(r.get("brand", ""))
+        g = lambda k: float(r.get(k) or 0)  # noqa: E731
+        self.qty = int(g("quantity")); self.real = g("realization"); self.ret = g("returns")
+        self.comm = g("commission"); self.logi = g("logistics"); self.stor = g("storage")
+        self.promo = g("promotion"); self.pen = g("penalty"); self.other = g("other_deduction")
+        self.payout = g("payout"); self.service = bool(r.get("service")) or self.category.startswith("Прочее/")
+        return self
+
     @property
     def expenses(self) -> float:
         return self.comm + self.logi + self.stor + self.promo + self.pen + self.other
@@ -116,66 +133,91 @@ def _read(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(f, delimiter=";"))
 
 
-class MarketplaceCsvBackend(MerchantBackend):
-    """Бэкенд над CSV; ``period`` — номер текущего периода (1..3)."""
+def parse_ads_rows(rows: list[dict[str, str]], marketplace: str) -> list[dict[str, Any]]:
+    """Строки рекламной выгрузки WB/Ozon → единый вид. Колонки ищутся по подстрокам."""
+    def col(r: dict[str, str], *names: str) -> str:
+        for k, v in r.items():
+            kl = str(k).lower()
+            if any(n in kl for n in names):
+                return v
+        return ""
+    out = []
+    for r in rows:
+        out.append({
+            "id": col(r, "id кампании", "campaign id", "id"), "name": col(r, "кампания", "название кампании", "campaign"),
+            "type": col(r, "тип"), "mp": marketplace, "date": col(r, "дата", "date"),
+            "sku": col(r, "артикул", "sku", "nm"), "impressions": _num(col(r, "показ", "impress")),
+            "clicks": _num(col(r, "клик", "click")), "spend": _num(col(r, "затрат", "расход", "spend", "cost")),
+            "orders": _num(col(r, "заказ", "order")), "order_sum": _num(col(r, "сумма заказ", "выручк", "revenue")),
+        })
+    return [a for a in out if a["sku"] and a["spend"] > 0]
 
-    def __init__(self, data_dir: Path = DATA_DIR, period: int = 3,
+
+class MarketplaceBackend(MerchantBackend):
+    """Бэкенд на данных в памяти: строки отчёта о реализации (все периоды), себестоимость,
+    остатки, рекламные строки, границы текущего периода. Предыдущий период — такой же
+    длины непосредственно перед текущим."""
+
+    def __init__(self, sales: list[Row], costs: dict[str, float], stocks: dict[str, int],
+                 ads: list[dict[str, Any]], current: tuple[str, str],
                  config: MerchantAgentConfig | None = None, store_name: str = "Финсрез / МП",
-                 tax_mode: str = "usn_income", tax_rate: float = 6.0, money_rate: float = 24.0):
-        self.data_dir = Path(data_dir)
-        self.period = period
+                 tax_mode: str = "usn_income", tax_rate: float = 6.0, money_rate: float = 24.0,
+                 periods: dict[int, tuple[str, str]] | None = None):
         self.config = config or MerchantAgentConfig()
         self.store_name = store_name
         self.tax_mode, self.tax_rate, self.money_rate = tax_mode, tax_rate, money_rate
-        self.sales: dict[int, list[Row]] = {}
-        for p in (1, 2, 3):
-            f = self.data_dir / f"sales_p{p}.csv"
-            if f.exists():
-                self.sales[p] = [Row(r) for r in _read(f)]
-        self.costs = {r["SKU"]: _num(r["Полная себестоимость за шт"]) for r in _read(self.data_dir / "costs.csv")}
-        sf = self.data_dir / f"stocks_p{period}.csv"
-        self.stocks = {r["SKU"]: int(_num(r["Остаток, шт"])) for r in _read(sf)} if sf.exists() else {}
-        self.ads: list[dict[str, Any]] = []
-        wb = self.data_dir / f"wb_ads_p{period}.csv"
-        if wb.exists():
-            for r in _read(wb):
-                self.ads.append({"id": r["ID кампании"], "name": r["Кампания"], "type": r["Тип кампании"], "mp": "wb",
-                                 "date": r["Дата"], "sku": r["Артикул WB"], "impressions": _num(r["Показы"]),
-                                 "clicks": _num(r["Клики"]), "spend": _num(r["Затраты, ₽"]), "orders": _num(r["Заказы"]),
-                                 "order_sum": _num(r["Сумма заказов, ₽"])})
-        oz = self.data_dir / f"ozon_ads_p{period}.csv"
-        if oz.exists():
-            for r in _read(oz):
-                self.ads.append({"id": r["ID кампании"], "name": r["Кампания"], "type": r["Тип"], "mp": "ozon",
-                                 "date": r["Дата"], "sku": r["Артикул"], "impressions": _num(r["Показы"]),
-                                 "clicks": _num(r["Клики"]), "spend": _num(r["Расход, ₽"]), "orders": _num(r["Заказы"]),
-                                 "order_sum": _num(r["Выручка с заказов, ₽"])})
+        self.all_sales = sales
+        self.costs = costs
+        self.stocks = stocks
+        self.ads = ads
+        self.periods = periods or {}
+        self.cur = current
+        length = (date.fromisoformat(current[1]) - date.fromisoformat(current[0])).days + 1
+        prev_to = date.fromisoformat(current[0]) - timedelta(days=1)
+        prev_from = prev_to - timedelta(days=length - 1)
+        self.prev = (prev_from.isoformat(), prev_to.isoformat())
+        if not any(prev_from.isoformat() <= r.date <= prev_to.isoformat() for r in sales):
+            self.prev = None
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any], **kw) -> "MarketplaceBackend":
+        """Пакет агрегатов из дашборда: rows (нормализованные строки), costs, stocks,
+        ads (уже в едином виде), period {from,to}, settings {taxMode, taxRate, moneyRate}."""
+        rows = [Row.from_norm(r) for r in payload.get("rows", [])]
+        costs = {str(k): float(v) for k, v in (payload.get("costs") or {}).items()}
+        stocks = {str(k): int(v) for k, v in (payload.get("stocks") or {}).items()}
+        ads = payload.get("ads") or []
+        per = payload.get("period") or {}
+        dates = [r.date for r in rows if r.date]
+        cur = (per.get("from") or min(dates), per.get("to") or max(dates))
+        st = payload.get("settings") or {}
+        mode = {"usn_income": "usn_income", "usn_profit": "usn_profit"}.get(st.get("taxMode"), "none")
+        return cls(rows, costs, stocks, ads, cur, tax_mode=mode, tax_rate=float(st.get("taxRate") or 0),
+                   money_rate=float(st.get("moneyRate") or 24), **kw)
+
 
     # ------------------------------------------------------------------ helpers
     def _rows(self, period: str | None = None) -> tuple[list[Row], str]:
         """Строки за период и его подпись. period: None|current, prior|previous,
-        p1..p3, ISO 'YYYY-MM-DD/YYYY-MM-DD'."""
-        p = self.period
+        pN (только для CSV-набора), ISO 'YYYY-MM-DD/YYYY-MM-DD'."""
+        a, b = self.cur
         if period:
             t = period.strip().lower()
             if t in ("prior", "previous", "last", "прошлый", "предыдущий"):
-                p = self.period - 1
-            elif t.startswith("p") and t[1:].isdigit():
-                p = int(t[1:])
+                if not self.prev:
+                    return [], "нет данных за предыдущий период"
+                a, b = self.prev
+            elif t.startswith("p") and t[1:].isdigit() and int(t[1:]) in self.periods:
+                a, b = self.periods[int(t[1:])]
             elif "/" in t:
                 a, b = (x.strip() for x in t.split("/", 1))
-                rows = [r for rows in self.sales.values() for r in rows if a <= r.date <= b]
-                return rows, f"{a}/{b}"
-        rows = self.sales.get(p, [])
-        return rows, self._label(p)
+        rows = [r for r in self.all_sales if a <= r.date <= b]
+        return rows, f"{a}/{b}"
 
-    def _label(self, p: int) -> str:
-        rows = self.sales.get(p)
-        if not rows:
-            return f"p{p}"
-        first = min(r.date for r in rows)
-        last = (date.fromisoformat(max(r.date for r in rows)) + timedelta(days=6)).isoformat()
-        return f"{first}/{last}"
+    def _label(self, which: str) -> str | None:
+        if which == "prior":
+            return f"{self.prev[0]}/{self.prev[1]}" if self.prev else None
+        return f"{self.cur[0]}/{self.cur[1]}"
 
     @staticmethod
     def _sum(rows: list[Row], key: str) -> float:
@@ -211,11 +253,8 @@ class MarketplaceCsvBackend(MerchantBackend):
             a["stock"] = self.stocks.get(a["sku"])
         return agg
 
-    def _period_days(self, rows: list[Row]) -> int:
-        if not rows:
-            return 0
-        first, last = min(r.date for r in rows), max(r.date for r in rows)
-        return (date.fromisoformat(last) - date.fromisoformat(first)).days + 7
+    def _period_days(self, rows: list[Row] | None = None) -> int:
+        return (date.fromisoformat(self.cur[1]) - date.fromisoformat(self.cur[0])).days + 1
 
     def _segment_match(self, r: Row, segment: str | None) -> bool:
         if not segment:
@@ -260,7 +299,7 @@ class MarketplaceCsvBackend(MerchantBackend):
 
     def _issues(self) -> list[OrderIssue]:
         cur = self._by_sku(self._rows()[0])
-        prev = self._by_sku(self._rows("prior")[0]) if self.period > 1 else {}
+        prev = self._by_sku(self._rows("prior")[0]) if self.prev else {}
         issues = []
         for sku, a in cur.items():
             rate, before = a["return_rate"], prev.get(sku, {}).get("return_rate")
@@ -315,7 +354,7 @@ class MarketplaceCsvBackend(MerchantBackend):
         rows, label = self._rows(period)
         prior_rows: list[Row] = []
         if not period or period.strip().lower() in ("current", "this", "текущий"):
-            prior_rows, prior_label = self._rows("prior") if self.period > 1 else ([], None)
+            prior_rows, prior_label = self._rows("prior") if self.prev else ([], None)
         else:
             prior_label = None
         sales = self._sum(rows, "sales")
@@ -418,7 +457,7 @@ class MarketplaceCsvBackend(MerchantBackend):
         cur = self._by_sku(self._rows()[0]).get(listing_id)
         if cur is None:
             return None
-        prev = self._by_sku(self._rows("prior")[0]).get(listing_id) if self.period > 1 else None
+        prev = self._by_sku(self._rows("prior")[0]).get(listing_id) if self.prev else None
         unit_cost = cur["unit_cost"]
         real = cur["real"]
         # Маржа после удержаний площадки: (к выплате − себестоимость) / реализация.
@@ -489,7 +528,7 @@ class MarketplaceCsvBackend(MerchantBackend):
             "frozen_by_sku_top": [{"sku": sku, "frozen_rub": round(v, 2), "stock": self.stocks.get(sku)} for sku, v in frozen_by_sku[:8]],
             "frozen_note": "заморожено = остаток × себестоимость за шт (не × цена продажи)",
             "store": self.store_name, "operator": session.operator, "currency": "RUB",
-            "current_period": label, "prior_period": self._label(self.period - 1) if self.period > 1 else None,
+            "current_period": label, "prior_period": self._label("prior"),
             "data_source": "отчёты о реализации Wildberries и Ozon по неделям + файл себестоимости + файл остатков + выгрузки рекламных кабинетов",
             "catalog_size": len(by),
             "finance": {
@@ -512,3 +551,32 @@ class MarketplaceCsvBackend(MerchantBackend):
                        "slow_movers": sum(a.kind == "slow_mover" for a in alerts),
                        "order_issues": len(self._issues()), "pending_changes": 0},
         }
+
+
+class MarketplaceCsvBackend(MarketplaceBackend):
+    """Бэкенд над CSV из agent_pilot/data; ``period`` — номер текущего периода (1..3)."""
+
+    def __init__(self, data_dir: Path = DATA_DIR, period: int = 3, **kw):
+        self.data_dir = Path(data_dir)
+        self.period = period
+        sales: list[Row] = []
+        periods: dict[int, tuple[str, str]] = {}
+        for p in (1, 2, 3):
+            f = self.data_dir / f"sales_p{p}.csv"
+            if f.exists():
+                rows = [Row(r) for r in _read(f)]
+                sales += rows
+                first = min(r.date for r in rows)
+                last = (date.fromisoformat(max(r.date for r in rows)) + timedelta(days=6)).isoformat()
+                periods[p] = (first, last)
+        costs = {r["SKU"]: _num(r["Полная себестоимость за шт"]) for r in _read(self.data_dir / "costs.csv")}
+        sf = self.data_dir / f"stocks_p{period}.csv"
+        stocks = {r["SKU"]: int(_num(r["Остаток, шт"])) for r in _read(sf)} if sf.exists() else {}
+        ads: list[dict[str, Any]] = []
+        wb = self.data_dir / f"wb_ads_p{period}.csv"
+        if wb.exists():
+            ads += parse_ads_rows(_read(wb), "wb")
+        oz = self.data_dir / f"ozon_ads_p{period}.csv"
+        if oz.exists():
+            ads += parse_ads_rows(_read(oz), "ozon")
+        super().__init__(sales, costs, stocks, ads, periods[period], periods=periods, **kw)
