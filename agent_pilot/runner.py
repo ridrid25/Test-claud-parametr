@@ -1,7 +1,6 @@
 """Общий запуск хода merchant-agent для CLI (run_agent.py) и сервера-советника (advisor/)."""
 from __future__ import annotations
 
-import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
