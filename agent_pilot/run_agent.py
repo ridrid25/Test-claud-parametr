@@ -120,8 +120,15 @@ async def live(backend, skills_dir: Path, text: str):
     from merchant_agent_runtime import MerchantAgent
 
     session, state = make_session(backend)
+    # Ключ для пилота: PILOT_ANTHROPIC_KEY имеет приоритет (чтобы не смешивать с ключом
+    # самой среды Claude Code), иначе стандартная цепочка SDK (ANTHROPIC_API_KEY).
+    # base_url задаём явно: в облачных сессиях ANTHROPIC_BASE_URL указывает на прокси
+    # Claude Code, а не на публичный API.
+    from anthropic import AsyncAnthropic
+    client = AsyncAnthropic(api_key=os.environ.get("PILOT_ANTHROPIC_KEY") or None,
+                            base_url="https://api.anthropic.com", timeout=120)
     agent = MerchantAgent(backend=backend, skills=SkillRegistry.from_dir(skills_dir),
-                          config=MerchantAgentConfig(brand_name="Финсрез / МП", max_context_chars=8000))
+                          config=MerchantAgentConfig(brand_name="Финсрез / МП", max_context_chars=8000), client=client)
     messages = [{"role": "user", "content": text}]
     reply, ui = [], []
     async for ev in agent.stream_turn(messages, session, state):
@@ -161,8 +168,8 @@ def main():
     elif a.dry_run:
         emit(asyncio.run(dry_run(backend, skills_dir)))
     elif a.ask or a.digest:
-        if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
-            sys.exit("Нужен ANTHROPIC_API_KEY (или ANTHROPIC_AUTH_TOKEN) в окружении.")
+        if not (os.environ.get("PILOT_ANTHROPIC_KEY") or os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
+            sys.exit("Нужен PILOT_ANTHROPIC_KEY или ANTHROPIC_API_KEY в окружении.")
         text = a.ask or "Produce the morning digest: what needs attention today and why. Answer in Russian."
         emit(asyncio.run(live(backend, skills_dir, text)))
     else:
