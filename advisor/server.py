@@ -28,8 +28,22 @@ if str(ROOT) not in sys.path:
 from agent_pilot.backend import MarketplaceBackend, parse_ads_rows  # noqa: E402
 from agent_pilot.runner import STANDARD_QUESTIONS, api_key_present, build_agent, run_question, skills_dir  # noqa: E402
 
-app = FastAPI(title="Финсрез / МП — советник", version="1.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app = FastAPI(title="Финсрез / МП — советник", version="1.1")
+# Сайт открыт по HTTPS с github.io, а сервер — локальный (127.0.0.1). Chrome считает
+# это обращением из публичной сети в приватную и на preflight требует
+# Access-Control-Allow-Private-Network: true; Starlette 1.x без allow_private_network
+# отвечает «Disallowed CORS private-network», и вкладка «Советник» не работает.
+_cors = {"allow_origins": ["*"], "allow_methods": ["*"], "allow_headers": ["*"]}
+try:
+    app.add_middleware(CORSMiddleware, **_cors, allow_private_network=True)
+except TypeError:  # Starlette старше 1.0: параметра нет, заголовок добавим сами
+    app.add_middleware(CORSMiddleware, **_cors)
+
+    @app.middleware("http")
+    async def _private_network(request, call_next):
+        response = await call_next(request)
+        response.headers["Access-Control-Allow-Private-Network"] = "true"
+        return response
 
 MAX_ROWS = 50_000
 
