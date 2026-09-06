@@ -633,7 +633,7 @@ th.sorted-desc::after { content: " ↓"; }
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v38 · 06.09</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v37 · 06.09</span>
 </div>
 
 <div class="layout">
@@ -794,7 +794,7 @@ th.sorted-desc::after { content: " ↓"; }
       <div class="card">
         <div class="card-header">
           <h3>Рекламный кабинет (WB / Ozon)</h3>
-          <span class="muted">статистика кампаний: кампания, артикул, дата, показы, клики, затраты, заказы — нужна советнику, чтобы считать рекламу от маржи. Два пути: файл выгрузки или напрямую из кабинетов через сервер советника (ключи API лежат только на нём)</span>
+          <span class="muted">статистика кампаний: кампания, артикул, дата, показы, клики, затраты, заказы — нужна советнику, чтобы считать рекламу от маржи</span>
         </div>
         <div class="upload-form">
           <label class="field">
@@ -802,10 +802,9 @@ th.sorted-desc::after { content: " ↓"; }
             <input id="ads-file" type="file" accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" multiple />
           </label>
           <button id="ads-submit" class="btn-primary" type="button">Загрузить рекламу</button>
-          <button id="ads-fetch" class="btn" type="button" title="Сервер советника заберёт статистику кампаний по своим ключам WB_API_TOKEN и OZON_PERF_CLIENT_ID/SECRET за период фильтра дат">Подтянуть из кабинетов</button>
           <button id="ads-remove" class="btn-small danger" type="button" hidden>Убрать рекламу</button>
         </div>
-        <p class="hint" id="ads-status" style="margin-bottom:0">Маркетплейс определяется по колонкам («Артикул WB», «CPC» — Wildberries; «ДРР», «Расход» — Ozon). Дашборд эти файлы не показывает: они нужны только вкладке «Советник». «Подтянуть из кабинетов» — сервер советника сам заберёт статистику по API за период фильтра дат (ключи кабинетов задаются на сервере, см. advisor/README.md).</p>
+        <p class="hint" id="ads-status" style="margin-bottom:0">Маркетплейс определяется по колонкам («Артикул WB», «CPC» — Wildberries; «ДРР», «Расход» — Ozon). Дашборд эти файлы не показывает: они нужны только вкладке «Советник».</p>
       </div>
 
       <div class="card">
@@ -1659,7 +1658,7 @@ function parseFile(formMarketplace, buffer, fileName = "") {
 
 const state = { files: [], nextId: 1, openRowsFileId: null, costs: new Map(), costFileName: null,
   stocks: new Map(), stockFileName: null,
-  ads: [], adsFileNames: [], adsApi: [], adsApiInfo: null,
+  ads: [], adsFileNames: [],
   rememberedMappings: new Map(), residuals: [], payoutActual: null };
 
 const costsLoaded = () => state.costs.size > 0;
@@ -1874,7 +1873,6 @@ const RETURN_RATE_RED_ZONE = 0.30;
 const EXPENSE_SHARE_RED_ZONE = 0.50;
 
 const fmtMoney = v => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(v) + " ₽";
-const fmtDate = iso => (iso && /^\d{4}-\d{2}-\d{2}/.test(iso)) ? iso.slice(8, 10) + "." + iso.slice(5, 7) + "." + iso.slice(0, 4) : (iso || "—");
 // Бейдж маркетплейса — чтобы при загрузке двух кабинетов было видно, чья строка.
 const mpChip = mp => /ozon/i.test(mp || "") ? '<span class="mp-chip ozon">Ozon</span>'
   : /^wb$|wildberries/i.test(mp || "") ? '<span class="mp-chip wb">WB</span>' : "";
@@ -4099,7 +4097,7 @@ function setupStockUpload() {
 /* ==== Рекламный кабинет: выгрузка статистики кампаний (для советника) ==== */
 
 const ADS_STATUS_DEFAULT = "Маркетплейс определяется по колонкам («Артикул WB», «CPC» — Wildberries; «ДРР», «Расход» — Ozon). Дашборд эти файлы не показывает: они нужны только вкладке «Советник».";
-const adsLoaded = () => state.ads.length > 0 || state.adsApi.length > 0;
+const adsLoaded = () => state.ads.length > 0;
 
 // Строки рекламной выгрузки → объекты {заголовок: значение} + _mp. Разбор тот же,
 // что для отчётов (CSV/Excel, кодировка, разделитель).
@@ -4126,20 +4124,8 @@ function updateAdsStatus(errorText) {
   if (errorText) { el.textContent = errorText; el.style.color = "var(--status-critical)"; return; }
   el.style.color = "";
   if (!adsLoaded()) { el.textContent = ADS_STATUS_DEFAULT; removeBtn.hidden = true; return; }
-  const parts = [];
-  if (state.ads.length) {
-    const wb = state.ads.filter(r => r._mp === "wb").length, oz = state.ads.length - wb;
-    parts.push(`из файлов ${state.adsFileNames.map(n => "«" + n + "»").join(", ")} — ${state.ads.length} строк (WB ${wb}, Ozon ${oz})`);
-  }
-  if (state.adsApi.length) {
-    const i = state.adsApiInfo || {};
-    const wb = state.adsApi.filter(r => r.mp === "wb").length, oz = state.adsApi.length - wb;
-    const spend = state.adsApi.reduce((s, r) => s + (r.spend || 0), 0);
-    parts.push(`из кабинетов за ${fmtDate(i.from)} — ${fmtDate(i.to)}: ${state.adsApi.length} строк (WB ${wb}, Ozon ${oz}), затраты ${fmtMoney(spend)}`
-      + (i.unmatched ? `; ${i.unmatched} строк с артикулом, которого нет в отчёте (советник их не привяжет к товару)` : ""));
-  }
-  el.textContent = `Реклама загружена ${parts.join("; ")}. Советник учитывает её при вопросах про рекламу.`
-    + ((state.adsApiInfo?.warnings || []).length ? " " + state.adsApiInfo.warnings.join(" ") : "");
+  const wb = state.ads.filter(r => r._mp === "wb").length, oz = state.ads.length - wb;
+  el.textContent = `Реклама загружена: ${state.adsFileNames.map(n => "«" + n + "»").join(", ")} — ${state.ads.length} строк (WB ${wb}, Ozon ${oz}). Советник учитывает её при вопросах про рекламу.`;
   removeBtn.hidden = false;
 }
 
@@ -4160,68 +4146,8 @@ function setupAdsUpload() {
     updateAdsStatus(errors.length ? errors.join(" ") : undefined);
   });
   document.getElementById("ads-remove").addEventListener("click", () => {
-    state.ads = []; state.adsFileNames = []; state.adsApi = []; state.adsApiInfo = null; updateAdsStatus();
+    state.ads = []; state.adsFileNames = []; updateAdsStatus();
   });
-  document.getElementById("ads-fetch").addEventListener("click", fetchCabinetAds);
-}
-
-// Период для запросов к серверу: фильтр дат, иначе границы загруженных строк по маркетплейсу.
-function advisorPeriod() {
-  const mp = document.getElementById("f-marketplace").value;
-  const from = document.getElementById("f-date-from").value, to = document.getElementById("f-date-to").value;
-  const dates = goodRows().filter(r => !mp || r.marketplace === mp).map(r => r.period_date).filter(Boolean).sort();
-  return { from: from || dates[0] || null, to: to || dates[dates.length - 1] || null, marketplace: mp };
-}
-
-// Кабинеты отдают номер товара (nmId WB, SKU Ozon); сервер сопоставляет его с артикулом
-// продавца, если в ключах есть категория «Контент» (WB) или ключи Seller API (Ozon).
-// Что не сопоставилось — пробуем по названию товара из отчёта, здесь, в браузере.
-function matchCabinetSkus(rows) {
-  const known = new Set(), byName = new Map();
-  for (const r of goodRows()) {
-    known.add(r.sku);
-    const n = String(r.product_name || "").trim().toLowerCase();
-    if (n && !byName.has(n)) byName.set(n, r.sku);
-  }
-  let unmatched = 0;
-  for (const r of rows) {
-    if (known.has(r.sku)) continue;
-    const byN = byName.get(String(r.product_name || "").trim().toLowerCase());
-    if (byN) r.sku = byN; else unmatched++;
-  }
-  return unmatched;
-}
-
-async function fetchCabinetAds() {
-  const el = document.getElementById("ads-status");
-  const btn = document.getElementById("ads-fetch");
-  const p = advisorPeriod();
-  if (!p.from || !p.to) { updateAdsStatus("Сначала загрузите отчёт о реализации или задайте период в фильтре дат: за него и подтянем рекламу."); return; }
-  const marketplaces = p.marketplace ? [p.marketplace] : ["wb", "ozon"];
-  btn.disabled = true;
-  el.style.color = "";
-  el.textContent = `Запрашиваю статистику кампаний за ${fmtDate(p.from)} — ${fmtDate(p.to)} у сервера ${advisorUrl()}… WB отдаёт данные не чаще раза в минуту, Ozon строит отчёт до минуты — подождите.`;
-  try {
-    const resp = await fetch(advisorUrl() + "/cabinets/ads", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ from: p.from, to: p.to, marketplaces }) });
-    const d = await resp.json().catch(() => ({}));
-    if (!resp.ok) throw new Error(d.detail || `HTTP ${resp.status}`);
-    const rows = Array.isArray(d.rows) ? d.rows : [];
-    const errs = Object.values(d.errors || {});
-    if (!rows.length) {
-      const why = errs.length ? errs.join(" ") : (d.warnings || []).join(" ") || "по этим ключам за период кампаний с затратами нет";
-      updateAdsStatus(`Из кабинетов ничего не пришло: ${why}`);
-      return;
-    }
-    const unmatched = matchCabinetSkus(rows);
-    state.adsApi = rows;
-    state.adsApiInfo = { from: d.from, to: d.to, warnings: [...(d.warnings || []), ...errs], unmatched, at: new Date().toISOString() };
-    updateAdsStatus();
-  } catch (err) {
-    console.error(err);
-    const why = /failed to fetch|networkerror|load failed/i.test(err.message) ? "сервер советника не отвечает" : err.message;
-    updateAdsStatus(`Не удалось подтянуть из кабинетов: ${why}. Проверьте, что сервер советника запущен (вкладка «Советник» → «Проверить связь») и что на нём заданы ключи кабинетов.`);
-  } finally { btn.disabled = false; }
 }
 
 /* ==== Советник: агрегаты → сервер с ключом → ответ агента ==== */
@@ -4257,7 +4183,7 @@ function buildAdvisorPayload(mode, question) {
   const period = { from: from || dates[0] || null, to: to || dates[dates.length - 1] || null };
   return {
     mode: mode || null, question: question || null, rows,
-    costs: Object.fromEntries(state.costs), stocks: Object.fromEntries(state.stocks), ads_raw: state.ads, ads: state.adsApi,
+    costs: Object.fromEntries(state.costs), stocks: Object.fromEntries(state.stocks), ads_raw: state.ads,
     period, settings: { taxMode: finSettings.taxMode, taxRate: finSettings.taxRate, moneyRate: finSettings.moneyRate },
     operator: "финансист",
   };
@@ -4342,11 +4268,7 @@ async function checkAdvisor() {
   try {
     const resp = await fetch(advisorUrl() + "/health");
     const d = await resp.json();
-    const cab = d.cabinets || {};
-    const cabText = cab.wb || cab.ozon
-      ? ` Ключи кабинетов: WB ${cab.wb?.configured ? "есть" : "нет"}, Ozon ${cab.ozon?.configured ? "есть" : "нет"}${cab.ozon?.configured && !cab.ozon?.seller_keys ? " (без Seller API — артикулы Ozon сопоставляются по названию)" : ""}.`
-      : " Сервер старой версии: кнопка «Подтянуть из кабинетов» не сработает, обновите репозиторий.";
-    el.textContent = `Сервер отвечает. Ключ Anthropic: ${d.key_present ? "есть" : "НЕТ — будет сухой прогон без текста ответа"}. Скиллы агента: ${d.skills_found ? "найдены" : "не найдены (задайте COMMERCE_AGENTS_DIR на сервере)"}.` + cabText;
+    el.textContent = `Сервер отвечает. Ключ Anthropic: ${d.key_present ? "есть" : "НЕТ — будет сухой прогон без текста ответа"}. Скиллы агента: ${d.skills_found ? "найдены" : "не найдены (задайте COMMERCE_AGENTS_DIR на сервере)"}.`;
     el.style.color = d.key_present && d.skills_found ? "" : "var(--status-serious)";
   } catch (err) {
     el.textContent = `Сервер недоступен по адресу ${advisorUrl()}. Запустите его командой python -m advisor.server (инструкция в advisor/README.md) и проверьте снова.`;
@@ -4784,7 +4706,7 @@ function clearDemoData() {
   const hadDemo = state.files.some(f => f.isDemo);
   state.files = state.files.filter(f => !f.isDemo);
   state.isDemo = false;
-  if (hadDemo) { state.costs = new Map(); state.costFileName = null; state.stocks = new Map(); state.stockFileName = null; state.ads = []; state.adsFileNames = []; state.adsApi = []; state.adsApiInfo = null; }
+  if (hadDemo) { state.costs = new Map(); state.costFileName = null; state.stocks = new Map(); state.stockFileName = null; state.ads = []; state.adsFileNames = []; }
   const banner = document.getElementById("demo-banner");
   if (banner) banner.hidden = true;
   renderUploadsList();
