@@ -1,278 +1,448 @@
-<title>RidFinance · Разбор денег маркетплейса</title>
-<meta name="description" content="Разбор денег маркетплейса за один рабочий день: куда ушли деньги по отчёту WB или Ozon, какие товары в минус, сколько заморожено, налог УСН по правильной базе, что остановить в рекламе. Финансист, а не сервис.">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;500;700&display=swap">
+<title>Татьяна Рид · Диагностика маркетплейса — где теряются деньги</title>
+<meta name="description" content="Экспресс-диагностика для продавцов Wildberries и Ozon: где именно уходят деньги между продажами и выплатой. Разбор по отчёту о реализации за один рабочий день. Татьяна Рид, CFO на аутсорсе.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,500;1,700&family=Manrope:wght@400;500;600;700;800&display=swap">
 <style>
-:root {
-  --page: #f3f5f4;
-  --surface: #ffffff;
-  --ink: #101917;
-  --muted: #566460;
-  --line: #d6dcda;
-  --teal: #0a655e;
-  --teal-ink: #ffffff;
-  --teal-soft: #dcebe8;
-  --minus: #a01a6e;
-  --minus-soft: #f6e3ee;
-  --plus: #1f7a3a;
-  --bar-base: #c9d6d3;
-  color-scheme: light dark;
+:root{
+  --void:#08080d; --coal:#0f0e16; --ink:#16141f; --ink-2:#1d1a28;
+  --gold:#d8b25e; --gold-bright:#f3d690; --gold-deep:#9c7826;
+  --cream:#f3ecdf; --cream-dim:#cbc3b6; --muted:#857d92; --muted-2:#5f586e;
+  --plus:#86c08f; --loss:#dd6b50;
+  --line:rgba(216,178,94,.16);
+  --glow:0 0 80px rgba(216,178,94,.12);
+  color-scheme: dark;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --page: #0f1716; --surface: #172221; --ink: #eaf0ee; --muted: #9eaca8; --line: #2b3835;
-    --teal: #5fcbb9; --teal-ink: #0b1614; --teal-soft: #1b3330; --minus: #ea8fc6; --minus-soft: #3a2232; --plus: #7fd39a; --bar-base: #33443f;
-  }
-}
-:root[data-theme="dark"] {
-  --page: #0f1716; --surface: #172221; --ink: #eaf0ee; --muted: #9eaca8; --line: #2b3835;
-  --teal: #5fcbb9; --teal-ink: #0b1614; --teal-soft: #1b3330; --minus: #ea8fc6; --minus-soft: #3a2232; --plus: #7fd39a; --bar-base: #33443f;
-}
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-body { margin: 0; background: var(--page); color: var(--ink); font-family: "Manrope", "Segoe UI", Arial, sans-serif; font-size: 17px; line-height: 1.55; }
-a { color: var(--teal); }
-h1, h2, h3 { font-family: "Unbounded", "Arial Black", Arial, sans-serif; margin: 0; text-wrap: balance; line-height: 1.15; }
-h1 { font-size: clamp(30px, 5vw, 52px); font-weight: 700; letter-spacing: -0.01em; }
-h2 { font-size: clamp(22px, 3vw, 30px); font-weight: 700; }
-h3 { font-size: 17px; font-weight: 700; }
-p { margin: 0; }
-.wrap { max-width: 1040px; margin: 0 auto; padding: 0 22px; }
-.eyebrow { font-size: 12.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
-.muted { color: var(--muted); }
-.num { font-variant-numeric: tabular-nums; }
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto} *{animation:none!important;transition:none!important}}
+body{margin:0;font-family:'Manrope',sans-serif;background:var(--void);color:var(--cream);line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden;position:relative}
+body::after{content:"";position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.045;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+::selection{background:var(--gold);color:#1a1206}
+h1,h2,h3,.serif{font-family:'Playfair Display',serif;line-height:1.05;letter-spacing:-.01em;margin:0;text-wrap:balance}
+p{margin:0}
+a{color:var(--gold)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+.kick{font-size:12px;font-weight:700;letter-spacing:.34em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:14px}
+.kick::before{content:"";width:44px;height:1px;background:var(--gold)}
+.kick.center{justify-content:center}
+.kick.center::after{content:"";width:44px;height:1px;background:var(--gold)}
+.gold{color:var(--gold)}
+.muted{color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
 
-/* шапка */
-.top { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 0; }
-.brand { font-family: "Unbounded", sans-serif; font-weight: 700; font-size: 18px; text-decoration: none; color: var(--ink); }
-.brand span { color: var(--teal); }
-.top .btn { padding: 9px 14px; font-size: 14px; }
-
-/* кнопки */
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 22px; border-radius: 10px; font-weight: 700; font-size: 16px; text-decoration: none; border: 1.5px solid var(--teal); background: var(--teal); color: var(--teal-ink); cursor: pointer; font-family: inherit; }
-.btn.ghost { background: transparent; color: var(--teal); }
-.btn:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
-.actions { display: flex; gap: 12px; flex-wrap: wrap; }
-.actions .hint { flex-basis: 100%; }
-.hint { font-size: 14px; color: var(--muted); }
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:11px;cursor:pointer;text-decoration:none;font-family:'Manrope';font-weight:700;font-size:16px;padding:18px 30px;border-radius:2px;border:none;
+  background:linear-gradient(110deg,var(--gold-bright),var(--gold));color:#1a1206;position:relative;overflow:hidden;transition:transform .3s,box-shadow .3s;box-shadow:0 14px 40px -12px rgba(216,178,94,.6)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 20px 50px -12px rgba(216,178,94,.8)}
+.btn:focus-visible,button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.btn::after{content:"";position:absolute;top:0;left:-120%;width:60%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transition:left .6s}
+.btn:hover::after{left:140%}
+.btn-ln{background:transparent;color:var(--gold);border:1px solid var(--line);box-shadow:none}
+.btn-ln:hover{border-color:var(--gold);background:rgba(216,178,94,.06);box-shadow:none}
+.cta-row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.micro{font-size:13px;color:var(--muted);margin-top:14px;letter-spacing:.04em}
+@media(max-width:520px){.cta-row .btn{width:100%}}
 
 /* герой */
-.hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 40px; align-items: center; padding: 36px 0 56px; }
-.hero .lead { font-size: 19px; margin: 18px 0 26px; max-width: 34ch; }
-.hero .lead b { color: var(--ink); }
+.hero{min-height:88svh;display:flex;align-items:center;text-align:center;position:relative;overflow:hidden;padding:60px 0 50px}
+.hero-glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 60% 50% at 50% 40%,rgba(216,178,94,.13),transparent 70%)}
+.hero-grid{position:absolute;inset:0;pointer-events:none;opacity:.35;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:64px 64px;mask-image:radial-gradient(ellipse 70% 60% at 50% 45%,#000,transparent)}
+.hero .wrap{position:relative;display:grid;gap:22px;justify-items:center;max-width:900px}
+.hero h1{font-size:clamp(30px,5.6vw,62px);font-weight:900;color:var(--cream)}
+.hero h1 span{color:var(--gold);display:block}
+.hero .lead{font-size:clamp(17px,2vw,21px);color:var(--cream-dim);max-width:44ch}
+.hero .cred{font-size:15px;color:var(--cream-dim)}
+.chips{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.chip{font-family:'Playfair Display';font-size:14px;letter-spacing:.08em;color:var(--gold);border:1px solid var(--line);border-radius:999px;padding:7px 18px}
+.hero .btn{min-width:280px}
 
-/* каскад: куда ушли деньги */
-.ledger { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px 16px; }
-.ledger .title { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-.ledger .title h3 { font-family: "Manrope", sans-serif; font-size: 15px; }
-.rows { display: grid; gap: 7px; }
-.row { display: grid; grid-template-columns: 118px 1fr 104px; gap: 10px; align-items: center; font-size: 14px; }
-.row .lbl { color: var(--muted); }
-.row .track { position: relative; height: 18px; border-radius: 4px; background: color-mix(in srgb, var(--bar-base) 35%, transparent); }
-.row .bar { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
-.row .bar.base { background: var(--bar-base); }
-.row .bar.minus { background: var(--minus); }
-.row .bar.total { background: var(--teal); }
-.row .bar.plus { background: var(--plus); }
-.row .val { text-align: right; font-weight: 700; }
-.row .val.minus { color: var(--minus); }
-.row.total .lbl, .row.total .val { color: var(--ink); font-weight: 700; }
-.row.total .lbl { color: var(--teal); }
-.ledger .foot { margin-top: 12px; font-size: 13px; color: var(--muted); }
+/* манифест */
+.manifesto{padding:80px 0;text-align:center}
+.manifesto p{font-family:'Playfair Display';font-size:clamp(24px,4.2vw,42px);font-weight:500;color:var(--cream);max-width:26ch;margin:0 auto;line-height:1.25}
+.manifesto p em{color:var(--muted);font-style:italic}
+.manifesto p b{color:var(--gold);font-weight:700}
 
-/* находки */
-.finds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.find { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; display: grid; gap: 8px; align-content: start; }
-.find .big { font-family: "Unbounded", sans-serif; font-weight: 700; font-size: 26px; color: var(--minus); line-height: 1.1; }
-.find .big.teal { color: var(--teal); }
-.find p { font-size: 15px; }
-.find .what { font-size: 13px; color: var(--muted); }
+section{padding:80px 0}
+.sec-head{display:grid;gap:14px;margin-bottom:36px;max-width:64ch}
+.sec-head h2{font-size:clamp(28px,4.4vw,46px);font-weight:700}
+.sec-head p{color:var(--muted);font-size:17px}
+.sec-head p b{color:var(--gold);font-weight:600}
 
-section { padding: 56px 0; }
-section + section { border-top: 1px solid var(--line); }
-.sec-head { display: grid; gap: 10px; margin-bottom: 26px; max-width: 62ch; }
+/* диагностика */
+.diag{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:36px;align-items:start}
+.lbl{font-size:13px;font-weight:700;color:var(--cream);margin:22px 0 10px}
+.lbl:first-child{margin-top:0}
+.opts{display:flex;gap:8px;flex-wrap:wrap}
+.opt{font-family:'Manrope';font-size:13px;font-weight:600;color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:999px;padding:9px 18px;cursor:pointer;transition:.2s}
+.opt:hover{color:var(--cream)}
+.opt.on{color:#1a1206;background:linear-gradient(110deg,var(--gold-bright),var(--gold));border-color:transparent}
+.zones{display:grid;gap:8px}
+.zone{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:4px;background:var(--coal);cursor:pointer;font-weight:700;font-size:15px;transition:.2s}
+.zone:hover{border-color:rgba(216,178,94,.4)}
+.zone.on{border-color:var(--gold);background:var(--ink)}
+.zone .box{width:22px;height:22px;border:1px solid var(--muted-2);border-radius:3px;display:grid;place-items:center;flex:none;font-size:14px;color:#1a1206}
+.zone.on .box{background:var(--gold);border-color:var(--gold)}
+.q{border:1px solid var(--line);border-radius:4px;padding:14px 16px;margin-top:10px;background:var(--coal)}
+.q b{display:block;font-size:14.5px;margin-bottom:8px}
+.q .ans{display:grid;gap:6px}
+.ans button{text-align:left;font-family:'Manrope';font-size:14px;color:var(--cream-dim);background:transparent;border:1px solid var(--line);border-radius:3px;padding:9px 12px;cursor:pointer;display:flex;gap:10px;align-items:center}
+.ans button::before{content:"";width:12px;height:12px;border-radius:50%;border:1px solid var(--muted-2);flex:none}
+.ans button.on{border-color:var(--gold);color:var(--cream)}
+.ans button.on::before{background:var(--gold);border-color:var(--gold)}
+.turn{margin-top:22px}
+.turn-lbl{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:var(--cream-dim)}
+.turn-lbl b{font-family:'Playfair Display';font-size:22px;font-weight:700;color:var(--gold)}
+input[type=range]{width:100%;accent-color:var(--gold);margin-top:8px}
+.estimate{position:sticky;top:24px;border:1px solid var(--line);border-radius:6px;padding:30px 28px;text-align:center;background:var(--coal);box-shadow:var(--glow)}
+.estimate .k{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted)}
+.estimate .big{font-family:'Playfair Display';font-size:clamp(38px,5vw,56px);font-weight:900;color:var(--cream);margin:12px 0 4px}
+.estimate .sub{font-size:13px;color:var(--muted)}
+.estimate .year{margin:18px 0 0;padding-top:16px;border-top:1px dashed var(--line);font-size:15px;color:var(--cream-dim)}
+.estimate .year b{font-family:'Playfair Display';font-size:22px;color:var(--gold)}
+.estimate .fine{font-size:12px;color:var(--muted-2);font-style:italic;margin-top:14px}
+.verdict{margin-top:44px;border:1px solid var(--gold);border-radius:6px;overflow:hidden;background:var(--coal);display:none}
+.verdict.show{display:block;animation:pop .5s cubic-bezier(.2,.8,.2,1)}
+@keyframes pop{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.verdict-head{padding:24px 28px 20px;border-bottom:1px solid var(--line)}
+.verdict-head .k{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold)}
+.verdict-head h3{font-size:clamp(22px,3vw,30px);margin-top:8px}
+.verdict-body{padding:6px 28px 8px}
+.vrow{padding:16px 0;border-bottom:1px solid var(--line)}
+.vrow:last-child{border-bottom:0}
+.vrow .k{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.vrow .ask{font-family:'Playfair Display';font-style:italic;font-size:19px;color:var(--gold-bright)}
+.vrow ol{margin:0;padding:0;list-style:none;display:grid;gap:8px;counter-reset:c}
+.vrow ol li{display:flex;gap:12px;align-items:flex-start;font-size:15px}
+.vrow ol li::before{counter-increment:c;content:counter(c);width:22px;height:22px;border-radius:50%;border:1px solid var(--gold);color:var(--gold);font-size:12px;display:grid;place-items:center;flex:none}
+.verdict-foot{padding:20px 28px 26px;border-top:1px solid var(--line);background:var(--ink);display:grid;gap:14px}
+.verdict-foot p{font-size:15px;color:var(--cream-dim)}
+.verdict-foot .row{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.verdict-foot .alt{font-size:14px;color:var(--gold);text-decoration:underline;text-underline-offset:4px}
+@media(max-width:860px){.diag{grid-template-columns:1fr}.estimate{position:static}}
 
-/* что получите */
-.gets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 28px; }
-.get { display: grid; grid-template-columns: 28px 1fr; gap: 12px; align-items: start; }
-.get .mark { width: 28px; height: 28px; border-radius: 50%; background: var(--teal-soft); color: var(--teal); display: grid; place-items: center; font-weight: 700; font-size: 14px; }
-.get b { display: block; margin-bottom: 2px; }
-.get p { font-size: 15.5px; color: var(--muted); }
+/* что получаете */
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.grid3>div{background:var(--void);padding:26px 24px}
+.grid3 .ico{width:36px;height:36px;border:1px solid var(--line);border-radius:8px;display:grid;place-items:center;color:var(--gold);font-family:'Playfair Display';font-size:18px;margin-bottom:14px}
+.grid3 h3{font-size:18px;margin-bottom:8px}
+.grid3 p{font-size:14.5px;color:var(--muted)}
+@media(max-width:860px){.grid3{grid-template-columns:1fr}}
 
-/* как проходит */
-.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; counter-reset: step; }
-.step { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; }
-.step::before { counter-increment: step; content: counter(step); font-family: "Unbounded", sans-serif; font-weight: 700; font-size: 30px; color: var(--teal); display: block; margin-bottom: 8px; line-height: 1; }
-.step h3 { margin-bottom: 6px; }
-.step p { font-size: 15.5px; color: var(--muted); }
+/* каскад в браузере */
+.pocket{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;align-items:center}
+.ledger{border:1px solid var(--line);border-radius:6px;background:var(--coal);padding:22px 24px;box-shadow:var(--glow)}
+.ledger .t{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:16px}
+.ledger .t b{color:var(--cream);font-size:14px}
+.rows{display:grid;gap:8px}
+.row{display:grid;grid-template-columns:104px 1fr 100px;gap:10px;align-items:center;font-size:13.5px}
+.row .l{color:var(--muted)}
+.row .tr{position:relative;height:16px;border-radius:2px;background:rgba(255,255,255,.05)}
+.row .bar{position:absolute;top:0;bottom:0;border-radius:2px}
+.bar.base{background:var(--muted-2)}
+.bar.minus{background:var(--loss)}
+.bar.total{background:linear-gradient(110deg,var(--gold-bright),var(--gold))}
+.bar.plus{background:var(--plus)}
+.row .v{text-align:right;font-weight:700;color:var(--cream)}
+.row .v.m{color:var(--loss)}
+.row.total .l{color:var(--gold);font-weight:700}
+.pocket ul{margin:18px 0 0;padding:0;list-style:none;display:grid;gap:12px}
+.pocket li{display:flex;gap:12px;font-size:15.5px;color:var(--cream-dim)}
+.pocket li::before{content:"◆";color:var(--gold);font-size:11px;margin-top:6px}
+@media(max-width:860px){.pocket{grid-template-columns:1fr}.row{grid-template-columns:90px 1fr 90px;font-size:12.5px}}
 
-/* кому */
-.who { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.who div { padding: 18px 20px; border-left: 3px solid var(--teal); background: var(--surface); border-radius: 0 12px 12px 0; }
-.who h3 { margin-bottom: 6px; }
-.who p { font-size: 15.5px; color: var(--muted); }
+/* кейсы */
+.cases{display:grid;gap:12px}
+.case{border:1px solid var(--line);border-radius:4px;padding:20px 24px;background:var(--coal);display:grid;grid-template-columns:200px 1fr;gap:20px;align-items:start}
+.case .k{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold)}
+.case .big{font-family:'Playfair Display';font-size:26px;font-weight:700;color:var(--cream);margin-top:6px}
+.case p{font-size:15px;color:var(--cream-dim)}
+.case p b{color:var(--cream)}
+@media(max-width:700px){.case{grid-template-columns:1fr}}
 
-/* не сервис */
-.split { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
-.split ul { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 8px; }
-.free { background: var(--teal-soft); border-radius: 16px; padding: 24px 26px; display: grid; gap: 12px; }
-.free h3 { font-size: 20px; }
+/* шаги */
+.steps{display:grid;gap:0;border-left:1px solid var(--line);margin-left:14px}
+.step{position:relative;padding:6px 0 30px 34px}
+.step::before{content:attr(data-n);position:absolute;left:-15px;top:6px;width:28px;height:28px;border-radius:50%;background:var(--void);border:1px solid var(--gold);color:var(--gold);font-size:12px;font-weight:700;display:grid;place-items:center}
+.step h3{font-size:19px;margin-bottom:6px}
+.step p{font-size:15px;color:var(--muted);max-width:60ch}
+
+/* цены */
+.plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.plan{border:1px solid var(--line);border-radius:6px;padding:26px 24px;background:var(--coal);display:grid;gap:10px;align-content:start}
+.plan.hi{border-color:var(--gold);box-shadow:var(--glow)}
+.plan .k{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted)}
+.plan h3{font-size:22px}
+.plan .price{font-family:'Playfair Display';font-size:30px;font-weight:700;color:var(--gold)}
+.plan .price small{font-family:'Manrope';font-size:13px;color:var(--muted);font-weight:500;display:block}
+.plan ul{margin:6px 0 0;padding:0;list-style:none;display:grid;gap:7px}
+.plan li{font-size:14.5px;color:var(--cream-dim);display:flex;gap:10px}
+.plan li::before{content:"—";color:var(--gold)}
+@media(max-width:860px){.plans{grid-template-columns:1fr}}
 
 /* вопросы */
-.faq { display: grid; gap: 10px; max-width: 760px; }
-details { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
-summary { cursor: pointer; font-weight: 700; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
-summary::after { content: "+"; color: var(--teal); font-weight: 700; }
-details[open] summary::after { content: "−"; }
-details p { margin-top: 10px; color: var(--muted); font-size: 15.5px; }
+.faq{border-bottom:1px solid var(--line)}
+.faq-q{width:100%;text-align:left;background:none;border:none;color:var(--cream);font-family:'Playfair Display';font-size:20px;padding:20px 0;cursor:pointer;display:flex;justify-content:space-between;gap:16px;align-items:center}
+.faq-q::after{content:"+";color:var(--gold);font-family:'Manrope';font-size:22px}
+.faq.open .faq-q::after{content:"−"}
+.faq-a{display:none;padding:0 0 22px;color:var(--cream-dim);font-size:15.5px;max-width:70ch}
+.faq.open .faq-a{display:block}
 
 /* финал */
-.final { background: var(--ink); color: var(--page); border-radius: 20px; padding: 40px 36px; display: grid; gap: 18px; }
-.final h2 { color: var(--page); }
-.final .btn { background: var(--page); color: var(--ink); border-color: var(--page); }
-.final .hint { color: color-mix(in srgb, var(--page) 70%, transparent); }
-footer { padding: 26px 0 40px; font-size: 14px; color: var(--muted); display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
-
-@media (max-width: 860px) {
-  .hero { grid-template-columns: 1fr; gap: 26px; padding: 20px 0 40px; }
-  .finds, .steps, .who { grid-template-columns: 1fr; }
-  .gets, .split { grid-template-columns: 1fr; }
-  section { padding: 40px 0; }
-  .row { grid-template-columns: 96px 1fr 92px; font-size: 13px; }
-  .top .btn { display: none; }
-}
+.final{text-align:center;padding:100px 0 60px;position:relative}
+.final h2{font-size:clamp(32px,7vw,64px);font-weight:900;margin-bottom:18px}
+.final h2 em{color:var(--gold);font-style:italic;font-weight:500}
+.final p{color:var(--cream-dim);font-size:17px;max-width:48ch;margin:0 auto 28px}
+footer{padding:28px 0 50px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;letter-spacing:.03em}
+footer a{color:var(--gold);text-decoration:none}
 </style>
 
-<div class="wrap">
-  <header class="top">
-    <a class="brand" href="#top">Rid<span>Finance</span></a>
-    <a class="btn" href="https://t.me/RidFinance_bot?start=landing" target="_blank" rel="noopener" data-goal="order_click">Заказать разбор</a>
-  </header>
-
-  <div class="hero" id="top">
-    <div>
-      <div class="eyebrow">Финансист для продавцов Wildberries и Ozon</div>
-      <h1 style="margin-top:12px">Продажи есть. Где деньги?</h1>
-      <p class="lead muted">Разбор денег маркетплейса за один рабочий день: <b>по вашему отчёту о реализации, до рубля</b>, с выводами финансиста, что сделать на этой неделе.</p>
-      <div class="actions">
-        <a class="btn" href="https://t.me/RidFinance_bot?start=landing" target="_blank" rel="noopener" data-goal="order_click">Заказать разбор в Telegram</a>
-        <a class="btn ghost" href="https://ridrid25.github.io/Test-claud-parametr/" target="_blank" rel="noopener">Посчитать самому бесплатно</a>
-        <p class="hint">Условия и стоимость — в боте. Бесплатный расчёт идёт прямо в вашем браузере, файлы никуда не отправляются.</p>
-      </div>
+<div class="hero" id="top">
+  <div class="hero-grid"></div><div class="hero-glow"></div>
+  <div class="wrap">
+    <div class="kick center">Татьяна Рид · CFO на аутсорсе · маркетплейсы</div>
+    <h1>Экспресс-диагностика маркетплейса: <span>где теряются деньги</span></h1>
+    <p class="lead">Разбор по вашему отчёту о реализации — покажу, куда уходит разница между продажами и тем, что пришло на счёт.</p>
+    <p class="cred">25 лет в реальном бизнесе — строительство, дорожная отрасль, производство. Wildberries и Ozon — те же деньги, только удержаний больше.</p>
+    <div class="chips"><span class="chip">DipIFR</span><span class="chip">ACCA</span><span class="chip">CIMA</span></div>
+    <div class="cta-row">
+      <a class="btn" href="#diag">Пройти диагностику</a>
+      <a class="btn btn-ln" href="https://t.me/RidFinancebot_bot?start=mp_zapis" target="_blank" rel="noopener" data-goal="order_click">Записаться на разбор</a>
     </div>
-
-    <figure class="ledger" style="margin:0">
-      <div class="title"><h3>Куда ушли деньги за 47 дней</h3><span class="hint">пример на демо-данных, настоящий расчёт</span></div>
-      <div class="rows num">
-        <div class="row"><span class="lbl">Реализация</span><div class="track"><div class="bar base" style="left:0;width:100%"></div></div><span class="val">1 874 236 ₽</span></div>
-        <div class="row"><span class="lbl">Возвраты</span><div class="track"><div class="bar minus" style="left:93.68%;width:6.32%"></div></div><span class="val minus">−118 372</span></div>
-        <div class="row"><span class="lbl">Комиссия</span><div class="track"><div class="bar minus" style="left:78.62%;width:15.07%"></div></div><span class="val minus">−282 384</span></div>
-        <div class="row"><span class="lbl">Логистика</span><div class="track"><div class="bar minus" style="left:69.53%;width:9.08%"></div></div><span class="val minus">−170 258</span></div>
-        <div class="row"><span class="lbl">Реклама и прочее</span><div class="track"><div class="bar minus" style="left:66.94%;width:2.6%"></div></div><span class="val minus">−48 634</span></div>
-        <div class="row total"><span class="lbl">Выплата</span><div class="track"><div class="bar total" style="left:0;width:66.94%"></div></div><span class="val">1 254 588 ₽</span></div>
-        <div class="row"><span class="lbl">Себестоимость</span><div class="track"><div class="bar minus" style="left:33.96%;width:32.98%"></div></div><span class="val minus">−618 051</span></div>
-        <div class="row total"><span class="lbl">Прибыль</span><div class="track"><div class="bar plus" style="left:0;width:33.96%"></div></div><span class="val">636 537 ₽</span></div>
-      </div>
-      <p class="foot">Так выглядит первая страница разбора. Дальше — по каждому товару.</p>
-    </figure>
+    <p class="micro">Диагностика бесплатно, две минуты, без заявки. Разбор по вашим файлам — за один рабочий день.</p>
   </div>
-
-  <section>
-    <div class="sec-head">
-      <h2>Что разбор находит на тех же цифрах</h2>
-      <p class="muted">Общая прибыль здесь 636 537 ₽, и по сводке всё хорошо. Внутри — три дыры, которых в отчёте кабинета не видно.</p>
-    </div>
-    <div class="finds num">
-      <div class="find"><div class="big">6 товаров в минус</div><p>Продаются, дают выручку и забирают <b>30 563 ₽</b> за период после всех удержаний и себестоимости.</p><span class="what">убыточные артикулы</span></div>
-      <div class="find"><div class="big">1 032 009 ₽ заморожено</div><p>Лежит в остатках. При цене денег 24 % годовых это <b>31 893 ₽</b> за 47 дней — больше, чем весь убыток по товарам.</p><span class="what">замороженные деньги</span></div>
-      <div class="find"><div class="big">37 258 ₽ на рекламу в минус</div><p>Две кампании крутятся на убыточных товарах: каждая проданная штука увеличивает убыток. Бюджет — в прибыльные позиции.</p><span class="what">реклама от маржи, а не от ДРР</span></div>
-    </div>
-  </section>
-
-  <section>
-    <div class="sec-head">
-      <h2>Что вы получаете</h2>
-      <p class="muted">Один документ и один разговор. Всё сходится с отчётом кабинета до рубля.</p>
-    </div>
-    <div class="gets">
-      <div class="get"><span class="mark">₽</span><div><b>Куда ушли деньги</b><p>Комиссия, логистика, возвраты, хранение, реклама, штрафы — по статьям и по товарам, за выбранный период.</p></div></div>
-      <div class="get"><span class="mark">−</span><div><b>Товары, которые продаются в минус</b><p>После всех удержаний и себестоимости. Сколько забирает каждый и что с ним делать: цена, уценка, снятие.</p></div></div>
-      <div class="get"><span class="mark">❄</span><div><b>Замороженные деньги</b><p>Сколько лежит в остатках, какие позиции держат больше всего и во что это обходится при вашей стоимости денег.</p></div></div>
-      <div class="get"><span class="mark">%</span><div><b>Налог УСН по правильной базе</b><p>С продаж за минусом возвратов, а не с выплаты. Для «доходы минус расходы» — с учётом себестоимости и минимального налога.</p></div></div>
-      <div class="get"><span class="mark">▶</span><div><b>Реклама от маржи</b><p>Какие кампании остановить, какие усилить и сколько бюджета переложить, по статистике кабинета.</p></div></div>
-      <div class="get"><span class="mark">✓</span><div><b>3–5 действий на неделю</b><p>Список с суммой эффекта по каждому пункту и 30 минут разговора, чтобы решить, что делаете первым.</p></div></div>
-    </div>
-  </section>
-
-  <section>
-    <div class="sec-head">
-      <h2>Как проходит</h2>
-    </div>
-    <div class="steps">
-      <div class="step"><h3>Присылаете три файла в бот</h3><p>Отчёт о реализации WB или Ozon за период, себестоимость по артикулам, остатки на складах. Без себестоимости тоже посчитаем, но без прибыли по товарам.</p></div>
-      <div class="step"><h3>Считаем и проверяем</h3><p>Советник на основе торгового агента прогоняет цифры по пяти вопросам, финансист сверяет их с отчётом и пишет выводы. В кабинетах ничего не меняется.</p></div>
-      <div class="step"><h3>Получаете разбор</h3><p>На следующий рабочий день: таблица по статьям, товары в минус, заморозка, налог, реклама, действия. Потом разговор.</p></div>
-    </div>
-  </section>
-
-  <section>
-    <div class="sec-head">
-      <h2>Кому это нужно</h2>
-    </div>
-    <div class="who">
-      <div><h3>Селлеру без своего финансиста</h3><p>Оборот от одного миллиона в месяц, продаж много, а на счёте почему-то меньше, чем ожидали. Разбор показывает, куда уходит разница и что вернуть.</p></div>
-      <div><h3>Селлеру с бухгалтером</h3><p>Бухгалтер сдаёт отчётность, но не отвечает «почему выплата упала». Разбор — управленческий слой поверх учёта, с налогом по правильной базе.</p></div>
-      <div><h3>Перед закупкой партии</h3><p>Прежде чем везти новую партию, стоит знать, какие позиции уже в минусе и сколько денег лежит на складе без движения.</p></div>
-    </div>
-  </section>
-
-  <section>
-    <div class="split">
-      <div>
-        <h2>Это не сервис аналитики</h2>
-        <ul>
-          <li>Сервисы показывают таблицы и графики. Здесь вы получаете <b>выводы и действия</b>, написанные человеком, который отвечает за цифры.</li>
-          <li>Считаем <b>от маржи после всех удержаний</b>, а не от ДРР и оборота. Поэтому кампания с ROAS 9 может оказаться убыточной, и мы это покажем.</li>
-          <li>Только чтение: <b>ничего не меняем в ваших кабинетах</b>, ставки и цены трогаете вы.</li>
-          <li>Никаких подписок на «10 000 ₽ в месяц за доступ». Разбор нужен раз в период, сопровождение — по желанию.</li>
-        </ul>
-      </div>
-      <div class="free">
-        <h3>Посчитайте сами, бесплатно</h3>
-        <p>Загрузите выгрузку из кабинета в наш дашборд: выплата, удержания, убыточные товары, налог, заморозка — сразу, без регистрации. Файл обрабатывается в вашем браузере и никуда не отправляется.</p>
-        <p>Там же — пример разбора: настоящие ответы советника на демо-данных.</p>
-        <div class="actions" style="margin-top:6px"><a class="btn ghost" href="https://ridrid25.github.io/Test-claud-parametr/" target="_blank" rel="noopener">Открыть дашборд</a></div>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="sec-head"><h2>Вопросы</h2></div>
-    <div class="faq">
-      <details><summary>Какие файлы нужны и где их взять?</summary><p>Отчёт о реализации: WB — Финансовые отчёты → Отчёт о реализации, Ozon — Финансы → Отчёты → Отчёт о реализации. Себестоимость — любая таблица «артикул, цена за штуку». Остатки — выгрузка со складов. Достаточно CSV или Excel, как выгружает кабинет.</p></details>
-      <details><summary>Куда уходят мои данные?</summary><p>Бесплатный расчёт на сайте идёт в вашем браузере, файлы не отправляются никуда. Для разбора вы присылаете файлы в бот, их видит финансист; в модель советника уходят агрегаты по товарам, не сам файл. После разбора файлы нигде не хранятся.</p></details>
-      <details><summary>Сколько стоит?</summary><p>Стоимость разового разбора и сопровождения — в боте, она зависит от числа артикулов и маркетплейсов. Ориентир: разбор дешевле одного найденного убыточного товара за месяц.</p></details>
-      <details><summary>Сколько ждать?</summary><p>Разбор — на следующий рабочий день после получения файлов. Разговор — в течение недели, в удобное время.</p></details>
-      <details><summary>Вы что-то меняете в моём кабинете?</summary><p>Нет. Доступ к кабинету не нужен. Все решения по ценам, ставкам и остаткам принимаете и выполняете вы, разбор говорит, что и почему.</p></details>
-    </div>
-  </section>
-
-  <section>
-    <div class="final">
-      <h2>Узнайте, где ваши деньги, к завтрашнему дню</h2>
-      <p>Напишите в бот, он попросит три файла и расскажет условия.</p>
-      <div class="actions"><a class="btn" href="https://t.me/RidFinance_bot?start=landing" target="_blank" rel="noopener" data-goal="order_click">Заказать разбор в Telegram</a></div>
-      <p class="hint">Wildberries и Ozon. Только чтение. До рубля.</p>
-    </div>
-  </section>
-
-  <footer>
-    <span>RidFinance · финансист для продавцов маркетплейсов</span>
-    <span><a href="https://t.me/RidFinance_bot" target="_blank" rel="noopener">@RidFinance_bot</a> · <a href="https://ridrid25.github.io/Test-claud-parametr/" target="_blank" rel="noopener">бесплатный дашборд</a></span>
-  </footer>
 </div>
 
+<div class="manifesto"><div class="wrap">
+  <p>Продажи растут, а на счёт приходит <b>две трети</b>. <em>Комиссия, логистика, возвраты, реклама, склад</em> — деньги уходят тихо, по несколько процентов каждой статьёй. Так устроено у большинства продавцов. <em>Давайте посмотрим, как у вас.</em></p>
+</div></div>
+
+<section id="diag"><div class="wrap">
+  <div class="sec-head">
+    <div class="kick">Экспресс-диагностика</div>
+    <h2>Где ваш магазин теряет деньги</h2>
+    <p>Выберите площадку, отметьте знакомое и ответьте на три вопроса — получите <b>персональный разбор</b> сразу, без заявки.</p>
+  </div>
+  <div class="diag">
+    <div>
+      <div class="lbl">Площадка</div>
+      <div class="opts" id="mp">
+        <button class="opt" type="button" data-v="wb">Wildberries</button>
+        <button class="opt" type="button" data-v="ozon">Ozon</button>
+        <button class="opt" type="button" data-v="both">Обе</button>
+      </div>
+      <div class="lbl">Что знакомо</div>
+      <div class="zones" id="zones">
+        <button class="zone" type="button" data-i="0"><span class="box">✓</span>Склад стоит: остатки лежат месяцами, деньги в них заморожены</button>
+        <button class="zone" type="button" data-i="1"><span class="box">✓</span>Выплата непредсказуема: продажи есть, а на счёт приходит непонятно сколько</button>
+        <button class="zone" type="button" data-i="2"><span class="box">✓</span>Реклама и акции «на глаз», без расчёта маржи</button>
+        <button class="zone" type="button" data-i="3"><span class="box">✓</span>Не знаю прибыльность по артикулам после всех удержаний</button>
+        <button class="zone" type="button" data-i="4"><span class="box">✓</span>Перед закупкой партии денег не хватает, случаются разрывы</button>
+      </div>
+      <div class="q"><b>Знаете, сколько денег будет на счёте через месяц?</b><div class="ans" data-q="0"><button type="button" data-v="0">Вижу прогноз в любой момент</button><button type="button" data-v="1">Прикидываю раз в месяц</button><button type="button" data-v="2">Вспоминаю, когда прижмёт</button></div></div>
+      <div class="q"><b>Назовёте самый прибыльный артикул за 5 секунд — по цифрам, не по ощущению?</b><div class="ans" data-q="1"><button type="button" data-v="0">Да, знаю точную маржу</button><button type="button" data-v="1">Примерно чувствую</button><button type="button" data-v="2">Не уверен</button></div></div>
+      <div class="q"><b>Ставки в рекламе и участие в акциях — как решаете?</b><div class="ans" data-q="2"><button type="button" data-v="0">По расчёту маржи</button><button type="button" data-v="1">По ситуации</button><button type="button" data-v="2">Как маркетплейс предложит</button></div></div>
+      <div class="turn">
+        <div class="turn-lbl"><span>Месячный оборот</span><b id="turn-v">5 млн ₽</b></div>
+        <input type="range" id="turn" min="1" max="80" value="5" aria-label="Месячный оборот, млн ₽">
+      </div>
+    </div>
+    <div class="estimate num">
+      <div class="k">Во сколько примерно обходится</div>
+      <div class="big" id="est-m">0 ₽</div>
+      <div class="sub">в месяц · грубая оценка</div>
+      <p class="year">в год это <b id="est-y">0 ₽</b></p>
+      <p class="fine">Это прикидка по долям из типичного разбора, а не диагноз. Точную цифру по вашему отчёту можно посчитать на разборе.</p>
+    </div>
+  </div>
+
+  <div class="verdict" id="verdict">
+    <div class="verdict-head"><div class="k" id="v-kick">Острый риск</div><h3 id="v-title"></h3></div>
+    <div class="verdict-body">
+      <div class="vrow"><div class="k">Диагноз приоритета</div><p id="v-diag"></p></div>
+      <div class="vrow"><div class="k">Наблюдение</div><p id="v-obs"></p></div>
+      <div class="vrow"><div class="k">Вопрос, который стоит себе задать</div><p class="ask" id="v-ask"></p></div>
+      <div class="vrow"><div class="k">Проверьте на этой неделе</div><ol id="v-todo"></ol></div>
+    </div>
+    <div class="verdict-foot">
+      <p>Отправьте разбор мне в Telegram — я заранее увижу ваши зоны и приду на разговор подготовленной. Это бесплатно.</p>
+      <div class="row"><a class="btn" id="v-send" href="https://t.me/RidFinancebot_bot?start=d3_m_00000_---_5_x" target="_blank" rel="noopener" data-goal="order_click">Отправить разбор Татьяне</a><a class="alt" href="https://t.me/RidFinancebot_bot?start=mp_zapis" target="_blank" rel="noopener">Или записаться на разбор</a></div>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head"><div class="kick">Что вы получаете</div><h2>Разбор денег маркетплейса за один рабочий день</h2><p>Не таблицы, а ответы. Всё сходится с отчётом кабинета <b>до рубля</b>.</p></div>
+  <div class="grid3">
+    <div><div class="ico">₽</div><h3>Куда ушли деньги</h3><p>Комиссия, логистика, возвраты, хранение, реклама, штрафы — по статьям и по товарам за период.</p></div>
+    <div><div class="ico">−</div><h3>Товары в минус</h3><p>После всех удержаний и себестоимости. Сколько забирает каждый и что с ним делать: цена, уценка, снятие.</p></div>
+    <div><div class="ico">❄</div><h3>Замороженные деньги</h3><p>Сколько лежит в остатках, какие позиции держат больше всего и во что это обходится при вашей стоимости денег.</p></div>
+    <div><div class="ico">%</div><h3>Налог УСН по правильной базе</h3><p>С продаж за минусом возвратов, а не с выплаты. Для «доходы минус расходы» — с себестоимостью и минимальным налогом.</p></div>
+    <div><div class="ico">▶</div><h3>Реклама от маржи</h3><p>Какие кампании остановить, какие усилить и сколько бюджета переложить — по статистике вашего кабинета.</p></div>
+    <div><div class="ico">✓</div><h3>Действия на неделю</h3><p>Три–пять пунктов с суммой эффекта и 30 минут разговора, чтобы решить, что делаете первым.</p></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head"><div class="kick">Ваши цифры — в браузере</div><h2>Посчитайте сами, бесплатно</h2></div>
+  <div class="pocket">
+    <div>
+      <p style="font-size:17px;color:var(--cream-dim)">Загрузите выгрузку из кабинета в мой дашборд: выплата, удержания, убыточные товары, налог, заморозка — сразу, без регистрации. Файл считается в вашем браузере и никуда не отправляется.</p>
+      <ul>
+        <li>Wildberries и Ozon, CSV или Excel как есть из кабинета.</li>
+        <li>Себестоимость и остатки — отдельными файлами, тогда видны прибыль по товарам и заморозка.</li>
+        <li>Там же пример разбора: настоящие ответы советника на демо-данных.</li>
+      </ul>
+      <div class="cta-row" style="justify-content:flex-start;margin-top:26px"><a class="btn btn-ln" href="https://ridrid25.github.io/Test-claud-parametr/" target="_blank" rel="noopener">Открыть дашборд</a></div>
+    </div>
+    <div class="ledger num">
+      <div class="t"><b>Куда ушли деньги за 47 дней</b><span>демо-данные, настоящий расчёт</span></div>
+      <div class="rows">
+        <div class="row"><span class="l">Реализация</span><div class="tr"><div class="bar base" style="left:0;width:100%"></div></div><span class="v">1 874 236 ₽</span></div>
+        <div class="row"><span class="l">Возвраты</span><div class="tr"><div class="bar minus" style="left:93.68%;width:6.32%"></div></div><span class="v m">−118 372</span></div>
+        <div class="row"><span class="l">Комиссия</span><div class="tr"><div class="bar minus" style="left:78.62%;width:15.07%"></div></div><span class="v m">−282 384</span></div>
+        <div class="row"><span class="l">Логистика</span><div class="tr"><div class="bar minus" style="left:69.53%;width:9.08%"></div></div><span class="v m">−170 258</span></div>
+        <div class="row"><span class="l">Реклама и прочее</span><div class="tr"><div class="bar minus" style="left:66.94%;width:2.6%"></div></div><span class="v m">−48 634</span></div>
+        <div class="row total"><span class="l">Выплата</span><div class="tr"><div class="bar total" style="left:0;width:66.94%"></div></div><span class="v">1 254 588 ₽</span></div>
+        <div class="row"><span class="l">Себестоимость</span><div class="tr"><div class="bar minus" style="left:33.96%;width:32.98%"></div></div><span class="v m">−618 051</span></div>
+        <div class="row total"><span class="l">Прибыль</span><div class="tr"><div class="bar plus" style="left:0;width:33.96%"></div></div><span class="v">636 537 ₽</span></div>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head"><div class="kick">Из практики</div><h2>Что обычно вскрывается на разборе</h2><p>Общая прибыль на этих цифрах — 636 537 ₽, по сводке всё хорошо. Внутри — три дыры, которых в отчёте кабинета не видно.</p></div>
+  <div class="cases num">
+    <div class="case"><div><div class="k">Убыточные артикулы</div><div class="big">6 товаров в минус</div></div><p>Продаются, дают выручку и забирают <b>30 563 ₽</b> за период после всех удержаний и себестоимости. Два из них ещё и в рекламе.</p></div>
+    <div class="case"><div><div class="k">Замороженные деньги</div><div class="big">1 032 009 ₽</div></div><p>Лежат в остатках. При цене денег 24 % годовых это <b>31 893 ₽</b> за 47 дней — больше, чем весь убыток по товарам. Три позиции держат половину суммы.</p></div>
+    <div class="case"><div><div class="k">Реклама в минус</div><div class="big">37 258 ₽</div></div><p>Две кампании крутятся на убыточных товарах: каждая проданная штука увеличивает убыток. Тот же бюджет в прибыльных позициях даёт ROAS 9.</p></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head"><div class="kick">Процесс</div><h2>Четыре шага, спокойно</h2></div>
+  <div class="steps">
+    <div class="step" data-n="1"><h3>Бесплатная диагностика</h3><p>Две минуты выше на странице. Я вижу ваши зоны ещё до разговора.</p></div>
+    <div class="step" data-n="2"><h3>Три файла в бот</h3><p>Отчёт о реализации WB или Ozon за период, себестоимость по артикулам, остатки. Без себестоимости тоже посчитаю, но без прибыли по товарам.</p></div>
+    <div class="step" data-n="3"><h3>Разбор на следующий рабочий день</h3><p>Советник на основе торгового агента прогоняет цифры по пяти вопросам, я сверяю их с отчётом и пишу выводы. В кабинете ничего не меняется.</p></div>
+    <div class="step" data-n="4"><h3>Разговор и действия</h3><p>30 минут: что делаем первым, сколько это вернёт, что смотрим в следующем периоде.</p></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head"><div class="kick">Сколько это стоит</div><h2>Три формата</h2></div>
+  <div class="plans">
+    <div class="plan"><div class="k">Старт</div><h3>Диагностика</h3><div class="price">бесплатно</div><ul><li>две минуты на этой странице</li><li>приоритетная зона и что проверить</li><li>разбор уходит мне в Telegram</li></ul></div>
+    <div class="plan hi"><div class="k">Основное</div><h3>Разбор периода</h3><div class="price">по вашему отчёту<small>стоимость назову после диагностики</small></div><ul><li>куда ушли деньги, до рубля</li><li>товары в минус, заморозка, налог, реклама</li><li>действия на неделю и 30 минут разговора</li></ul></div>
+    <div class="plan"><div class="k">Сопровождение</div><h3>Каждый период</h3><div class="price">ежемесячно<small>после первого разбора</small></div><ul><li>разбор каждого отчётного периода</li><li>контроль налога и остатков</li><li>чат с финансистом</li></ul></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="sec-head"><div class="kick">Частые вопросы</div><h2>Что спрашивают до разбора</h2></div>
+  <div class="faq"><button class="faq-q" type="button">Какие файлы нужны и где их взять?</button><div class="faq-a">Отчёт о реализации: WB — Финансовые отчёты → Отчёт о реализации, Ozon — Финансы → Отчёты → Отчёт о реализации. Себестоимость — любая таблица «артикул, цена за штуку». Остатки — выгрузка со складов. CSV или Excel, как выгружает кабинет.</div></div>
+  <div class="faq"><button class="faq-q" type="button">Куда уходят мои данные?</button><div class="faq-a">Бесплатный расчёт на сайте идёт в вашем браузере, файлы никуда не отправляются. Для разбора вы присылаете файлы в бот, их вижу я; в модель советника уходят агрегаты по товарам, не сам файл. После разбора файлы не хранятся.</div></div>
+  <div class="faq"><button class="faq-q" type="button">Нужен ли доступ к кабинету?</button><div class="faq-a">Нет. Ни к кабинету, ни к рекламе. Все решения по ценам, ставкам и остаткам принимаете и выполняете вы, разбор говорит, что и почему.</div></div>
+  <div class="faq"><button class="faq-q" type="button">Чем это отличается от сервиса аналитики?</button><div class="faq-a">Сервисы показывают таблицы и графики за подписку. Здесь вы получаете выводы и действия, написанные финансистом, который отвечает за цифры, и считаем мы от маржи после всех удержаний, а не от оборота и ДРР.</div></div>
+  <div class="faq"><button class="faq-q" type="button">Сколько ждать?</button><div class="faq-a">Разбор — на следующий рабочий день после получения файлов. Разговор — в течение недели, в удобное время.</div></div>
+</div></section>
+
+<div class="final"><div class="wrap">
+  <div class="kick center" style="margin-bottom:22px">Татьяна Рид</div>
+  <h2>Посмотрим на ваши цифры <em>вместе</em></h2>
+  <p>Пройдите диагностику или напишите в бот — он попросит три файла и расскажет условия.</p>
+  <div class="cta-row"><a class="btn" href="https://t.me/RidFinancebot_bot?start=mp_zapis" target="_blank" rel="noopener" data-goal="order_click">Записаться на разбор</a></div>
+</div></div>
+<div class="wrap"><footer>
+  <span>Татьяна Рид · CFO на аутсорсе · <a href="https://cfo-outsourcing.ridfinance.ru" target="_blank" rel="noopener">для всех ниш</a></span>
+  <span><a href="https://t.me/RidFinancebot_bot" target="_blank" rel="noopener">Личный бот · @RidFinancebot_bot</a> &nbsp;·&nbsp; <a href="https://t.me/Rid_Finance" target="_blank" rel="noopener">Канал · @Rid_Finance</a></span>
+</footer></div>
+
 <script>
+// Диагностика: те же зоны и вопросы, что у бота (формат токена d3, ниша m — маркетплейсы).
+const ZONES = [
+  { key: "deadstock", rate: 1.1, title: "Склад, который не двигается",
+    diag: "Главная зона — остатки. Деньги лежат на складе маркетплейса, а вы ещё платите за хранение.",
+    obs: "Чем дольше позиция без продаж, тем дороже она обходится: хранение плюс цена денег. Уценка через полгода стоит дороже, чем сегодня.",
+    ask: "Какие три артикула держат больше всего денег — и сколько дней они продаются?",
+    todo: ["Выгрузите остатки и умножьте на себестоимость по каждому артикулу", "Отметьте всё, что продаётся дольше 90 дней", "По самому крупному — решите на этой неделе: уценка, вывоз или снятие"] },
+  { key: "receivables", rate: 0.5, title: "Выплата: продажи есть, деньги — потом",
+    diag: "Главная зона — предсказуемость выплаты. Между продажей и деньгами на счёте — отчётный период, возвраты и удержания, которых вы не видите заранее.",
+    obs: "Если выплату узнают по факту, закупку планируют на глаз. Отсюда разрывы и кредиты под оборот.",
+    ask: "Знаете ли вы уже сегодня, сколько придёт по следующему отчёту — с точностью до 10 %?",
+    todo: ["Сравните три последних отчёта: продажи, удержания, выплата в процентах", "Найдите статью, которая колеблется сильнее всего", "Посчитайте выплату следующего периода по этим долям и проверьте по факту"] },
+  { key: "discounts", rate: 1.3, title: "Реклама и акции на ощущениях",
+    diag: "Главная зона — продвижение без расчёта маржи. Кампания может давать ROAS 9 и всё равно продавать в минус после удержаний.",
+    obs: "ДРР считает от выручки, а не от того, что остаётся. Акция маркетплейса поднимает оборот и одновременно съедает маржу по части артикулов.",
+    ask: "По каким артикулам вы сейчас платите за рекламу — и какая у них маржа после всех удержаний?",
+    todo: ["Выпишите артикулы в рекламе и их маржу после удержаний и себестоимости", "Остановите кампании там, где маржа отрицательная", "Бюджет переложите в прибыльные позиции и посмотрите результат через неделю"] },
+  { key: "profitability", rate: 1.0, title: "Непонятно, что кормит, а что тянет вниз",
+    diag: "Главная зона — прибыльность по артикулам. Общая прибыль может быть хорошей, а внутри несколько товаров работают в минус.",
+    obs: "Комиссия и логистика распределяются неравномерно: дешёвые и тяжёлые позиции чаще всего убыточны, и по сводке этого не видно.",
+    ask: "Какие пять артикулов приносят половину прибыли — и какие три её съедают?",
+    todo: ["Загрузите отчёт и себестоимость в бесплатный дашборд", "Отсортируйте товары по прибыли после удержаний", "По каждому убыточному решите: цена, уценка или снятие"] },
+  { key: "cashgap", rate: 0.7, title: "Деньги во времени — самая опасная зона",
+    diag: "Главная зона — разрывы перед закупкой. Товар уже нужно оплатить, а выплата за проданное ещё не пришла.",
+    obs: "Разрыв редко возникает из-за одной причины: обычно это остатки плюс непредсказуемая выплата плюс реклама, оплаченная с баланса.",
+    ask: "Сколько денег будет на счёте в день следующей оплаты поставщику?",
+    todo: ["Выпишите даты и суммы ближайших платежей на месяц", "Поставьте рядом ожидаемые выплаты по отчётам", "Там, где минус — решите заранее: перенос закупки, распродажа остатка или отсрочка"] },
+];
+const Q_TO_ZONE = [4, 3, 2]; // вопросы усиливают: кассовые разрывы, прибыльность, реклама/скидки
+const state = { mp: null, zones: [0, 0, 0, 0, 0], q: ["-", "-", "-"], turn: 5 };
+const fmt = n => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(Math.round(n)) + " ₽";
+
+function estimate() {
+  let rate = 0;
+  ZONES.forEach((z, i) => { if (state.zones[i]) rate += z.rate; });
+  state.q.forEach(v => { if (v === "2") rate += 0.3; else if (v === "1") rate += 0.1; });
+  const monthly = state.turn * 1e6 * rate / 100;
+  document.getElementById("est-m").textContent = fmt(monthly);
+  document.getElementById("est-y").textContent = fmt(monthly * 12);
+}
+function priority() {
+  let best = -1, bestScore = 0;
+  ZONES.forEach((z, i) => {
+    let s = state.zones[i] ? z.rate : 0;
+    Q_TO_ZONE.forEach((zi, qi) => { if (zi === i && state.q[qi] === "2") s += 0.5; if (zi === i && state.q[qi] === "1") s += 0.15; });
+    if (s > bestScore) { bestScore = s; best = i; }
+  });
+  return best;
+}
+function token(p) {
+  // Строго формат d3 бота (TOKEN-SPEC): версия_ниша_зоны5_ответы3_оборот_приоритет. Ниша m — маркетплейсы.
+  return `d3_m_${state.zones.join("")}_${state.q.join("")}_${state.turn}_${p < 0 ? "x" : p}`;
+}
+function verdict() {
+  const v = document.getElementById("verdict");
+  const p = priority();
+  const anything = state.zones.some(Boolean) || state.q.some(x => x !== "-");
+  if (!anything) { v.classList.remove("show"); return; }
+  const z = p >= 0 ? ZONES[p] : null;
+  document.getElementById("v-kick").textContent = z ? "Острый риск · " + ["Склад", "Выплата", "Реклама", "Прибыльность", "Разрывы"][p] : "Острых зон не выявлено";
+  document.getElementById("v-title").textContent = z ? z.title : "Похоже, вы держите цифры в руках";
+  document.getElementById("v-diag").textContent = z ? z.diag : "Ни одна зона не отмечена. Тогда разбор нужен для контроля: проверить, что сводка не скрывает убыточных позиций.";
+  document.getElementById("v-obs").textContent = z ? z.obs : "Даже при хорошей общей прибыли несколько артикулов обычно работают в минус — это видно только после удержаний по каждому.";
+  document.getElementById("v-ask").textContent = z ? z.ask : "Какие три артикула съедают больше всего прибыли?";
+  document.getElementById("v-todo").innerHTML = (z ? z.todo : ["Загрузите отчёт в бесплатный дашборд", "Посмотрите вкладку «Товары» по прибыли", "Если всё в плюсе — можно ничего не менять"]).map(t => `<li>${t}</li>`).join("");
+  document.getElementById("v-send").href = "https://t.me/RidFinancebot_bot?start=" + token(p);
+  v.classList.add("show");
+}
+function refresh() { estimate(); verdict(); }
+
+document.querySelectorAll("#mp .opt").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll("#mp .opt").forEach(x => x.classList.toggle("on", x === b));
+  state.mp = b.dataset.v; refresh();
+}));
+document.querySelectorAll("#zones .zone").forEach(b => b.addEventListener("click", () => {
+  const i = +b.dataset.i; state.zones[i] = state.zones[i] ? 0 : 1; b.classList.toggle("on", !!state.zones[i]); refresh();
+}));
+document.querySelectorAll(".ans").forEach(g => g.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+  g.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+  state.q[+g.dataset.q] = b.dataset.v; refresh();
+})));
+const turn = document.getElementById("turn");
+turn.addEventListener("input", () => { state.turn = +turn.value; document.getElementById("turn-v").textContent = state.turn + " млн ₽"; refresh(); });
+document.querySelectorAll(".faq-q").forEach(b => b.addEventListener("click", () => b.parentElement.classList.toggle("open")));
+
 // Яндекс Метрика: пустой номер — счётчик не подключается и внешних запросов нет.
 const METRIKA_ID = "";
 function track(goal) { try { if (METRIKA_ID && typeof window.ym === "function") window.ym(Number(METRIKA_ID), "reachGoal", goal); } catch (e) { /* ok */ } }
@@ -282,4 +452,5 @@ if (METRIKA_ID) {
   document.head.appendChild(sc);
 }
 document.querySelectorAll("[data-goal]").forEach(a => a.addEventListener("click", () => track(a.dataset.goal)));
+refresh();
 </script>
