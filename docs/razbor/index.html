@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RidFinance · Разбор денег маркетплейса</title>
+<meta name="description" content="Разбор денег маркетплейса за один рабочий день: куда ушли деньги по отчёту WB или Ozon, какие товары в минус, сколько заморожено, налог УСН по правильной базе, что остановить в рекламе. Финансист, а не сервис.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;500;700&display=swap">
+<style>
+:root {
+  --page: #f3f5f4;
+  --surface: #ffffff;
+  --ink: #101917;
+  --muted: #566460;
+  --line: #d6dcda;
+  --teal: #0a655e;
+  --teal-ink: #ffffff;
+  --teal-soft: #dcebe8;
+  --minus: #a01a6e;
+  --minus-soft: #f6e3ee;
+  --plus: #1f7a3a;
+  --bar-base: #c9d6d3;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #0f1716; --surface: #172221; --ink: #eaf0ee; --muted: #9eaca8; --line: #2b3835;
+    --teal: #5fcbb9; --teal-ink: #0b1614; --teal-soft: #1b3330; --minus: #ea8fc6; --minus-soft: #3a2232; --plus: #7fd39a; --bar-base: #33443f;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #0f1716; --surface: #172221; --ink: #eaf0ee; --muted: #9eaca8; --line: #2b3835;
+  --teal: #5fcbb9; --teal-ink: #0b1614; --teal-soft: #1b3330; --minus: #ea8fc6; --minus-soft: #3a2232; --plus: #7fd39a; --bar-base: #33443f;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--page); color: var(--ink); font-family: "Manrope", "Segoe UI", Arial, sans-serif; font-size: 17px; line-height: 1.55; }
+a { color: var(--teal); }
+h1, h2, h3 { font-family: "Unbounded", "Arial Black", Arial, sans-serif; margin: 0; text-wrap: balance; line-height: 1.15; }
+h1 { font-size: clamp(30px, 5vw, 52px); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: clamp(22px, 3vw, 30px); font-weight: 700; }
+h3 { font-size: 17px; font-weight: 700; }
+p { margin: 0; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 22px; }
+.eyebrow { font-size: 12.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.muted { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* шапка */
+.top { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 0; }
+.brand { font-family: "Unbounded", sans-serif; font-weight: 700; font-size: 18px; text-decoration: none; color: var(--ink); }
+.brand span { color: var(--teal); }
+.top .btn { padding: 9px 14px; font-size: 14px; }
+
+/* кнопки */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 22px; border-radius: 10px; font-weight: 700; font-size: 16px; text-decoration: none; border: 1.5px solid var(--teal); background: var(--teal); color: var(--teal-ink); cursor: pointer; font-family: inherit; }
+.btn.ghost { background: transparent; color: var(--teal); }
+.btn:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+.actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.actions .hint { flex-basis: 100%; }
+.hint { font-size: 14px; color: var(--muted); }
+
+/* герой */
+.hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 40px; align-items: center; padding: 36px 0 56px; }
+.hero .lead { font-size: 19px; margin: 18px 0 26px; max-width: 34ch; }
+.hero .lead b { color: var(--ink); }
+
+/* каскад: куда ушли деньги */
+.ledger { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px 16px; }
+.ledger .title { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.ledger .title h3 { font-family: "Manrope", sans-serif; font-size: 15px; }
+.rows { display: grid; gap: 7px; }
+.row { display: grid; grid-template-columns: 118px 1fr 104px; gap: 10px; align-items: center; font-size: 14px; }
+.row .lbl { color: var(--muted); }
+.row .track { position: relative; height: 18px; border-radius: 4px; background: color-mix(in srgb, var(--bar-base) 35%, transparent); }
+.row .bar { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
+.row .bar.base { background: var(--bar-base); }
+.row .bar.minus { background: var(--minus); }
+.row .bar.total { background: var(--teal); }
+.row .bar.plus { background: var(--plus); }
+.row .val { text-align: right; font-weight: 700; }
+.row .val.minus { color: var(--minus); }
+.row.total .lbl, .row.total .val { color: var(--ink); font-weight: 700; }
+.row.total .lbl { color: var(--teal); }
+.ledger .foot { margin-top: 12px; font-size: 13px; color: var(--muted); }
+
+/* находки */
+.finds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.find { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; display: grid; gap: 8px; align-content: start; }
+.find .big { font-family: "Unbounded", sans-serif; font-weight: 700; font-size: 26px; color: var(--minus); line-height: 1.1; }
+.find .big.teal { color: var(--teal); }
+.find p { font-size: 15px; }
+.find .what { font-size: 13px; color: var(--muted); }
+
+section { padding: 56px 0; }
+section + section { border-top: 1px solid var(--line); }
+.sec-head { display: grid; gap: 10px; margin-bottom: 26px; max-width: 62ch; }
+
+/* что получите */
+.gets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 28px; }
+.get { display: grid; grid-template-columns: 28px 1fr; gap: 12px; align-items: start; }
+.get .mark { width: 28px; height: 28px; border-radius: 50%; background: var(--teal-soft); color: var(--teal); display: grid; place-items: center; font-weight: 700; font-size: 14px; }
+.get b { display: block; margin-bottom: 2px; }
+.get p { font-size: 15.5px; color: var(--muted); }
+
+/* как проходит */
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; counter-reset: step; }
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; }
+.step::before { counter-increment: step; content: counter(step); font-family: "Unbounded", sans-serif; font-weight: 700; font-size: 30px; color: var(--teal); display: block; margin-bottom: 8px; line-height: 1; }
+.step h3 { margin-bottom: 6px; }
+.step p { font-size: 15.5px; color: var(--muted); }
+
+/* кому */
+.who { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.who div { padding: 18px 20px; border-left: 3px solid var(--teal); background: var(--surface); border-radius: 0 12px 12px 0; }
+.who h3 { margin-bottom: 6px; }
+.who p { font-size: 15.5px; color: var(--muted); }
+
+/* не сервис */
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+.split ul { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 8px; }
+.free { background: var(--teal-soft); border-radius: 16px; padding: 24px 26px; display: grid; gap: 12px; }
+.free h3 { font-size: 20px; }
+
+/* вопросы */
+.faq { display: grid; gap: 10px; max-width: 760px; }
+details { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
+summary { cursor: pointer; font-weight: 700; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+summary::after { content: "+"; color: var(--teal); font-weight: 700; }
+details[open] summary::after { content: "−"; }
+details p { margin-top: 10px; color: var(--muted); font-size: 15.5px; }
+
+/* финал */
+.final { background: var(--ink); color: var(--page); border-radius: 20px; padding: 40px 36px; display: grid; gap: 18px; }
+.final h2 { color: var(--page); }
+.final .btn { background: var(--page); color: var(--ink); border-color: var(--page); }
+.final .hint { color: color-mix(in srgb, var(--page) 70%, transparent); }
+footer { padding: 26px 0 40px; font-size: 14px; color: var(--muted); display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .hero { grid-template-columns: 1fr; gap: 26px; padding: 20px 0 40px; }
+  .finds, .steps, .who { grid-template-columns: 1fr; }
+  .gets, .split { grid-template-columns: 1fr; }
+  section { padding: 40px 0; }
+  .row { grid-template-columns: 96px 1fr 92px; font-size: 13px; }
+  .top .btn { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="#top">Rid<span>Finance</span></a>
+    <a class="btn" href="https://t.me/RidFinance_bot?start=landing" target="_blank" rel="noopener" data-goal="order_click">Заказать разбор</a>
+  </header>
+
+  <div class="hero" id="top">
+    <div>
+      <div class="eyebrow">Финансист для продавцов Wildberries и Ozon</div>
+      <h1 style="margin-top:12px">Продажи есть. Где деньги?</h1>
+      <p class="lead muted">Разбор денег маркетплейса за один рабочий день: <b>по вашему отчёту о реализации, до рубля</b>, с выводами финансиста, что сделать на этой неделе.</p>
+      <div class="actions">
+        <a class="btn" href="https://t.me/RidFinance_bot?start=landing" target="_blank" rel="noopener" data-goal="order_click">Заказать разбор в Telegram</a>
+        <a class="btn ghost" href="https://ridrid25.github.io/Test-claud-parametr/" target="_blank" rel="noopener">Посчитать самому бесплатно</a>
+        <p class="hint">Условия и стоимость — в боте. Бесплатный расчёт идёт прямо в вашем браузере, файлы никуда не отправляются.</p>
+      </div>
+    </div>
+
+    <figure class="ledger" style="margin:0">
+      <div class="title"><h3>Куда ушли деньги за 47 дней</h3><span class="hint">пример на демо-данных, настоящий расчёт</span></div>
+      <div class="rows num">
+        <div class="row"><span class="lbl">Реализация</span><div class="track"><div class="bar base" style="left:0;width:100%"></div></div><span class="val">1 874 236 ₽</span></div>
+        <div class="row"><span class="lbl">Возвраты</span><div class="track"><div class="bar minus" style="left:93.68%;width:6.32%"></div></div><span class="val minus">−118 372</span></div>
+        <div class="row"><span class="lbl">Комиссия</span><div class="track"><div class="bar minus" style="left:78.62%;width:15.07%"></div></div><span class="val minus">−282 384</span></div>
+        <div class="row"><span class="lbl">Логистика</span><div class="track"><div class="bar minus" style="left:69.53%;width:9.08%"></div></div><span class="val minus">−170 258</span></div>
+        <div class="row"><span class="lbl">Реклама и прочее</span><div class="track"><div class="bar minus" style="left:66.94%;width:2.6%"></div></div><span class="val minus">−48 634</span></div>
+        <div class="row total"><span class="lbl">Выплата</span><div class="track"><div class="bar total" style="left:0;width:66.94%"></div></div><span class="val">1 254 588 ₽</span></div>
+        <div class="row"><span class="lbl">Себестоимость</span><div class="track"><div class="bar minus" style="left:33.96%;width:32.98%"></div></div><span class="val minus">−618 051</span></div>
+        <div class="row total"><span class="lbl">Прибыль</span><div class="track"><div class="bar plus" style="left:0;width:33.96%"></div></div><span class="val">636 537 ₽</span></div>
+      </div>
+      <p class="foot">Так выглядит первая страница разбора. Дальше — по каждому товару.</p>
+    </figure>
+  </div>
+
+  <section>
+    <div class="sec-head">
+      <h2>Что разбор находит на тех же цифрах</h2>
+      <p class="muted">Общая прибыль здесь 636 537 ₽, и по сводке всё хорошо. Внутри — три дыры, которых в отчёте кабинета не видно.</p>
+    </div>
+    <div class="finds num">
+      <div class="find"><div class="big">6 товаров в минус</div><p>Продаются, дают выручку и забирают <b>30 563 ₽</b> за период после всех удержаний и себестоимости.</p><span class="what">убыточные артикулы</span></div>
+      <div class="find"><div class="big">1 032 009 ₽ заморожено</div><p>Лежит в остатках. При цене денег 24 % годовых это <b>31 893 ₽</b> за 47 дней — больше, чем весь убыток по товарам.</p><span class="what">замороженные деньги</span></div>
+      <div class="find"><div class="big">37 258 ₽ на рекламу в минус</div><p>Две кампании крутятся на убыточных товарах: каждая проданная штука увеличивает убыток. Бюджет — в прибыльные позиции.</p><span class="what">реклама от маржи, а не от ДРР</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Что вы получаете</h2>
+      <p class="muted">Один документ и один разговор. Всё сходится с отчётом кабинета до рубля.</p>
+    </div>
+    <div class="gets">
+      <div class="get"><span class="mark">₽</span><div><b>Куда ушли деньги</b><p>Комиссия, логистика, возвраты, хранение, реклама, штрафы — по статьям и по товарам, за выбранный период.</p></div></div>
+      <div class="get"><span class="mark">−</span><div><b>Товары, которые продаются в минус</b><p>После всех удержаний и себестоимости. Сколько забирает каждый и что с ним делать: цена, уценка, снятие.</p></div></div>
+      <div class="get"><span class="mark">❄</span><div><b>Замороженные деньги</b><p>Сколько лежит в остатках, какие позиции держат больше всего и во что это обходится при вашей стоимости денег.</p></div></div>
+      <div class="get"><span class="mark">%</span><div><b>Налог УСН по правильной базе</b><p>С продаж за минусом возвратов, а не с выплаты. Для «доходы минус расходы» — с учётом себестоимости и минимального налога.</p></div></div>
+      <div class="get"><span class="mark">▶</span><div><b>Реклама от маржи</b><p>Какие кампании остановить, какие усилить и сколько бюджета переложить, по статистике кабинета.</p></div></div>
+      <div class="get"><span class="mark">✓</span><div><b>3–5 действий на неделю</b><p>Список с суммой эффекта по каждому пункту и 30 минут разговора, чтобы решить, что делаете первым.</p></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Как проходит</h2>
+    </div>
+    <div class="steps">
+      <div class="step"><h3>Присылаете три файла в бот</h3><p>Отчёт о реализации WB или Ozon за период, себестоимость по артикулам, остатки на складах. Без себестоимости тоже посчитаем, но без прибыли по товарам.</p></div>
+      <div class="step"><h3>Считаем и проверяем</h3><p>Советник на основе торгового агента прогоняет цифры по пяти вопросам, финансист сверяет их с отчётом и пишет выводы. В кабинетах ничего не меняется.</p></div>
+      <div class="step"><h3>Получаете разбор</h3><p>На следующий рабочий день: таблица по статьям, товары в минус, заморозка, налог, реклама, действия. Потом разговор.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Кому это нужно</h2>
+    </div>
+    <div class="who">
+      <div><h3>Селлеру без своего финансиста</h3><p>Оборот от одного миллиона в месяц, продаж много, а на счёте почему-то меньше, чем ожидали. Разбор показывает, куда уходит разница и что вернуть.</p></div>
+      <div><h3>Селлеру с бухгалтером</h3><p>Бухгалтер сдаёт отчётность, но не отвечает «почему выплата упала». Разбор — управленческий слой поверх учёта, с налогом по правильной базе.</p></div>
+      <div><h3>Перед закупкой партии</h3><p>Прежде чем везти новую партию, стоит знать, какие позиции уже в минусе и сколько денег лежит на складе без движения.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="split">
+      <div>
+        <h2>Это не сервис аналитики</h2>
+        <ul>
+          <li>Сервисы показывают таблицы и графики. Здесь вы получаете <b>выводы и действия</b>, написанные человеком, который отвечает за цифры.</li>
+          <li>Считаем <b>от маржи после всех удержаний</b>, а не от ДРР и оборота. Поэтому кампания с ROAS 9 может оказаться убыточной, и мы это покажем.</li>
+          <li>Только чтение: <b>ничего не меняем в ваших кабинетах</b>, ставки и цены трогаете вы.</li>
+          <li>Никаких подписок на «10 000 ₽ в месяц за доступ». Разбор нужен раз в период, сопровождение — по желанию.</li>
+        </ul>
+      </div>
+      <div class="free">
+        <h3>Посчитайте сами, бесплатно</h3>
+        <p>Загрузите выгрузку из кабинета в наш дашборд: выплата, удержания, убыточные товары, налог, заморозка — сразу, без регистрации. Файл обрабатывается в вашем браузере и никуда не отправляется.</p>
+        <p>Там же — пример разбора: настоящие ответы советника на демо-данных.</p>
+        <div class="actions" style="margin-top:6px"><a class="btn ghost" href="https://ridrid25.github.io/Test-claud-parametr/" target="_blank" rel="noopener">Открыть дашборд</a></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Вопросы</h2></div>
+    <div class="faq">
+      <details><summary>Какие файлы нужны и где их взять?</summary><p>Отчёт о реализации: WB — Финансовые отчёты → Отчёт о реализации, Ozon — Финансы → Отчёты → Отчёт о реализации. Себестоимость — любая таблица «артикул, цена за штуку». Остатки — выгрузка со складов. Достаточно CSV или Excel, как выгружает кабинет.</p></details>
+      <details><summary>Куда уходят мои данные?</summary><p>Бесплатный расчёт на сайте идёт в вашем браузере, файлы не отправляются никуда. Для разбора вы присылаете файлы в бот, их видит финансист; в модель советника уходят агрегаты по товарам, не сам файл. После разбора файлы нигде не хранятся.</p></details>
+      <details><summary>Сколько стоит?</summary><p>Стоимость разового разбора и сопровождения — в боте, она зависит от числа артикулов и маркетплейсов. Ориентир: разбор дешевле одного найденного убыточного товара за месяц.</p></details>
+      <details><summary>Сколько ждать?</summary><p>Разбор — на следующий рабочий день после получения файлов. Разговор — в течение недели, в удобное время.</p></details>
+      <details><summary>Вы что-то меняете в моём кабинете?</summary><p>Нет. Доступ к кабинету не нужен. Все решения по ценам, ставкам и остаткам принимаете и выполняете вы, разбор говорит, что и почему.</p></details>
+    </div>
+  </section>
+
+  <section>
+    <div class="final">
+      <h2>Узнайте, где ваши деньги, к завтрашнему дню</h2>
+      <p>Напишите в бот, он попросит три файла и расскажет условия.</p>
+      <div class="actions"><a class="btn" href="https://t.me/RidFinance_bot?start=landing" target="_blank" rel="noopener" data-goal="order_click">Заказать разбор в Telegram</a></div>
+      <p class="hint">Wildberries и Ozon. Только чтение. До рубля.</p>
+    </div>
+  </section>
+
+  <footer>
+    <span>RidFinance · финансист для продавцов маркетплейсов</span>
+    <span><a href="https://t.me/RidFinance_bot" target="_blank" rel="noopener">@RidFinance_bot</a> · <a href="https://ridrid25.github.io/Test-claud-parametr/" target="_blank" rel="noopener">бесплатный дашборд</a></span>
+  </footer>
+</div>
+
+<script>
+// Яндекс Метрика: пустой номер — счётчик не подключается и внешних запросов нет.
+const METRIKA_ID = "";
+function track(goal) { try { if (METRIKA_ID && typeof window.ym === "function") window.ym(Number(METRIKA_ID), "reachGoal", goal); } catch (e) { /* ok */ } }
+if (METRIKA_ID) {
+  const sc = document.createElement("script"); sc.src = "https://mc.yandex.ru/metrika/tag.js"; sc.async = true;
+  sc.onload = () => { try { window.ym(Number(METRIKA_ID), "init", { clickmap: false, trackLinks: true, accurateTrackBounce: true, webvisor: false }); } catch (e) { /* ok */ } };
+  document.head.appendChild(sc);
+}
+document.querySelectorAll("[data-goal]").forEach(a => a.addEventListener("click", () => track(a.dataset.goal)));
+</script>
+</body>
+</html>
