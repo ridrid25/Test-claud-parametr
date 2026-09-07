@@ -202,7 +202,18 @@ html[data-theme="light"] .vrow .ask{color:var(--gold-deep)}
 .step p{font-size:15px;color:var(--muted);max-width:60ch}
 
 /* цены */
-.plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:14px}
+/* живой формат */
+.live-lead{font-family:'Playfair Display',serif;font-size:clamp(21px,3vw,30px);line-height:1.3;color:var(--cream);max-width:30ch;margin-bottom:34px}
+.live-lead b{color:var(--gold);font-weight:700}
+.doubts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:34px}
+.doubt{border:1px solid var(--line);border-radius:6px;padding:20px 22px;background:var(--coal);display:grid;gap:10px;align-content:start}
+.doubt .said{font-family:'Playfair Display',serif;font-style:italic;font-size:18px;color:var(--gold-bright);line-height:1.3}
+html[data-theme="light"] .doubt .said{color:var(--gold-deep)}
+.doubt p{font-size:15px;color:var(--cream-dim)}
+.live-note{margin-top:30px;border-left:2px solid var(--gold);padding:4px 0 4px 20px;font-size:16px;color:var(--cream-dim);max-width:62ch}
+.live-note b{color:var(--cream)}
+@media(max-width:860px){.doubts{grid-template-columns:1fr}}
 .plan{border:1px solid var(--line);border-radius:6px;padding:26px 24px;background:var(--coal);display:grid;gap:10px;align-content:start}
 .plan.hi{border-color:var(--gold);box-shadow:var(--glow)}
 .plan .k{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted)}
@@ -355,6 +366,31 @@ footer a{color:var(--gold);text-decoration:none}
   </div>
 </div></section>
 
+<section id="live"><div class="wrap">
+  <div class="sec-head">
+    <div class="kick">Попробовать своими руками</div>
+    <h2>Про ИИ все слышали. Мало кто пробовал сам</h2>
+    <p>Говорят: прорыв, всё сделает за вас, быстро и удобно. А чтобы попробовать, надо сесть и разбираться: какой сервис, что загрузить, о чём спросить, что значит ответ. На это нет вечера после работы — и большинство так и не пробует.</p>
+  </div>
+  <p class="live-lead">Я предлагаю другое. <b>Сядем вместе на сорок минут — и кнопку нажмёте вы.</b> Не презентация и не чужой пример: ваш файл, ваш вопрос, ваш магазин на экране.</p>
+  <div class="steps">
+    <div class="step" data-n="1"><h3>Созваниваемся, я показываю экран</h3><p>Обычная видеосвязь, где вам удобно. Ничего ставить на компьютер не нужно.</p></div>
+    <div class="step" data-n="2"><h3>Вы загружаете свой отчёт</h3><p>Выгрузка из кабинета как есть. Через пару секунд на экране ваши цифры: выплата, удержания, товары в минус, заморозка. Я рядом и объясняю, что означает каждая.</p></div>
+    <div class="step" data-n="3"><h3>Вы задаёте свой вопрос — своими словами</h3><p>«Какие товары тянут вниз?», «Что выключить в рекламе?», «Какая цена выведет эту позицию в плюс?». Отвечает советник, по вашим данным, при вас.</p></div>
+    <div class="step" data-n="4"><h3>Вместе читаем ответ</h3><p>Что здесь правда, что стоит перепроверить руками, что делать в понедельник. Запись созвона и список действий остаются у вас.</p></div>
+  </div>
+  <div class="doubts">
+    <div class="doubt"><div class="said">«На моих данных это не сработает»</div><p>Может и не сработать — и вы увидите это первой, на своём файле, а не из отзыва на чужом сайте.</p></div>
+    <div class="doubt"><div class="said">«Я в этом не разберусь»</div><p>Разбираться не нужно: загрузить файл и нажать кнопку. Всё остальное объясняю я, пока вы смотрите.</p></div>
+    <div class="doubt"><div class="said">«Мне отдадут отчёт, а я не пойму, откуда цифры»</div><p>Вы увидите, как отчёт собирается, из чего складывается каждая строка и где кончается расчёт и начинается моё мнение.</p></div>
+  </div>
+  <p class="live-note"><b>Честно про ИИ:</b> он не заменяет финансиста. Он делает за минуту счётную работу, на которую у меня уходил день, но он не знает, что поставщик срывает сроки, а склад вы освобождаете к декабрю. Работает связка: он считает, я объясняю, решаете вы. На созвоне видно и то, и другое.</p>
+  <div class="cta-row" style="justify-content:flex-start;margin-top:32px">
+    <a class="btn" href="https://t.me/RidFinancebot_bot?start=mp_live" target="_blank" rel="noopener" data-goal="order_click">Записаться на живой разбор</a>
+    <a class="btn btn-ln" href="https://ridrid25.github.io/Test-claud-parametr/?utm_source=razbor&amp;utm_medium=live" target="_blank" rel="noopener">Сначала посмотреть самой</a>
+  </div>
+</div></section>
+
 <section><div class="wrap">
   <div class="sec-head"><div class="kick">Как это выглядит</div><h2>Первая страница разбора</h2><p>Куда ушли деньги за период — по статьям, в масштабе, до рубля. Дальше в разборе то же самое по каждому товару.</p></div>
   <div class="ledger num">
@@ -392,10 +428,11 @@ footer a{color:var(--gold);text-decoration:none}
 </div></section>
 
 <section><div class="wrap">
-  <div class="sec-head"><div class="kick">Сколько это стоит</div><h2>Три формата</h2></div>
+  <div class="sec-head"><div class="kick">Сколько это стоит</div><h2>Четыре формата</h2><p>Лестница: каждая ступень отвечает на вопрос, который остался после предыдущей.</p></div>
   <div class="plans">
     <div class="plan"><div class="k">Старт</div><h3>Диагностика</h3><div class="price">бесплатно</div><ul><li>две минуты на этой странице</li><li>приоритетная зона и что проверить</li><li>разбор уходит мне в Telegram</li></ul></div>
-    <div class="plan hi"><div class="k">Основное</div><h3>Разбор периода</h3><div class="price">по вашему отчёту<small>стоимость назову после диагностики</small></div><ul><li>куда ушли деньги, до рубля</li><li>товары в минус, заморозка, налог, реклама</li><li>действия на неделю и 30 минут разговора</li></ul></div>
+    <div class="plan hi"><div class="k">Попробовать</div><h3>Живой разбор</h3><div class="price">40 минут<small>стоимость — в боте</small></div><ul><li>вы за рулём, я рядом</li><li>ваш файл, ваш вопрос, ответ при вас</li><li>запись и список действий остаются</li></ul></div>
+    <div class="plan"><div class="k">Основное</div><h3>Разбор периода</h3><div class="price">по вашему отчёту<small>стоимость назову после диагностики</small></div><ul><li>куда ушли деньги, до рубля</li><li>товары в минус, заморозка, налог, реклама</li><li>действия на неделю и 30 минут разговора</li></ul></div>
     <div class="plan"><div class="k">Сопровождение</div><h3>Каждый период</h3><div class="price">ежемесячно<small>после первого разбора</small></div><ul><li>разбор каждого отчётного периода</li><li>контроль налога и остатков</li><li>чат с финансистом</li></ul></div>
   </div>
 </div></section>
@@ -404,6 +441,7 @@ footer a{color:var(--gold);text-decoration:none}
   <div class="sec-head"><div class="kick">Частые вопросы</div><h2>Что спрашивают до разбора</h2></div>
   <div class="faq"><button class="faq-q" type="button">Какие файлы нужны и где их взять?</button><div class="faq-a">Отчёт о реализации: WB — Финансовые отчёты → Отчёт о реализации, Ozon — Финансы → Отчёты → Отчёт о реализации. Себестоимость — любая таблица «артикул, цена за штуку». Остатки — выгрузка со складов. CSV или Excel, как выгружает кабинет.</div></div>
   <div class="faq"><button class="faq-q" type="button">Куда уходят мои данные?</button><div class="faq-a">Бесплатный расчёт на сайте идёт в вашем браузере, файлы никуда не отправляются. Для разбора вы присылаете файлы в бот, их вижу я; в модель советника уходят агрегаты по товарам, не сам файл. После разбора файлы не хранятся.</div></div>
+  <div class="faq"><button class="faq-q" type="button">Я ничего не понимаю в ИИ. Мне подойдёт?</button><div class="faq-a">Подойдёт, для этого и придуман живой разбор. От вас нужно загрузить файл и задать вопрос обычными словами — как спросили бы у знакомого финансиста. Ни настроек, ни установки программ, ни английского. Сорок минут, и станет понятно, что эта технология умеет на ваших цифрах, а что пока нет.</div></div>
   <div class="faq"><button class="faq-q" type="button">Нужен ли доступ к кабинету?</button><div class="faq-a">Нет. Ни к кабинету, ни к рекламе. Все решения по ценам, ставкам и остаткам принимаете и выполняете вы, разбор говорит, что и почему.</div></div>
   <div class="faq"><button class="faq-q" type="button">Чем это отличается от сервиса аналитики?</button><div class="faq-a">Сервисы показывают таблицы и графики за подписку. Здесь вы получаете выводы и действия, написанные финансистом, который отвечает за цифры, и считаем мы от маржи после всех удержаний, а не от оборота и ДРР.</div></div>
   <div class="faq"><button class="faq-q" type="button">Сколько ждать?</button><div class="faq-a">Разбор — на следующий рабочий день после получения файлов. Разговор — в течение недели, в удобное время.</div></div>
