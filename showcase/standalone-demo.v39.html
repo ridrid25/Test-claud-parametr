@@ -1,11 +1,3 @@
-<!doctype html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <title>Финансовый срез — Маркетплейсы</title>
 <style>
 :root {
@@ -183,21 +175,6 @@ body {
 }
 .brand { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 .brand-mark { width: 12px; height: 12px; border-radius: 4px; background: linear-gradient(135deg, var(--wb), var(--ozon)); flex-shrink: 0; }
-/* Предложение услуги: полоса под заголовком и карточка на вкладке «Советник» */
-.offer-strip { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
-  margin: 14px 0 0; padding: 12px 16px; border-radius: 12px;
-  background: color-mix(in srgb, var(--accent-strong) 8%, var(--surface-1)); border: 1px solid color-mix(in srgb, var(--accent-strong) 30%, transparent); font-size: 13.5px; line-height: 1.45; }
-.offer-strip strong { color: var(--accent-strong); }
-.offer-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-a.btn-primary, a.btn { text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
-.offer-card ul { margin: 6px 0 0 18px; padding: 0; }
-.offer-card li { margin: 4px 0; }
-.offer-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 12px; }
-.offer-grid > div { background: var(--surface-2); border-radius: 10px; padding: 12px 14px; font-size: 13.5px; }
-.offer-grid b { display: block; margin-bottom: 4px; }
-.offer-cta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
-.offer-cta .hint { margin: 0; }
-@media (max-width: 720px) { .offer-grid { grid-template-columns: 1fr; } .offer-strip .btn-primary, .offer-strip .btn { flex: 1 1 auto; justify-content: center; } }
 .eyebrow { font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
 .sidebar-title h1 { font-size: 21px; margin: 6px 0 4px; letter-spacing: -0.01em; }
 .muted { color: var(--text-muted); font-size: 13px; }
@@ -652,14 +629,12 @@ th.sorted-desc::after { content: " ↓"; }
 .mp-compare-th-wb { color:#a01a6e !important; }
 .mp-compare-th-oz { color:#005bff !important; }
 </style>
-</head>
-<body>
 
 <div id="app-viewport">
 <div id="phone-scroll">
 <div class="demo-banner">
   🔒 Файлы обрабатываются прямо в вашем браузере и никуда не отправляются. Загрузите CSV-выгрузку ВБ или Ozon на вкладке «Загрузка» — дашборд построится сам.
-  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v40 · 07.09</span>
+  <span style="opacity:.55; font-weight:600; white-space:nowrap; margin-left:6px">сборка v39 · 06.09</span>
 </div>
 
 <div class="layout">
@@ -729,14 +704,6 @@ th.sorted-desc::after { content: " ↓"; }
       <div class="eyebrow">Финансовый срез</div>
       <h2>Выручка, удержания и выплаты</h2>
     </header>
-
-    <div class="offer-strip" id="offer-strip">
-      <div><strong>Разбор денег маркетплейса за 1 день.</strong> Куда ушли деньги по статьям, какие товары продаются в минус, сколько заморожено в остатках, налог УСН по правильной базе, что остановить в рекламе — по вашему отчёту, до рубля.</div>
-      <div class="offer-actions">
-        <a class="btn-primary" id="offer-order" href="https://t.me/RidFinance_bot?start=site" target="_blank" rel="noopener" data-goal="order_click">Заказать разбор в Telegram</a>
-        <button class="btn" id="offer-example" type="button">Пример разбора</button>
-      </div>
-    </div>
 
     <nav class="tabs" role="tablist">
       <button class="tab active" role="tab" aria-selected="true" aria-controls="panel-uploads" id="tab-uploads" data-tab="uploads"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Загрузка</button>
@@ -860,30 +827,6 @@ th.sorted-desc::after { content: " ↓"; }
     </section>
 
     <section class="tab-panel" data-panel="advisor" role="tabpanel" id="panel-advisor" aria-labelledby="tab-advisor" hidden>
-      <div class="card offer-card" id="offer-card">
-        <div class="card-header">
-          <h3>Разбор по вашим данным</h3>
-          <span class="muted">услуга финансиста: советник считает, человек проверяет и пишет выводы</span>
-        </div>
-        <p style="margin:0 0 6px">Здесь, на сайте, вы бесплатно видите свои цифры. Разбор — это то же самое по вашему отчёту, но с ответами советника и выводами финансиста, что делать. Что получаете за один рабочий день:</p>
-        <ul>
-          <li>Куда ушли деньги: комиссия, логистика, возвраты, хранение, штрафы — по статьям и по товарам, до рубля с отчётом кабинета.</li>
-          <li>Какие товары продаются в минус после всех удержаний и сколько они забирают за период.</li>
-          <li>Сколько денег заморожено в остатках и во что это обходится при вашей стоимости денег.</li>
-          <li>Налог УСН по правильной базе: с продаж, а не с выплаты, с учётом возвратов.</li>
-          <li>Реклама от маржи: какие кампании остановить, какие усилить, сколько бюджета переложить.</li>
-          <li>Список из 3–5 действий на ближайшую неделю и 30 минут разговора по нему.</li>
-        </ul>
-        <div class="offer-grid">
-          <div><b>1. Присылаете три файла</b>Отчёт о реализации WB или Ozon за период, себестоимость по артикулам, остатки на складах. Без себестоимости тоже посчитаем, но без прибыли по товарам.</div>
-          <div><b>2. Считаем и проверяем</b>Советник прогоняет ваши цифры по пяти вопросам, финансист сверяет их с отчётом и пишет выводы. Ничего в кабинетах не меняется.</div>
-          <div><b>3. Получаете разбор</b>Таблица по статьям, товары в минус, заморозка, налог, реклама и действия. На следующий рабочий день.</div>
-        </div>
-        <div class="offer-cta">
-          <a class="btn-primary" href="https://t.me/RidFinance_bot?start=site_advisor" target="_blank" rel="noopener" data-goal="order_click">Заказать разбор в Telegram</a>
-          <p class="hint">Условия и стоимость — в боте. Ниже — пример того, что вы получите: настоящие ответы советника на демо-данных этого сайта.</p>
-        </div>
-      </div>
       <div class="card">
         <div class="card-header">
           <h3>Советник по вашим данным</h3>
@@ -4282,33 +4225,6 @@ async function fetchCabinetAds() {
   } finally { btn.disabled = false; }
 }
 
-/* ==== Предложение услуги и учёт целей ==== */
-
-// Номер счётчика Яндекс Метрики. Пустой — Метрика не подключается и ничего никуда не уходит.
-// С номером: считаются посещения и три цели (order_click, file_loaded, advisor_click);
-// содержимое файлов Метрике недоступно, оно не покидает браузер.
-const METRIKA_ID = "";
-function track(goal) {
-  try { if (METRIKA_ID && typeof window.ym === "function") window.ym(Number(METRIKA_ID), "reachGoal", goal); } catch { /* ok */ }
-}
-function setupOffer() {
-  if (METRIKA_ID) {
-    const sc = document.createElement("script");
-    sc.src = "https://mc.yandex.ru/metrika/tag.js"; sc.async = true;
-    sc.onload = () => { try { window.ym(Number(METRIKA_ID), "init", { clickmap: false, trackLinks: true, accurateTrackBounce: true, webvisor: false }); } catch { /* ok */ } };
-    document.head.appendChild(sc);
-    const plate = document.querySelector(".demo-banner");
-    if (plate) plate.insertAdjacentText("beforeend", " Статистика посещений собирается Яндекс Метрикой; содержимое файлов ей недоступно.");
-  }
-  document.querySelectorAll("[data-goal]").forEach(a => a.addEventListener("click", () => track(a.dataset.goal)));
-  document.getElementById("offer-example").addEventListener("click", () => {
-    document.getElementById("tab-advisor").click();
-    const card = document.getElementById("offer-card");
-    if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
-    askAdvisor("digest", null);
-  });
-}
-
 /* ==== Советник: агрегаты → сервер с ключом → ответ агента ==== */
 
 // Записанные настоящие ответы советника на демо-данных сайта (5 стандартных вопросов).
@@ -4422,7 +4338,6 @@ async function askAdvisor(mode, question) {
   const payload = buildAdvisorPayload(mode, question);
   if (!payload.rows.length) { setAdvisorStatus("По текущему фильтру нет строк.", true); return; }
   advisorBusy = true;
-  track("advisor_click");
   document.querySelectorAll("#panel-advisor button").forEach(b => (b.disabled = true));
   try {
     // Демо без сервера: показываем записанный настоящий ответ, а не ошибку связи.
@@ -4539,7 +4454,7 @@ function loadWithMapping(file, sig, formMarketplace, headers, dataRows, fileFixe
   if ("marketplace" in idxByField) ff.push("маркетплейс берётся из колонки файла");
   if (!("commission" in idxByField)) ff.push("комиссия рассчитана косвенно (нет колонки комиссии)");
   state.files.push({ id: state.nextId++, name: file.name, marketplace: formMarketplace, fileFixes: ff, rows, sig });
-  uploadStats.loaded++; track("file_loaded");
+  uploadStats.loaded++;
 }
 
 function resolveRemembered(remembered, headers) {
@@ -4625,7 +4540,7 @@ function loadOzonLong(file, sig, headers, dataRows, fileFixes) {
   clearDemoData(); // свой файл замещает демо — смешивать демо с реальными данными нельзя
   const ff = [...fileFixes, "формат Ozon «Начисления»: суммы разложены по статьям из «Группы услуг» и «Типа начисления»"];
   state.files.push({ id: state.nextId++, name: file.name, marketplace: "ozon", fileFixes: ff, rows, sig });
-  uploadStats.loaded++; track("file_loaded");
+  uploadStats.loaded++;
 }
 
 async function processNextUpload() {
@@ -4962,7 +4877,6 @@ setupUploads();
 setupCostUpload();
 setupStockUpload();
 setupAdsUpload();
-setupOffer();
 setupAdvisor();
 setupFinSettings();
 setupExport();
@@ -4971,5 +4885,3 @@ renderUploadsList();
 refresh();
 initDemo();
 </script>
-</body>
-</html>
