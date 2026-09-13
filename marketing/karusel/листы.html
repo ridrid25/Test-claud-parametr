@@ -1,0 +1,292 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<style>
+@font-face{font-family:PS;src:url("fonts/IBMPlexSerif-Bold.ttf");font-weight:700}
+@font-face{font-family:PS;src:url("fonts/IBMPlexSerif-Regular.ttf");font-weight:400}
+@font-face{font-family:PS;src:url("fonts/IBMPlexSerif-Italic.ttf");font-weight:400;font-style:italic}
+@font-face{font-family:JB;src:url("fonts/JetBrainsMono-Bold.ttf");font-weight:700}
+@font-face{font-family:JB;src:url("fonts/JetBrainsMono-Regular.ttf");font-weight:400}
+@font-face{font-family:PM;src:url("fonts/IBMPlexMono-Regular.ttf");font-weight:400}
+:root{
+  --paper:#E9DFC9; --paper2:#F2EADA; --ink:#16140E; --green:#173F36; --green2:#0F2F28;
+  --ochre:#B47A1C; --brick:#8E2A1E; --line:rgba(22,20,14,.30);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#555;font-family:PS,serif}
+.sheet{position:relative;width:1080px;height:1350px;overflow:hidden;background:var(--paper);color:var(--ink);
+  padding:64px 72px 60px;display:flex;flex-direction:column;margin:0 0 24px}
+.sheet.dark{background:var(--green);color:var(--paper2);--line:rgba(233,223,201,.30)}
+/* бумага: тонкая фактура */
+.sheet::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.028) 0 1px,transparent 1px 4px);mix-blend-mode:multiply}
+.sheet.dark::after{background:repeating-linear-gradient(0deg,rgba(255,255,255,.030) 0 1px,transparent 1px 4px);mix-blend-mode:screen}
+/* тик-метки по левому полю */
+.ticks{position:absolute;left:30px;top:150px;bottom:130px;width:14px;
+  background:repeating-linear-gradient(180deg,currentColor 0 1px,transparent 1px 30px);opacity:.28}
+.ticks.r{left:auto;right:30px}
+
+.head{display:flex;justify-content:space-between;align-items:baseline;
+  font-family:PM;font-size:23px;letter-spacing:.16em;text-transform:uppercase;opacity:.85}
+.rule{height:1px;background:currentColor;opacity:.34;margin:16px 0 0}
+.rule.thick{height:3px;opacity:.85}
+
+.kick{font-family:PM;font-size:27px;letter-spacing:.15em;text-transform:uppercase;color:var(--ochre);margin:0 0 18px}
+.sheet.dark .kick{color:#E0A93F}
+h1{font-family:PS;font-weight:700;font-size:104px;line-height:.94;letter-spacing:-.018em}
+h2{font-family:PS;font-weight:700;font-size:78px;line-height:.98;letter-spacing:-.015em}
+.lead{font-family:PS;font-size:38px;line-height:1.28;max-width:900px}
+
+.fig{font-family:JB;font-weight:700;letter-spacing:-.035em;font-size:150px;line-height:.9;white-space:nowrap}
+.fig.xl{font-size:126px}
+.fig.ochre{color:var(--ochre)} .sheet.dark .fig.ochre{color:#E7B450}
+.fig.brick{color:var(--brick)} .sheet.dark .fig.brick{color:#E08466}
+.fig.green{color:var(--green)}
+.figlab{font-family:PM;font-size:25px;letter-spacing:.16em;text-transform:uppercase;opacity:.8;margin-bottom:10px}
+
+.rows{width:100%}
+.row{display:flex;align-items:baseline;gap:16px;padding:15px 0;border-bottom:1px solid var(--line)}
+.row .nm{font-family:PS;font-size:41px;white-space:nowrap}
+.row .nm small{font-family:PM;font-size:24px;letter-spacing:.08em;opacity:.8;margin-left:14px}
+.row .dots{flex:1;border-bottom:2px dotted var(--line);transform:translateY(-10px)}
+.row .am{font-family:JB;font-weight:700;font-size:44px;letter-spacing:-.03em;white-space:nowrap}
+.row.total{border-bottom:none;border-top:3px solid currentColor;margin-top:12px;padding-top:22px}
+.row.total .nm{font-size:46px;font-weight:700}
+.row.total .am{font-size:66px;color:var(--green)}
+.sheet.dark .row.total .am{color:#E7B450}
+.row .am.neg{color:var(--brick)} .sheet.dark .row .am.neg{color:#E08466}
+
+.bar{height:16px;background:var(--ochre);opacity:.9}
+.sheet.dark .bar{background:#E7B450}
+
+.note{font-family:PS;font-style:italic;font-size:32px;line-height:1.3;opacity:.86}
+.foot{display:flex;justify-content:space-between;align-items:center;font-family:PM;font-size:23px;
+  letter-spacing:.15em;text-transform:uppercase;opacity:.8}
+.grow{flex:1}
+.sp{height:28px} .sp2{height:44px}
+.addr{font-family:JB;font-weight:700;font-size:74px;letter-spacing:-.02em;color:var(--ochre)}
+.sheet.dark .addr{color:#E7B450}
+.gapbar{display:flex;height:74px;width:100%;border:2px solid currentColor}
+.gapbar .paid{background:#E7B450}
+.gapbar .lost{background:repeating-linear-gradient(135deg,rgba(231,180,80,.55) 0 9px,transparent 9px 20px)}
+.gaplab{display:flex;justify-content:space-between;font-family:PM;font-size:26px;letter-spacing:.1em;
+  text-transform:uppercase;margin-top:14px;opacity:.9}
+.qa{border-left:6px solid var(--ochre);padding-left:28px}
+.sheet.dark .qa{border-color:#E7B450}
+.qa .q{font-family:PS;font-style:italic;font-size:46px;line-height:1.22}
+.qa .a{font-family:PS;font-size:38px;line-height:1.3;margin-top:18px}
+.ix{font-family:JB;font-weight:700;color:var(--ochre);margin-right:20px}
+.sheet.dark .ix{color:#E7B450}
+.bar.brickbar{background:var(--brick);opacity:.85}
+.sheet.dark .bar.brickbar{background:#C9634A;opacity:1}
+.row.slim{padding:11px 0}
+.row.slim .nm{font-size:36px}
+.row.slim .am{font-size:38px}
+.row.bare{border-bottom:none;padding:6px 0}
+.tag{display:inline-block;font-family:PM;font-size:24px;letter-spacing:.14em;text-transform:uppercase;
+  border:2px solid currentColor;padding:10px 18px;margin:0 12px 12px 0}
+</style></head><body>
+
+<!-- 01 -->
+<div class="sheet dark" id="s1"><div class="ticks"></div><div class="ticks r"></div>
+  <div class="head"><span>Финсрез · МП</span><span>Лист 01 / 08</span></div><div class="rule"></div>
+  <div class="sp2"></div>
+  <div class="kick">Продавцам Wildberries и Ozon</div>
+  <h1>Продали на<br>1 874 236&nbsp;₽.<br>Пришло<br>1 254 588&nbsp;₽.</h1>
+  <div class="sp2"></div>
+  <div class="gapbar"><div class="paid" style="width:66.9%"></div><div class="lost" style="width:33.1%"></div></div>
+  <div class="gaplab"><span>Пришло 66,9%</span><span>Ушло 33,1%</span></div>
+  <div class="grow"></div>
+  <div class="figlab">Разница за 47 дней</div>
+  <div class="fig xl ochre">−619 648&nbsp;₽</div>
+  <div class="sp"></div>
+  <div class="lead">Один отчёт маркетплейса, разобранный по статьям: видно, из чего сложилась эта разница.</div>
+  <div class="sp2"></div><div class="rule"></div><div class="sp"></div>
+  <div class="foot"><span>06.05 — 21.06</span><span>Листайте →</span></div>
+</div>
+
+<!-- 02 -->
+<div class="sheet" id="s2"><div class="ticks"></div><div class="ticks r"></div>
+  <div class="head"><span>Регистр 01 · Сверка</span><span>Лист 02 / 08</span></div><div class="rule"></div>
+  <div class="sp"></div>
+  <h2>От продажи<br>до выплаты</h2>
+  <div class="sp"></div>
+  <div class="rows">
+    <div class="row"><span class="nm">Реализация</span><span class="dots"></span><span class="am">1 874 236&nbsp;₽</span></div>
+    <div class="row"><span class="nm">Возвраты</span><span class="dots"></span><span class="am neg">−118 372&nbsp;₽</span></div>
+    <div class="row"><span class="nm">Комиссия МП</span><span class="dots"></span><span class="am neg">−282 384&nbsp;₽</span></div>
+    <div class="row"><span class="nm">Логистика</span><span class="dots"></span><span class="am neg">−170 258&nbsp;₽</span></div>
+    <div class="row"><span class="nm">Продвижение</span><span class="dots"></span><span class="am neg">−41 189&nbsp;₽</span></div>
+    <div class="row"><span class="nm">Хранение</span><span class="dots"></span><span class="am neg">−5 925&nbsp;₽</span></div>
+    <div class="row"><span class="nm">Штрафы и прочее</span><span class="dots"></span><span class="am neg">−1 520&nbsp;₽</span></div>
+    <div class="row total"><span class="nm">К выплате</span><span class="dots"></span><span class="am">1 254 588&nbsp;₽</span></div>
+  </div>
+  <div class="grow"></div>
+  <div class="note">Сходится с кабинетом до рубля. Расхождение — это ошибка, а не «примерно сошлось».</div>
+  <div class="sp"></div><div class="rule"></div><div class="sp"></div>
+  <div class="foot"><span>Маркетплейс забрал 26,7%</span><span>02</span></div>
+</div>
+
+<!-- 03 -->
+<div class="sheet" id="s3"><div class="ticks"></div><div class="ticks r"></div>
+  <div class="head"><span>Регистр 02 · Убыль</span><span>Лист 03 / 08</span></div><div class="rule"></div>
+  <div class="sp"></div>
+  <div class="kick">Продаются, а денег не приносят</div>
+  <h2>Шесть товаров<br>работают в минус</h2>
+  <div class="sp"></div>
+  <div class="rows">
+    <div class="row"><span class="nm">Пледы CozyNest 23<small>WB-023</small></span><span class="dots"></span><span class="am neg">−14 766&nbsp;₽</span></div>
+    <div class="row"><span class="nm">Пледы Aurelka 21<small>WB-021</small></span><span class="dots"></span><span class="am neg">−6 773&nbsp;₽</span></div>
+    <div class="row"><span class="nm">Тарелки Keramo 16<small>OZ-016</small></span><span class="dots"></span><span class="am neg">−4 810&nbsp;₽</span></div>
+    <div class="row"><span class="nm">Пледы CozyNest 22<small>WB-022</small></span><span class="dots"></span><span class="am neg">−2 495&nbsp;₽</span></div>
+    <div class="row"><span class="nm">Тарелки Keramo 13<small>OZ-013</small></span><span class="dots"></span><span class="am neg">−1 548&nbsp;₽</span></div>
+    <div class="row"><span class="nm">Худи Aurelka 02<small>WB-002</small></span><span class="dots"></span><span class="am neg">−171&nbsp;₽</span></div>
+    <div class="row total"><span class="nm">Итого убыток</span><span class="dots"></span><span class="am" style="color:#8E2A1E">−30 563&nbsp;₽</span></div>
+  </div>
+  <div class="grow"></div>
+  <div class="note">Выручка по ним есть, прибыли нет: себестоимость и удержания съедают выплату.</div>
+  <div class="sp"></div><div class="rule"></div><div class="sp"></div>
+  <div class="foot"><span>Убрать или переоценить</span><span>03</span></div>
+</div>
+
+<!-- 04 -->
+<div class="sheet dark" id="s4"><div class="ticks"></div><div class="ticks r"></div>
+  <div class="head"><span>Регистр 03 · Остатки</span><span>Лист 04 / 08</span></div><div class="rule"></div>
+  <div class="sp2"></div>
+  <div class="figlab">Заморожено в товаре на складе</div>
+  <div class="fig xl ochre">1 032 009&nbsp;₽</div>
+  <div class="sp2"></div>
+  <h2 style="font-size:62px">Эти деньги стоят<br>31 893&nbsp;₽ за 47 дней</h2>
+  <div class="sp"></div>
+  <div class="lead">Больше, чем весь убыток по товарам. Склад — это не запас, это касса, закрытая на ключ.</div>
+  <div class="sp2"></div>
+  <div class="rows">
+    <div class="row slim"><span class="nm">WB-019 · 400 шт · запас 361 день</span><span class="dots"></span><span class="am">136 000&nbsp;₽</span></div>
+    <div class="row bare"><div style="flex:1"><div class="bar" style="width:100%"></div></div></div>
+    <div class="row slim"><span class="nm">WB-002 · 340 шт · 5 продаж за месяц</span><span class="dots"></span><span class="am">92 140&nbsp;₽</span></div>
+    <div class="row bare"><div style="flex:1"><div class="bar" style="width:67.7%"></div></div></div>
+    <div class="row slim"><span class="nm">WB-022 · 70 шт · маржа −31,4%</span><span class="dots"></span><span class="am">85&nbsp;190&nbsp;₽</span></div>
+    <div class="row bare"><div style="flex:1"><div class="bar" style="width:62.6%"></div></div></div>
+    <div class="row slim"><span class="nm">OZ-013 · реклама при минусе</span><span class="dots"></span><span class="am">66&nbsp;300&nbsp;₽</span></div>
+    <div class="row bare"><div style="flex:1"><div class="bar" style="width:48.8%"></div></div></div>
+    <div class="row slim"><span class="nm">WB-003 · 55 шт · запас 185 дней</span><span class="dots"></span><span class="am">63&nbsp;360&nbsp;₽</span></div>
+    <div class="row bare"><div style="flex:1"><div class="bar" style="width:46.6%"></div></div></div>
+    <div class="row slim" style="border-bottom:none"><span class="nm">Ещё 11 позиций</span><span class="dots"></span><span class="am">589&nbsp;019&nbsp;₽</span></div>
+  </div>
+  <div class="grow"></div>
+  <div class="sp"></div>
+  <div class="note">Пять позиций держат 442&nbsp;990&nbsp;₽ — почти половину склада.</div>
+  <div class="sp"></div>
+  <div class="rule"></div><div class="sp"></div>
+  <div class="foot"><span>Ставка денег 24% годовых</span><span>04</span></div>
+</div>
+
+<!-- 05 -->
+<div class="sheet" id="s5"><div class="ticks"></div><div class="ticks r"></div>
+  <div class="head"><span>Регистр 04 · Налог</span><span>Лист 05 / 08</span></div><div class="rule"></div>
+  <div class="sp"></div>
+  <div class="kick">УСН «Доходы», 6%</div>
+  <h2>Налог берут<br>не с того,<br>что пришло</h2>
+  <div class="sp"></div>
+  <div class="rows">
+    <div class="row"><span class="nm">База налога<small>реализация − возвраты</small></span><span class="dots"></span><span class="am">1&nbsp;755&nbsp;864&nbsp;₽</span></div>
+    <div class="row"><span class="nm">Пришло на счёт</span><span class="dots"></span><span class="am">1&nbsp;254&nbsp;588&nbsp;₽</span></div>
+  </div>
+  <div class="sp2"></div>
+  <div class="figlab">Налог за период</div>
+  <div class="fig ochre">105&nbsp;352&nbsp;₽</div>
+  <div class="sp2"></div>
+  <div class="rows">
+    <div class="row slim"><span class="nm">Как надо — с базы</span><span class="dots"></span><span class="am">105&nbsp;352&nbsp;₽</span></div>
+    <div class="row bare"><div style="flex:1"><div class="bar" style="width:100%"></div></div></div>
+    <div class="row slim"><span class="nm">Если с того, что пришло</span><span class="dots"></span><span class="am neg">75&nbsp;275&nbsp;₽</span></div>
+    <div class="row bare"><div style="flex:1"><div class="bar brickbar" style="width:71.4%"></div></div></div>
+  </div>
+  <div class="grow"></div>
+  <div class="note">Разница 30&nbsp;077&nbsp;₽ — это недоплата, которую потом всё равно найдут.</div>
+  <div class="sp"></div><div class="rule"></div><div class="sp"></div>
+  <div class="foot"><span>Считается по правильной базе</span><span>05</span></div>
+</div>
+
+<!-- 06 -->
+<div class="sheet dark" id="s6"><div class="ticks"></div><div class="ticks r"></div>
+  <div class="head"><span>Регистр 05 · Советник</span><span>Лист 06 / 08</span></div><div class="rule"></div>
+  <div class="sp"></div>
+  <div class="kick">Вопрос своими словами</div>
+  <h2 style="font-size:70px">Спрашивайте<br>как у человека</h2>
+  <div class="sp2"></div>
+  <div class="qa">
+    <div class="q">— Продажи выросли, а денег меньше. Почему?</div>
+    <div class="a">— Реклама на 37 258&nbsp;₽ идёт на товары с отрицательной маржой: каждая проданная штука увеличивает убыток. Две кампании стоит остановить.</div>
+  </div>
+  <div class="sp"></div>
+  <div class="qa">
+    <div class="q">— Что вытягивает, а что топит?</div>
+    <div class="a">— Семь позиций дают 80% прибыли — 516&nbsp;016&nbsp;₽. Шесть других съедают 30&nbsp;563&nbsp;₽.</div>
+  </div>
+  <div class="sp"></div>
+  <div class="rows">
+    <div class="row slim"><span class="nm">Реклама на минусовых SKU</span><span class="dots"></span><span class="am neg">37&nbsp;258&nbsp;₽</span></div>
+    <div class="row slim" style="border-bottom:none"><span class="nm">Кампаний под остановку</span><span class="dots"></span><span class="am">2</span></div>
+  </div>
+  <div class="grow"></div>
+  <div class="note">Отвечает по вашим цифрам, а не по общим советам. Только читает — правки вы делаете сами.</div>
+  <div class="sp"></div><div class="rule"></div><div class="sp"></div>
+  <div class="foot"><span>Без посредника-переводчика</span><span>06</span></div>
+</div>
+
+<!-- 07 -->
+<div class="sheet" id="s7"><div class="ticks"></div><div class="ticks r"></div>
+  <div class="head"><span>Регистр 06 · Порядок</span><span>Лист 07 / 08</span></div><div class="rule"></div>
+  <div class="sp"></div>
+  <div class="kick">Как это устроено</div>
+  <h2>Файл не уходит<br>с компьютера</h2>
+  <div class="sp"></div>
+  <div class="rows">
+    <div class="row"><span class="nm">Отправлено на сервер</span><span class="dots"></span><span class="am">0 файлов</span></div>
+    <div class="row"><span class="nm">Регистрация</span><span class="dots"></span><span class="am">не нужна</span></div>
+    <div class="row"><span class="nm">Заявка и звонок</span><span class="dots"></span><span class="am">не нужны</span></div>
+    <div class="row"><span class="nm">Отчёт готов через</span><span class="dots"></span><span class="am">2 минуты</span></div>
+  </div>
+  <div class="sp2"></div>
+  <div class="figlab">Считается прямо в браузере</div>
+  <div class="fig green" style="font-size:92px">CSV → отчёт</div>
+  <div class="sp"></div>
+  <div class="figlab">Что покажет отчёт</div>
+  <div class="rows">
+    <div class="row slim"><span class="nm"><b class="ix">01</b> Куда ушли деньги по статьям</span></div>
+    <div class="row slim"><span class="nm"><b class="ix">02</b> Какие товары работают в минус</span></div>
+    <div class="row slim"><span class="nm"><b class="ix">03</b> Сколько заморожено в остатках</span></div>
+    <div class="row slim" style="border-bottom:none"><span class="nm"><b class="ix">04</b> Налог по правильной базе</span></div>
+  </div>
+  <div class="grow"></div>
+  <div class="sp"></div><div class="rule"></div><div class="sp"></div>
+  <div class="foot"><span>Ничего никуда не отправляется</span><span>07</span></div>
+</div>
+
+<!-- 08 -->
+<div class="sheet dark" id="s8"><div class="ticks"></div><div class="ticks r"></div>
+  <div class="head"><span>Итог</span><span>Лист 08 / 08</span></div><div class="rule"></div>
+  <div class="sp2"></div>
+  <h1 style="font-size:92px">Посмотрите<br>свои цифры<br>сами</h1>
+  <div class="sp2"></div>
+  <div class="rows">
+    <div class="row"><span class="nm">Загрузить свою выгрузку</span><span class="dots"></span><span class="am">бесплатно</span></div>
+    <div class="row"><span class="nm">Кабинеты по ключу и советник</span><span class="dots"></span><span class="am">платно</span></div>
+  </div>
+  <div class="sp2"></div>
+  <div class="figlab">Что было видно на листах выше</div>
+  <div class="rows">
+    <div class="row slim"><span class="nm">Не дошло до счёта</span><span class="dots"></span><span class="am">619&nbsp;648&nbsp;₽</span></div>
+    <div class="row slim"><span class="nm">Съели товары в минус</span><span class="dots"></span><span class="am">30&nbsp;563&nbsp;₽</span></div>
+    <div class="row slim" style="border-bottom:none"><span class="nm">Лежит на складе</span><span class="dots"></span><span class="am">1&nbsp;032&nbsp;009&nbsp;₽</span></div>
+  </div>
+  <div class="grow"></div>
+  <div class="sp"></div>
+  <div class="figlab">Открыть в браузере</div>
+  <div class="addr">mp.ridfinance.ru</div>
+  <div class="sp"></div>
+  <div class="lead">Понравится — настроите под себя: ставки, себестоимость, режим налога.</div>
+  <div class="sp2"></div><div class="rule thick"></div><div class="sp"></div>
+  <div class="foot"><span>Wildberries · Ozon</span><span>@Rid_Finance</span></div>
+</div>
+
+</body></html>
