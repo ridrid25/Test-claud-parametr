@@ -47,6 +47,11 @@ Chroma Loop (dream/adventures) — активная; island-hop, jumpbot,
 cyber-blue — витрины/игрушки.
 
 ## Инфраструктура и личное (не продукты)
+- ai-planner-balance опубликован (https://ridrid25.github.io/
+  ai-planner-balance/), но остаётся личным инструментом: интерфейс
+  захардкожен под владелицу («Доброе утро, Татьяна») — в воронку и
+  витрины не включать; публичная ссылка с именем расходится с
+  каноном «сервис, не персона».
 rid-finance (контент-система: автопостинг, бот заявок), vibepost /
 content-factory-personal, telegram-bots (реестр 20 ботов),
 pomoshchnik-naznacheniya-vstrech («Calendly в Telegram», продвинут),
