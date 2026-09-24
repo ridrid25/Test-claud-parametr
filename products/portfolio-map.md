@@ -19,6 +19,11 @@
   ликвидность, ROE, ДЗ/КЗ). До созревания mirage — канонический.
 - «Lovable Insights» — финмодель NPV/IRR/окупаемость (Lovable,
   published) — кандидат в демо оффера «финмодель под ключ».
+- Контроль качества продаж: https://happysalescontrol.lovable.app/
+  (happy-sales-trail: план-факт, маржа, оплаты, дебиторка, риск
+  кассового разрыва) — вместе с Sales Motivation Hub и лендингом
+  Motivation-offer образует оффер-кластер «продажи под контролем
+  цифр» для собственника/РОП.
 БЛИЗКО: mirage / «Mirage of profit» (прогнозный дашборд, не
 опубликован), financial-command-center, happy-sales-trail («Remix of
 Sales Motivation Hub» — published), vibefin-ai (концепт),
