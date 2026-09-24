@@ -12,9 +12,17 @@
   УСН/АУСН/ОСНО с НДС, PDF-отчёт. Прямо в тему воронки.
 - cfo-agent — бот-«финдиректор» по Google-таблице клиента, ~190
   тестов. Ядро идеи «цифры без посредника».
-БЛИЗКО: mirage (прогнозный дашборд, 8 итераций), financial-command-
-center (канонический из трёх дашбордов), happy-sales-trail,
-vibefin-ai (концепт-витрина), stage-analytics-suite.
+ОПУБЛИКОВАНО (адреса подтверждены 24.09):
+- TaxWise: https://tax-wise-calculator-ru.lovable.app/
+- CFO-дашборд: https://fin-dashboard-appscript.lovable.app/ —
+  живая витрина для линии Б вне маркетплейсов (деньги, прибыль,
+  ликвидность, ROE, ДЗ/КЗ). До созревания mirage — канонический.
+- «Lovable Insights» — финмодель NPV/IRR/окупаемость (Lovable,
+  published) — кандидат в демо оффера «финмодель под ключ».
+БЛИЗКО: mirage / «Mirage of profit» (прогнозный дашборд, не
+опубликован), financial-command-center, happy-sales-trail («Remix of
+Sales Motivation Hub» — published), vibefin-ai (концепт),
+stage-analytics-suite.
 КОНФЛИКТ С ПРАВИЛОМ «сервис, не персона» (11.09): cfo-outsourcing-
 landing, rid-visit-site (+ частично Motivation-offer).
 МЕРТВО: Ozon-wild-fintablo (пустой), DebtControl (дамп).
