@@ -89,8 +89,9 @@ ai-planner-balance (личный).
 Монетизация (цены утверждены 24.09): внедрение от 30 000 руб.
 разово, точная цена после брифа + сопровождение 9 900 руб./мес,
 отключается в любой месяц. Аудитория: малый/средний бизнес с 1С и
-таблицами, без финдиректора. Страница: landing/vibefin.html
-(docs/vibefin/), ответы бота на анкету: products/vibefin-bot.md.
+таблицами, без финдиректора. Продукт живёт в ridrid25/vibefin-ai
+(landing.html + bot-replies.md + концепт index.html); опубликованная
+копия страницы пока здесь: docs/vibefin/ → mp.ridfinance.ru/vibefin/.
 
 ## Решения
 1. В воронку линии А добавить taxwise-calculator (апселл/вторая
@@ -107,3 +108,13 @@ ai-planner-balance (личный).
 5. Скиллы: financial-model-builder закладывается в оффер линии Б
    «финмодель под ключ» как ускоритель производства; отдельно —
    кандидат в товар для аудитории экспертов-вайбкодеров.
+
+## Разнос по репозиториям (28.09.2026)
+Test-claud-parametr = только сервис маркетплейсов: пайплайн (etl,
+connectors, dashboard, advisor, agent_pilot), сайт mp.ridfinance.ru
+(docs/, showcase/), воронка селлеров (products/, bot-letters),
+реклама сервиса (reel_3veshi + scripts-ugc/reel-3veshi, генераторы
+make_calc/make_dashboard/make_pdfs).
+Вынесено: ролики Chroma Loop → ridrid25/chroma-loop-dream (папка
+reels/, PR #1 смержен); VibeFin (лендинг + бот) → ridrid25/vibefin-ai
+(PR #2 смержен).
