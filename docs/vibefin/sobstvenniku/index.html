@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Аргумент для собственника</title>
+<meta name="description" content="Одна страница для собственника: зачем бизнесу один экран с цифрами, почему это окупится и что при этом не изменится. VibeFin — дашборд из 1С, Фреша и таблиц.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,900&family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --void:#08080d; --coal:#0f0e16; --ink:#16141f;
+  --gold:#d8b25e; --gold-bright:#f3d690; --gold-deep:#9c7826;
+  --cream:#f3ecdf; --cream-dim:#cbc3b6; --muted:#857d92; --muted-2:#5f586e;
+  --line:rgba(216,178,94,.16);
+  color-scheme: dark;
+}
+:root:not([data-theme="dark"]){color-scheme: dark}
+html[data-theme="light"]{
+  --void:#faf7f1; --coal:#ffffff; --ink:#f3efe6;
+  --gold:#9c7826; --gold-bright:#c9a24a; --gold-deep:#7a5d1c;
+  --cream:#1a1610; --cream-dim:#4a4336; --muted:#6f6858; --muted-2:#a39b8a;
+  --line:rgba(156,120,38,.28);
+  color-scheme: light;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Manrope',sans-serif;background:var(--void);color:var(--cream);line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2{font-family:'Playfair Display',serif;line-height:1.1;margin:0;text-wrap:balance}
+p{margin:0}
+a{color:var(--gold)}
+.wrap{max-width:720px;margin:0 auto;padding:48px 24px 64px}
+.kick{font-size:12px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:18px}
+h1{font-size:clamp(28px,6vw,42px);font-weight:900;margin-bottom:14px}
+.lead{font-size:17px;color:var(--cream-dim);margin-bottom:36px;max-width:56ch}
+h2{font-size:22px;font-weight:700;color:var(--gold);margin:36px 0 12px}
+.block p,.block li{font-size:16px;color:var(--cream-dim)}
+ul{margin:0;padding:0;list-style:none;display:grid;gap:9px}
+li{display:flex;gap:11px}
+li::before{content:"◆";color:var(--gold);font-size:10px;margin-top:8px;flex:none}
+.cards{display:grid;gap:10px;margin-top:4px}
+.card{border:1px solid var(--line);border-radius:6px;background:var(--coal);padding:16px 18px}
+.card b{color:var(--cream);font-size:16px}
+.card p{font-size:15px;color:var(--muted);margin-top:4px}
+.note{border-left:2px solid var(--gold);padding:4px 0 4px 16px;font-size:15.5px;color:var(--cream-dim);margin-top:20px}
+.note b{color:var(--cream)}
+.price{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--gold)}
+.btn{display:inline-block;margin-top:26px;text-decoration:none;font-weight:700;font-size:16px;padding:16px 28px;border-radius:2px;background:linear-gradient(110deg,var(--gold-bright),var(--gold));color:#1a1206}
+footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+footer a{text-decoration:none}
+@media print{
+  body{background:#fff;color:#1a1610}
+  :root{--void:#fff;--coal:#fff;--gold:#7a5d1c;--cream:#1a1610;--cream-dim:#333;--muted:#555;--line:#ccc}
+  .btn{display:none}
+  .wrap{padding:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kick">VibeFin · одна страница для решения</div>
+  <h1>Зачем бизнесу один экран с цифрами</h1>
+  <p class="lead">Эту страницу вам переслал человек, который работает с вашими цифрами каждый день. Здесь всё, что нужно, чтобы решить: три минуты чтения.</p>
+
+  <div class="block">
+    <h2>Что это</h2>
+    <p>Ваши источники — 1С, 1С:Фреш, таблицы — связываются в один экран, где каждое утро видно три вещи: <b style="color:var(--cream)">сколько денег сейчас</b> (и кто вам должен), <b style="color:var(--cream)">сколько прибыли в этом месяце</b> и <b style="color:var(--cream)">где и когда будет кассовый разрыв</b>. Без запроса бухгалтеру и ожидания «к пятнице». Если бизнес — это точки, объекты, рейсы или заказы, прибыль видна по каждому.</p>
+  </div>
+
+  <div class="block">
+    <h2>Почему это окупится</h2>
+    <div class="cards">
+      <div class="card"><b>Цена вопроса — <span class="price">от 30 000 ₽</span> разово</b><p>Примерно месяц работы бухгалтера. Точная цена называется после короткого брифа, до него — никаких обязательств.</p></div>
+      <div class="card"><b>Окупается первым же случаем</b><p>Один предотвращённый кассовый разрыв, одна найденная утечка или одно решение, принятое на неделю раньше, стоят больше внедрения.</p></div>
+      <div class="card"><b>Каждая цифра сходится с учётом до рубля</b><p>Расхождение считается ошибкой, а не «примерно сошлось». Пока не сошлось — работа не сдана.</p></div>
+    </div>
+  </div>
+
+  <div class="block">
+    <h2>Что при этом не изменится</h2>
+    <ul>
+      <li>Учёт остаётся вашим и ведётся как вёлся. Бухгалтер остаётся вашим. Ничего не переезжает.</li>
+      <li>Доступы — только на чтение: изменить документ или проводку через них нельзя. Создаёт их ваш бухгалтер по инструкции, отзываются одной кнопкой в любой момент.</li>
+      <li>Наружу не уходит ничего: дашборд ваш, доступ к нему — только у тех, кому вы его дали.</li>
+    </ul>
+  </div>
+
+  <div class="block">
+    <h2>Что нужно от вас</h2>
+    <ul>
+      <li>15 минут на бриф в переписке: что за бизнес и на какие три вопроса цифры должны отвечать лично вам.</li>
+      <li>Сказать бухгалтеру создать доступы на чтение (инструкция по шагам, это 20–30 минут его времени).</li>
+      <li>Через одну–три недели — принять сверенный дашборд. Дальше по желанию: сопровождение 9 900 ₽/мес, отключается в любой месяц.</li>
+    </ul>
+    <p class="note"><b>Если подключить ваш учёт нельзя</b> — это выяснится на брифе, до денег, а не после.</p>
+  </div>
+
+  <a class="btn" href="../">Посмотреть страницу сервиса и задать три вопроса</a>
+
+  <footer>VibeFin · финансовый дашборд для бизнеса на 1С и таблицах · <a href="https://t.me/RidFinancebot_bot">@RidFinancebot_bot</a> · <a href="https://t.me/Rid_Finance">@Rid_Finance</a></footer>
+</div>
+</body>
+</html>
